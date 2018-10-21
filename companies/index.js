@@ -1,6 +1,10 @@
+//Incluimos modulo express para el manejo HTTP
 const express = require('express');
+//Creamos el router
 const router = express.Router();
+//Incluimos modulo Joi para la validaciond de datos
 const Joi = require('joi');
+//Incluimos modulo propio con pool de conexion a DB
 let pool = require('../database/connection');
 
 //Todas las rutas empiezan con /api/companies

@@ -8,12 +8,17 @@ const pg = require('pg');
 const cors = require('cors');
 //Incluimos modulo Joi para la validaciond de datos
 const Joi = require('joi');
+
+//Inclusion de modulos propios
+
 //Incluimos conexion a la base de datos
 let pool = require('./database/connection');
 //Incluimos autenticacion
-const auth = require('./auth/index');
-const users = require('./users/index');
-const companies = require('./companies/index');
+const authRoutes = require('./auth/index');
+//Incluimos ruteo de usuarios
+const usersRoutes = require('./users/index');
+//Incluimos ruteo de empresas
+const companiesRoutes = require('./companies/index');
 
 //Establecemos el puerto segun variable de ambiente del servidor o 3000 para ambiente de desarrollo
 const PORT = process.env.PORT || 3000;
@@ -29,10 +34,10 @@ app.use(bodyParser.urlencoded({ extended : true }));
 //     next();
 // });
 
-//Monstamos redireccion de ruteo de autenticacion
-app.use('/api/auth', auth);
-app.use('/api/users', users);
-app.use('/api/companies', companies);
+//Monstamos ruteos propios
+app.use('/api/auth', authRoutes);
+app.use('/api/users', usersRoutes);
+app.use('/api/companies', companiesRoutes);
 
 //Levanta servicio de escucha en el puerto indicado
 app.listen(PORT, () => console.log(`Escuchando en Puerto: ${PORT}`));

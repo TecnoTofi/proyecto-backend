@@ -3,16 +3,16 @@ const express = require('express');
 //Incluimos modulo body-parser para complementar express
 const bodyParser = require('body-parser');
 //Incluimos modulo PG para conectar con base de datos PostgreSQL
-const pg = require('pg');
+// const pg = require('pg');
 //Incluimos modulo CORS para conectar con frontend React
 const cors = require('cors');
 //Incluimos modulo Joi para la validaciond de datos
-const Joi = require('joi');
+// const Joi = require('joi');
 
 //Inclusion de modulos propios
 
 //Incluimos conexion a la base de datos
-let pool = require('./database/connection');
+// let pool = require('./db/connection');
 //Incluimos autenticacion
 const authRoutes = require('./auth/index');
 //Incluimos ruteo de usuarios
@@ -27,7 +27,7 @@ const PORT = process.env.PORT || 3000;
 const app = express();
 app.use(cors());
 app.use(bodyParser.json());
-app.use(bodyParser.urlencoded({ extended : true }));
+app.use(bodyParser.urlencoded({ extended : false }));
 // app.use((req, res, next) => {
 //     res.header("Access-Control-Allow-Origin", "*");
 //     res.header("Access-Control-Allow-Headers", "Origin, X-Requested-With, Content-Type, Accept");

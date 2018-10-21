@@ -5,7 +5,7 @@ const router = express.Router();
 //Incluimos modulo Joi para la validaciond de datos
 const Joi = require('joi');
 //Incluimos modulo propio con pool de conexion a DB
-let pool = require('../database/connection');
+let pool = require('../db/connection');
 
 //Todas las rutas empiezan con /api/users
 
@@ -20,7 +20,7 @@ router.get('/types', (req, res) => {
             return res.status(500).send({ message: `Error al conectar con la base de datos : ${err}`});
         }
         //Envio consulta SELECT
-        db.query('SELECT * FROM "role"', (err, typesTable) => {
+        db.query('SELECT * FROM "dbo.Role"', (err, typesTable) => {
             done();
             //Si hubo error en el select, tiro para afuera
             if(err){

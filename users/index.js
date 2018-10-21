@@ -1,0 +1,32 @@
+const express = require('express');
+const router = express.Router();
+const Joi = require('joi');
+let pool = require('../database/connection');
+
+//Todas las rutas empiezan con /api/users
+
+//Ruta para obtener el listado de Roles de usuario
+router.get('/types', (req, res) => {
+    console.log('Conexion GET entrante : /api/users/types');
+
+    pool.connect((err, db, done) => {
+        //Si hubo problemas de conexion con la DB, tiro para afuera
+        if(err){
+            console.log(`Error al conectar con la base de datos : ${err}`);
+            return res.status(500).send({ message: `Error al conectar con la base de datos : ${err}`});
+        }
+        //Envio consulta SELECT
+        db.query('SELECT * FROM "role"', (err, typesTable) => {
+            done();
+            //Si hubo error en el select, tiro para afuera
+            if(err){
+                console.log(`Error en la query Select de role : ${err}`);
+                return res.status(500).send({ message: `Error en la query Select de role: ${err}`});
+            }
+            console.log('Informacion de Roles enviada');
+            return res.status(200).send(typesTable.rows);
+        })
+    })
+});
+
+module.exports = router;

@@ -17,7 +17,7 @@ router.get('/types', (req, res) => {
         //Si hubo problemas de conexion con la DB, tiro para afuera
         if(err){
             console.log(`Error al conectar con la base de datos : ${err}`);
-            return res.status(500).send({ message: `Error al conectar con la base de datos : ${err}`});
+            return res.status(500).json({ message: `Error al conectar con la base de datos : ${err}`});
         }
         //Envio consulta SELECT
         db.query('SELECT * FROM "dbo.CompanyCategory"', (err, typesTable) => {
@@ -25,10 +25,10 @@ router.get('/types', (req, res) => {
             //Si hubo error en el select, tiro para afuera
             if(err){
                 console.log(`Error en la query Select de companyCategory : ${err}`);
-                return res.status(500).send({ message: `Error en la query Select de companyCategory: ${err}`});
+                return res.status(500).json({ message: `Error en la query Select de companyCategory: ${err}`});
             }
             console.log('Informacion de Company Category enviada');
-            return res.status(200).send(typesTable.rows);
+            return res.status(200).json(typesTable.rows);
         })
     })
 });

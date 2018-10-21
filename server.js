@@ -2,6 +2,8 @@
 const express = require('express');
 //Incluimos modulo body-parser para complementar express
 const bodyParser = require('body-parser');
+
+const cookieParser = require('cookie-parser');
 //Incluimos modulo PG para conectar con base de datos PostgreSQL
 // const pg = require('pg');
 //Incluimos modulo CORS para conectar con frontend React
@@ -28,6 +30,8 @@ const app = express();
 app.use(cors());
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended : false }));
+// app.use(cookieParser(process.env.COOKIE_SECRET));
+app.use(cookieParser('keyboard_cat'));
 // app.use((req, res, next) => {
 //     res.header("Access-Control-Allow-Origin", "*");
 //     res.header("Access-Control-Allow-Headers", "Origin, X-Requested-With, Content-Type, Accept");

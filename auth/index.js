@@ -12,26 +12,82 @@ let pool = require('../db/connection');
 //Todas las rutas empieza con /api/auth
 
 router.get('/', (req, res) => {
-    res.json({message: '😄'});
+    res.json('funca');
 })
+
+router.post('/login', (req, res) => {
+    console.log('Conexion POST entrante : /api/login');
+
+    let {error} = validarLogin(req.body);
+
+    if(error){
+        console.log(`Error en la validacion : ${error}`);
+        return res.status(400).json({message: error.details[0].message});
+    }
+
+    pool.connect((err, db, done) => {
+
+        if(err){
+            console.log(`Error al conectar con la base de datos : ${err}`);
+            return res.status(500).json({ message: `Error al conectar con la base de datos : ${err}`});
+        }
+
+        db.query('select * from "dbo.User" where email = $1', [req.body.userEmail], (err, user) => {
+            done();
+
+            if(err){
+                console.log(`Error en la query SELECT de users : ${err}`);
+                return res.status(500).json({ message: `Error en la query SELECT de users: ${err}`});
+            }
+            if(user.rowCount > 0){
+                //hash
+                bcrypt
+                    .compare(req.body.userPassword, user.rows[0].password)
+                    .then((result => {
+
+                        if(result){
+                            //armando cookie
+                            res.cookie('user_id', user.rows[0].id, {
+                                httpOnly: true,
+                                // secure: true,
+                                signed: true
+                            });
+                            res.json({
+                                message: 'Logged'
+                            });
+                        }
+                        else{
+                            res.json({message: 'Usuario o contraseña incorrectos.'});
+                        }
+                    }))
+            }
+            else{
+                res.json({message: 'Usuario o contraseña incorrectos.'});
+            }
+        })
+    })
+
+});
 
 //Ruta para regsitro de usuarios-empresas
 //Mejorar esta funcion, las queries son dependientes
+//Se puede usar KNEX
+//Falta verificar que no exista aun
 router.post('/signup', (req, res) => {
-    console.log('Conexion POST entrante : /api/register');
+    console.log('Conexion POST entrante : /api/signup');
     //valido datos
     const {error} = validarRegistroEmpresas(req.body);
     //Si falla la validacion tiro para afuera
     if(error){
         console.log(`Error en la validacion : ${error}`);
-        return res.status(400).send({message: error.details[0].message});
+        res.status(400).json({message: error.details[0].message});
     }
     //encripto la contraseña
     bcrypt.hash(req.body.userPassword, 10, (err, hash) => {
         //Si falla la encriptacion, tiro para afuera
         if(err){
             console.log(`Error al crear hash : ${err}`);
-            return res.status(500).json({error: err});
+            res.status(500).json({error: err});
         }
         else{
             //conecto a la base de datos
@@ -39,7 +95,7 @@ router.post('/signup', (req, res) => {
                 //Si hubo problemas de conexion con la DB, tiro para afuera
                 if(err){
                     console.log(`Error al conectar con la base de datos : ${err}`);
-                    return res.status(500).send({ message: `Error al conectar con la base de datos : ${err}`});
+                    res.status(500).json({ message: `Error al conectar con la base de datos : ${err}`});
                 }
 
                 let company = [
@@ -58,7 +114,7 @@ router.post('/signup', (req, res) => {
                     //Si hubo error en el insert, tiro para afuera
                     if(err){
                         console.log(`Error en la query INSERT de empresas : ${err}`);
-                        return res.status(500).send({ message: `Error en la query INSERT de empresas: ${err}`});
+                        res.status(500).json({ message: `Error en la query INSERT de empresas: ${err}`});
                     }
         
                     console.log(`Empresa insertada : ${req.body.companyName}`);
@@ -70,7 +126,7 @@ router.post('/signup', (req, res) => {
                         //Si hubo error en el select, tiro para afuera
                         if(err){
                             console.log(`Error en la query Select de empresas : ${err}`);
-                            return res.status(500).send({ message: `Error en la query Select de empresas: ${err}`});
+                            res.status(500).json({ message: `Error en la query Select de empresas: ${err}`});
                         }
                         
                         let companyId = companyTable.rows[0].id;
@@ -95,13 +151,13 @@ router.post('/signup', (req, res) => {
                             //Si hubo error en el insert, tiro para afuera
                             if(err){
                                 console.log(`Error en la query INSERT de usuarios : ${err}`);
-                                return res.status(500).send({ message: `Error en la query INSERT de usuarios: ${err}`});
+                                res.status(500).json({ message: `Error en la query INSERT de usuarios: ${err}`});
                             }
                 
                             console.log(`Usuario insertado : ${req.body.userName}`);
                         });
                     });
-                    return res.status(201).send({ message: 'Alta exitosa'});
+                    res.status(201).json({ message: 'Alta exitosa'});
                 });
             });
         }
@@ -124,11 +180,19 @@ function validarRegistroEmpresas(body){
         companyName: Joi.string().min(3).max(50).required(),
         companyRut: Joi.string().min(12).max(12).required(),
         companyPhone: Joi.string().min(7).max(15).required(),
-        companyFirstStreet: Joi.string().max(30),
-        companySecondStreet: Joi.string().max(30),
-        companyDoorNumber: Joi.string().max(15),
+        companyFirstStreet: Joi.string().max(30).required(),
+        companySecondStreet: Joi.string().max(30).required(),
+        companyDoorNumber: Joi.string().max(15).required(),
         category: Joi.number().required(),
         role: Joi.number().required()
+    };
+    return Joi.validate(body, schema);
+}
+
+function validarLogin(body){
+    const schema = {
+        userEmail: Joi.string().min(6).max(50).email().required(),
+        userPassword: Joi.string().min(8).max(20).required()
     };
     return Joi.validate(body, schema);
 }

@@ -27,7 +27,9 @@ const PORT = process.env.PORT || 3000;
 
 //Inicializamos APP
 const app = express();
-app.use(cors());
+app.use(cors({
+    credentials: true
+}));
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended : false }));
 // app.use(cookieParser(process.env.COOKIE_SECRET));

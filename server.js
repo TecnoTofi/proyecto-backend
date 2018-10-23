@@ -33,7 +33,7 @@ app.use(cors({
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended : false }));
 // app.use(cookieParser(process.env.COOKIE_SECRET));
-app.use(cookieParser('keyboard_cat'));
+app.use(cookieParser());
 // app.use((req, res, next) => {
 //     res.header("Access-Control-Allow-Origin", "*");
 //     res.header("Access-Control-Allow-Headers", "Origin, X-Requested-With, Content-Type, Accept");
@@ -46,4 +46,7 @@ app.use('/api/users', usersRoutes);
 app.use('/api/companies', companiesRoutes);
 
 //Levanta servicio de escucha en el puerto indicado
-app.listen(PORT, () => console.log(`Escuchando en Puerto: ${PORT}`));
+app.listen(PORT, (error) => {
+    if(error) console.log(`Error interno al levantar servicio : ${error}`);
+    console.log(`Escuchando en Puerto: ${PORT}`);
+});

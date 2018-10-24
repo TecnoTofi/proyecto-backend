@@ -3,57 +3,35 @@ const express = require('express');
 //Creamos el router
 const router = express.Router();
 //Incluimos modulo Joi para la validaciond de datos
-const Joi = require('joi');
+// const Joi = require('joi');
 //Incluimos modulo propio con pool de conexion a DB
-let pool = require('../db/connection');
-
+// let pool = require('../db/connection');
+const CompanyRoutes = require('./routes');
+// const VerifyToken = require('../auth/verifyToken');
+const jwt = require('jsonwebtoken');
 //Todas las rutas empiezan con /api/companies
+const secreto = 'keyboard_cat';
+
+function verifyToken (req, res, next){
+    console.log(req.headers.token);
+    if(!req.headers.token){
+        console.log('Token invalido, acceso no autorizado');
+        res.status(401).json({message: 'Acceso no autorizado'});
+    }
+    const token = req.headers.token;
+    jwt.verify(token, secreto, (error, userData) => {
+        if(error){
+            console.log(`Error en la verificacion del token : ${error}`);
+            res.status(422).json({message: `Error en la verificacion del token : ${error}`});
+        }
+        req.user = userData;
+        next();
+    });
+}
 
 //Ruta para obtener el listado de companyCategory
-router.get('/types', (req, res) => {
-    console.log('Conexion GET entrante : /api/companies/types');
-
-    pool.connect((err, db, done) => {
-        //Si hubo problemas de conexion con la DB, tiro para afuera
-        if(err){
-            console.log(`Error al conectar con la base de datos : ${err}`);
-            return res.status(500).json({ message: `Error al conectar con la base de datos : ${err}`});
-        }
-        //Envio consulta SELECT
-        db.query('SELECT * FROM "dbo.CompanyCategory"', (err, typesTable) => {
-            done();
-            //Si hubo error en el select, tiro para afuera
-            if(err){
-                console.log(`Error en la query Select de companyCategory : ${err}`);
-                return res.status(500).json({ message: `Error en la query Select de companyCategory: ${err}`});
-            }
-            console.log('Informacion de Company Category enviada');
-            return res.status(200).json(typesTable.rows);
-        })
-    })
-});
-
-router.get('/', (req, res) => {
-    console.log('Conexion GET entrante : /api/listadoCompanies/companies');
-
-    pool.connect((err, db, done) => {
-        //Si hubo problemas de conexion con la DB, tiro para afuera
-        if(err){
-            console.log(`Error al conectar con la base de datos : ${err}`);
-            return res.status(500).json({ message: `Error al conectar con la base de datos : ${err}`});
-        }
-        //Envio consulta SELECT
-        db.query('SELECT * FROM "dbo.Company"', (err, companies) => {
-            done();
-            //Si hubo error en el select, tiro para afuera
-            if(err){
-                console.log(`Error en la query Select de company : ${err}`);
-                return res.status(500).json({ message: `Error en la query Select de company: ${err}`});
-            }
-            console.log('Listado de companias enviado');
-            return res.status(200).json(companies.rows);
-        })
-    })
-});
+router.get('/types', CompanyRoutes.categories);
+router.get('/', CompanyRoutes.companies);
 
 module.exports = router;
+// export default router;

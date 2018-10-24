@@ -18,6 +18,7 @@ const login = (req, res) => {
         console.log(`Error en la validacion : ${error}`);
         return res.status(400).json({message: error.details[0].message});
     }
+    console.log('Pasa validacion de datos');
 
     pool.connect((err, db, done) => {
 
@@ -25,44 +26,81 @@ const login = (req, res) => {
             console.log(`Error al conectar con la base de datos : ${err}`);
             return res.status(500).json({ message: `Error al conectar con la base de datos : ${err}`});
         }
-
+        console.log('Conexion con DB correcta');
+        console.log('Enviando query SELECT a User');
         db.query('select * from "dbo.User" where email = $1', [req.body.userEmail], (err, user) => {
-            done();
+            // done();
 
             if(err){
                 console.log(`Error en la query SELECT de users : ${err}`);
                 return res.status(500).json({ message: `Error en la query SELECT de users: ${err}`});
             }
+            console.log('Query SELECT de User correcta');
             if(user.rowCount > 0){
+                console.log('Usuario obtenido correctamente');
+                console.log('Enviando query SELECT a Role');
+                db.query('select name from "dbo.Role" where id = $1', [user.rows[0].roleId], (err, type) => {
+                    done();
+
+                    if(err){
+                        console.log(`Error en la query SELECT de ROLE : ${err}`);
+                        return res.status(500).json({ message: `Error en la query SELECT de ROLE: ${err}`});
+                    }
+                    console.log('Query SELECT a Role correcta');
+                    console.log('Encriptando contraseña para comparacion');
+                
                 //hash
-                bcrypt
-                    .compare(req.body.userPassword, user.rows[0].password)
-                    .then((result => {
+                    bcrypt
+                        .compare(req.body.userPassword, user.rows[0].password)
+                        .then(result => {
 
                         if(result){
+                            console.log('Comparacion correcta');
                             const {userEmail, userPassword} = req.body;
+                            console.log('Firmando token');
                             jwt.sign({userEmail, userPassword}, secreto, {expiresIn: '1h'}, (error, token) => {
                                 if(error){
                                     console.log(`Error al firmar el token : ${error}`);
                                     res.status(500).json({message: 'Error al firmar el token'});
                                 }
+                                console.log('Token firmado correctamente');
+                                
                                 res.cookie('access_token', token, {
                                     maxAge: new Date(Date.now() + 3600),
                                     httpOnly: false
-                                }); 
-                                res.status(200).json({message: 'Loggeado correctamente', token: token});
+                                });
+                                console.log(`Tipo: ${type.rows[0].name}`);
+                                console.log(`Email: ${user.rows[0].email}`);
+                                console.log(`Name: ${user.rows[0].name}`);
+                                console.log(`ID: ${user.rows[0].id}`);
+
+                                let data = {
+                                    userType: type.rows[0].name,
+                                    userName: user.rows[0].name,
+                                    userEmail: user.rows[0].email,
+                                    userId: user.rows[0].id
+                                };
+
+                                res.status(200).json({
+                                    message: 'Loggeado correctamente',
+                                    token: token,
+                                    userData: data
+                                });
+                                console.log('Loggin correcto');
+                                console.log('Response enviada correctamente');
                             });
-                        }
+                        }//if de bcrypt
                         else{
                             res.json({message: 'Usuario o contraseña incorrectos.'});
                         }
-                    }))
-            }
+                    });
+                });
+            }//if de rows > 0
             else{
                 res.json({message: 'Usuario o contraseña incorrectos.'});
             }
-        })
-    })
+        });
+    });
 };
 
 //funcion de ruteo de cierre de sesion

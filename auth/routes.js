@@ -40,15 +40,6 @@ const login = (req, res) => {
                     .then((result => {
 
                         if(result){
-                            //armando cookie
-                            // res.cookie('user_id', user.rows[0].id, {
-                            //     httpOnly: true,
-                            //     // secure: true,
-                            //     signed: true
-                            // });
-                            // res.json({
-                            //     message: 'Logged'
-                            // });
                             const {userEmail, userPassword} = req.body;
                             jwt.sign({userEmail, userPassword}, secreto, {expiresIn: '1h'}, (error, token) => {
                                 if(error){
@@ -58,8 +49,8 @@ const login = (req, res) => {
                                 res.cookie('access_token', token, {
                                     maxAge: new Date(Date.now() + 3600),
                                     httpOnly: false
-                                });
-                                res.status(200).json({message: 'Loggeado correctamente'});
+                                }); 
+                                res.status(200).json({message: 'Loggeado correctamente', token: token});
                             });
                         }
                         else{
@@ -78,7 +69,7 @@ const login = (req, res) => {
 const logout = (req, res) => {
     res.clearCookie('access_token', req.cookies.access_token, {
         maxAge: new Date(Date.now() + 3600),
-                                    httpOnly: false
+        httpOnly: false
     });
     res.status(200).json({message: 'Cierre de sesion exitoso'});
 }

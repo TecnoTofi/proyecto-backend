@@ -10,7 +10,7 @@ const AuthRoutes = require('./routes');
 
 //Todas las rutas empieza con /api/auth
 
-// export function verificarToken(req, res, next) {
+// function verificarToken(req, res, next) {
 //     if(!req.cookies.access_token){
 //         console.log('Token invalido, acceso no autorizado');
 //         res.status(401).json({message: 'Token invalido, acceso no autorizado'});

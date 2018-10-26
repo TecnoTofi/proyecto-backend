@@ -4,7 +4,6 @@ const Joi = require('joi');
 //Incluimos modulo de encriptacion de contraseñas
 const bcrypt = require('bcrypt');
 //Incluimos modulo propio con pool de conexion a DB
-// let pool = require('../db/connection');
 const userQueries = require('../users/dbQueries');
 const companyQueries = require('../companies/dbQueries');
 
@@ -39,7 +38,7 @@ async function login(req, res){
 
         let rol = await userQueries
                             .roles
-                            .getRolById(user[0].roleId)
+                            .getRolById(user.roleId)
                             .then(rol => {
                                 console.log(rol);
                                 if(rol) return rol
@@ -51,7 +50,7 @@ async function login(req, res){
                             });
 
         bcrypt
-            .compare(req.body.userPassword, user[0].password)
+            .compare(req.body.userPassword, user.password)
             .then(result => {
 
                 if(result){
@@ -71,7 +70,7 @@ async function login(req, res){
                         });
 
                         let data = {
-                            userType: rol[0].name,
+                            userType: rol.name,
                             userName: user.name,
                             userEmail: user.email,
                             userId: user.id
@@ -81,7 +80,7 @@ async function login(req, res){
 
                         res.status(200).json({
                             message: 'Loggeado correctamente',
-                            token: token,
+                            // token: token,
                             userData: data
                         });
                         console.log('Loggin correcto');

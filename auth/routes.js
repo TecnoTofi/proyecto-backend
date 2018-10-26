@@ -160,14 +160,14 @@ const logout = (req, res) => {
 
 
 //funcion de ruteo de registro
-const signup = (req, res) => {
+async function signup(req, res){
     console.log('Conexion POST entrante : /api/signup');
     
     //valido datos
     console.log('Iniciando validacion de tipos de datos de User');
-    const validacionUsuarios = ValidarTipoDatosUsuario(req.body.userData);
+    const validacionUsuarios = await ValidarTipoDatosUsuario(req.body.userData);
     console.log('Iniciando validacion de tipos de datos de Company');
-    const validacionEmpresas = validarTipoDatosEmpresa(req.body.companyData);
+    const validacionEmpresas = await validarTipoDatosEmpresa(req.body.companyData);
 
     // Si falla la validacion tiro para afuera
     if(validacionUsuarios.error && validacionEmpresas.error){
@@ -194,78 +194,83 @@ const signup = (req, res) => {
     }
     else{
         console.log('Validaciones de tipos de usuario correctas');
-        console.log('Comenzado encryptacion de contraseña');
 
-        //validar existencia
+        const erroresexistencia = await ValidarExistenciaDatos(req.body);
 
-        //encripto la contraseña
-        bcrypt.hash(req.body.userData.userPassword, 10, (err, hash) => {
-            //Si falla la encriptacion, tiro para afuera
-            if(err){
-                console.log(`Error al crear hash : ${err}`);
-                res.status(500).json({error: err});
-            }
-            else{
-                console.log('Encryptacion de contraseña, correcta');
-                console.log('Preparacion de registro de empresa');
-                const companyData = {
-                    name: req.body.companyData.companyName,
-                    rut: req.body.companyData.companyRut,
-                    firstStreet: req.body.companyData.companyFirstStreet,
-                    secondStreet: req.body.companyData.companySecondStreet,
-                    doorNumber: req.body.companyData.companyDoorNumber,
-                    phone: req.body.companyData.companyPhone,
-                    categoryId: req.body.companyData.category
-                };
-
-                let companyId;
-                console.log('Enviando query INSERT de Company');
-                companyQueries
-                    .companies
-                    .insertCompany(companyData)
-                    .then(res => {
-                        companyId = res;
-                    })
-                    .catch(err => {
-                        console.log(`Error en insert de Company : ${err}`);
-                        res.status(500).json({message: err});
-                    });
-
-                console.log('Query correcta');
-                console.log(`Empresa insertada con id: ${companyId}`);
-                console.log('Preparacion de registro de usuario');
-                const userData = {
-                    phone: req.body.userData.userphone,
-                    email: req.body.userData.userEmail,
-                    password: hash,
-                    document: req.body.userData.userDocument,
-                    name: req.body.userData.userName,
-                    roleId: req.body.userData.role,
-                    companyId: companyId,
-                    firstStreet: req.body.userData.userFirstStreet,
-                    secondStreet: req.body.userData.userSecondStreet,
-                    doorNumber: req.body.userData.userDoorNumber
-                  };
-
-                let userId;
-                console.log('Enviando query INSERT de User');
-                userQueries
-                    .users
-                    .insertUser(userData)
-                    .then(res => {
-                        userId = res;
-                    })
-                    .catch(err => {
-                        console.log(`Error en insert de User : ${err}`);
-                        res.status(500).json({message: err});
-                    });
-
-                console.log('Query correcta');
-                console.log(`Usuario insertado con id: ${userId}`);
-                console.log('Registro finalizado');
-                res.status(201).json({message: 'Alta exitosa'});
-            }
-        });
+        if(erroresexistencia.length == 0){
+            console.log('Comenzado encryptacion de contraseña');
+            bcrypt.hash(req.body.userData.userPassword, 10, (err, hash) => {
+                //Si falla la encriptacion, tiro para afuera
+                if(err){
+                    console.log(`Error al crear hash : ${err}`);
+                    res.status(500).json({error: err});
+                }
+                else{
+                    console.log('Encryptacion de contraseña, correcta');
+                    console.log('Preparacion de registro de empresa');
+                    const companyData = {
+                        name: req.body.companyData.companyName,
+                        rut: req.body.companyData.companyRut,
+                        firstStreet: req.body.companyData.companyFirstStreet,
+                        secondStreet: req.body.companyData.companySecondStreet,
+                        doorNumber: req.body.companyData.companyDoorNumber,
+                        phone: req.body.companyData.companyPhone,
+                        categoryId: req.body.companyData.category
+                    };
+    
+                    let companyId;
+                    console.log('Enviando query INSERT de Company');
+                    companyQueries
+                        .companies
+                        .insertCompany(companyData)
+                        .then(res => {
+                            companyId = res;
+                        })
+                        .catch(err => {
+                            console.log(`Error en insert de Company : ${err}`);
+                            res.status(500).json({message: err});
+                        });
+    
+                    console.log('Query correcta');
+                    console.log(`Empresa insertada con id: ${companyId}`);
+                    console.log('Preparacion de registro de usuario');
+                    const userData = {
+                        phone: req.body.userData.userphone,
+                        email: req.body.userData.userEmail,
+                        password: hash,
+                        document: req.body.userData.userDocument,
+                        name: req.body.userData.userName,
+                        roleId: req.body.userData.role,
+                        companyId: companyId,
+                        firstStreet: req.body.userData.userFirstStreet,
+                        secondStreet: req.body.userData.userSecondStreet,
+                        doorNumber: req.body.userData.userDoorNumber
+                      };
+    
+                    let userId;
+                    console.log('Enviando query INSERT de User');
+                    userQueries
+                        .users
+                        .insertUser(userData)
+                        .then(res => {
+                            userId = res;
+                        })
+                        .catch(err => {
+                            console.log(`Error en insert de User : ${err}`);
+                            res.status(500).json({message: err});
+                        });
+    
+                    console.log('Query correcta');
+                    console.log(`Usuario insertado con id: ${userId}`);
+                    console.log('Registro finalizado');
+                    res.status(201).json({message: 'Alta exitosa'});
+                }
+            });
+        }
+        else{
+            console.log('Errores en la validacion de existencia encontrados');
+            res.status(401).json({message: erroresexistencia});
+        }
     }
 };
 
@@ -273,7 +278,74 @@ const signup = (req, res) => {
 
 
 
+async function ValidarExistenciaDatos(body){
+    console.log('Iniciando validacion de existencia de datos');
 
+    let validacionExistencia = false;
+    let errores = [];
+
+    await userQueries
+        .users
+        .getOneByEmail(body.userData.userEmail)
+        .then(res => {
+            if(res){
+                console.log(`Email ya existe en la DB : ${body.userData.userEmail}`);
+                validacionExistencia = true;
+                errores.push('Email ya esta en uso');
+            }
+        })
+        .catch(err => {
+            console.log(`Error en la Query SELECT de User para Email : ${err}`);
+            res.status(500).json({message: err});
+        });
+
+    await userQueries
+        .users
+        .getOneByDocument(body.userData.userDocument)
+        .then(res => {
+            if(res){
+                console.log(`Documento ya existe en la DB : ${body.userData.userDocument}`);
+                validacionExistencia = true;
+                errores.push('Documento ya esta en uso');
+            }
+        })
+        .catch(err => {
+            console.log(`Error en la Query SELECT de User para Documento : ${err}`);
+            res.status(500).json({message: err});
+        });
+
+    await companyQueries
+        .companies
+        .getOneByName(body.companyData.companyName)
+        .then(res => {
+            if(res){
+                console.log(`Nombre de empresa ya existe en la DB : ${body.companyData.companyName}`);
+                validacionExistencia = true;
+                errores.push('Nombre de empresa ya esta en uso');
+            }
+        })
+        .catch(err => {
+            console.log(`Error en la Query SELECT de Company para Name : ${err}`);
+            res.status(500).json({message: err});
+        });
+
+    await companyQueries
+        .companies
+        .getOneByRut(body.companyData.companyRut)
+        .then(res => {
+            if(res){
+                console.log(`RUT ya existe en la DB : ${body.companyData.companyRut}`);
+                validacionExistencia = true;
+                errores.push('RUT ya esta en uso');
+            }
+        })
+        .catch(err => {
+            console.log(`Error en la Query SELECT de Company para Rut : ${err}`);
+            res.status(500).json({message: err});
+        });
+    await console.log(`Errores encontrados en validacion de existencias : ${errores}`);
+    return errores;
+}
 
 
 

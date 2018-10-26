@@ -11,6 +11,10 @@ const getCategories =  (req, res) => {
         .then(categories => {
             console.log('Informacion de Company Category obtenida');
             res.status(200).json(categories);
+        })
+        .catch(err => {
+           console.log(`Error en Query SELECT de CompanyCategory : ${err}`);
+           res.status(500).json({message: err});
         });
     console.log('Informacion de Company Category enviada');
 };
@@ -25,7 +29,11 @@ const getCompanies = (req, res) => {
         .then(companies => {
             console.log('Informacion de Company obtenida');
             res.status(200).json(companies);
-        });
+        })
+        .catch(err => {
+            console.log(`Error en Query SELECT de Company : ${err}`);
+            res.status(500).json({message: err});
+         });
     console.log('Informacion de Company enviada');
 };
 
@@ -41,6 +49,10 @@ const insertCompany = (req, res) => {
         .then(result => {
             res.json(result);
         })
+        .catch(err => {
+            console.log(`Error en Query INSERT de Company : ${err}`);
+            res.status(500).json({message: err});
+         });
 };
 
 module.exports = { getCategories, getCompanies, insertCompany }

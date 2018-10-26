@@ -10,132 +10,99 @@ const companyQueries = require('../companies/dbQueries');
 
 const secreto = 'keyboard_cat';
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 //funcion ruteo de inicio de sesion
-const login = (req, res) => {
+async function login(req, res){
     console.log('Conexion POST entrante : /api/login');
 
-    let {error} = validarLogin(req.body);
+    let {error} = await validarLogin(req.body);
 
     if(error){
         console.log(`Error en la validacion : ${error}`);
         return res.status(400).json({message: error.details[0].message});
     }
-    console.log('Pasa validacion de datos');
-
-    pool.connect((err, db, done) => {
-
-        if(err){
-            console.log(`Error al conectar con la base de datos : ${err}`);
-            return res.status(500).json({ message: `Error al conectar con la base de datos : ${err}`});
-        }
-        console.log('Conexion con DB correcta');
-        console.log('Enviando query SELECT a User');
-        db.query('select * from "dbo.User" where email = $1', [req.body.userEmail], (err, user) => {
-            // done();
-
-            if(err){
-                console.log(`Error en la query SELECT de users : ${err}`);
-                return res.status(500).json({ message: `Error en la query SELECT de users: ${err}`});
-            }
-            console.log('Query SELECT de User correcta');
-            if(user.rowCount > 0){
-                console.log('Usuario obtenido correctamente');
-                console.log('Enviando query SELECT a Role');
-                db.query('select name from "dbo.Role" where id = $1', [user.rows[0].roleId], (err, type) => {
-                    done();
-
-                    if(err){
-                        console.log(`Error en la query SELECT de ROLE : ${err}`);
-                        return res.status(500).json({ message: `Error en la query SELECT de ROLE: ${err}`});
-                    }
-                    console.log('Query SELECT a Role correcta');
-                    console.log('Encriptando contraseña para comparacion');
-                
-                //hash
-                    bcrypt
-                        .compare(req.body.userPassword, user.rows[0].password)
-                        .then(result => {
-
-                        if(result){
-                            console.log('Comparacion correcta');
-                            const {userEmail, userPassword} = req.body;
-                            console.log('Firmando token');
-                            jwt.sign({userEmail, userPassword}, secreto, {expiresIn: '1h'}, (error, token) => {
-                                if(error){
-                                    console.log(`Error al firmar el token : ${error}`);
-                                    res.status(500).json({message: 'Error al firmar el token'});
-                                }
-                                console.log('Token firmado correctamente');
+    console.log('Validacion de datos exitosa');
+    
+    let user = await userQueries
+                        .users
+                        .getOneByEmail(req.body.userEmail)
+                        .then(res => {
+                            console.log(res);
+                            if(res) return res
+                            else return null
+                        })
+                        .catch(err => {
+                            console.log(`Error en la Query SELECT de User para Email : ${err}`);
+                            res.status(500).json({message: err});
+                        });
                                 
-                                res.cookie('access_token', token, {
-                                    maxAge: new Date(Date.now() + 3600),
-                                    httpOnly: false
-                                });
-                                console.log(`Tipo: ${type.rows[0].name}`);
-                                console.log(`Email: ${user.rows[0].email}`);
-                                console.log(`Name: ${user.rows[0].name}`);
-                                console.log(`ID: ${user.rows[0].id}`);
+    if(user){
 
-                                let data = {
-                                    userType: type.rows[0].name,
-                                    userName: user.rows[0].name,
-                                    userEmail: user.rows[0].email,
-                                    userId: user.rows[0].id
-                                };
-
-                                res.status(200).json({
-                                    message: 'Loggeado correctamente',
-                                    token: token,
-                                    userData: data
-                                });
-                                console.log('Loggin correcto');
-                                console.log('Response enviada correctamente');
+        let rol = await userQueries
+                            .roles
+                            .getRolById(user[0].roleId)
+                            .then(rol => {
+                                console.log(rol);
+                                if(rol) return rol
+                                else return null;
+                            })
+                            .catch(err => {
+                                console.log(`Error en Query SELECT de Role : ${err}`);
+                                res.status(500).json({message: err});
                             });
-                        }//if de bcrypt
-                        else{
-                            res.json({message: 'Usuario o contraseña incorrectos.'});
+
+        bcrypt
+            .compare(req.body.userPassword, user[0].password)
+            .then(result => {
+
+                if(result){
+                    console.log('Comparacion correcta');
+                    const {userEmail, userPassword} = req.body;
+                    console.log('Firmando token');
+                    jwt.sign({userEmail, userPassword}, secreto, {expiresIn: '1h'}, (error, token) => {
+                        if(error){
+                            console.log(`Error al firmar el token : ${error}`);
+                            res.status(500).json({message: 'Error al firmar el token'});
                         }
+                        console.log('Token firmado correctamente');
+                        
+                        res.cookie('access_token', token, {
+                            maxAge: new Date(Date.now() + 3600),
+                            httpOnly: false
+                        });
+
+                        let data = {
+                            userType: rol[0].name,
+                            userName: user.name,
+                            userEmail: user.email,
+                            userId: user.id
+                        };
+
+                        console.log(`Preparacion de datos : ${data}`);
+
+                        res.status(200).json({
+                            message: 'Loggeado correctamente',
+                            token: token,
+                            userData: data
+                        });
+                        console.log('Loggin correcto');
+                        console.log('Response enviada correctamente');
                     });
-                });
-            }//if de rows > 0
+                }//if de bcrypt
             else{
+                console.log('Contraseña incorrecta');
                 res.json({message: 'Usuario o contraseña incorrectos.'});
             }
+        })
+        .catch(err => {
+            console.log('Error al encyptar');
+            res.status(500).json({message: 'Error al encryptar'});
         });
-    });
+    }
+    else{
+        console.log(`Email no existe en la plataforma : ${req.body.userEmail}`);
+        res.status(400).json({message: 'Usuario o contraseña incorrectos.'});
+    }
 };
-
-
-
-
-
-
-
-
-
-
-
-
 
 //funcion de ruteo de cierre de sesion
 const logout = (req, res) => {
@@ -144,20 +111,7 @@ const logout = (req, res) => {
         httpOnly: false
     });
     res.status(200).json({message: 'Cierre de sesion exitoso'});
-}
-
-
-
-
-
-
-
-
-
-
-
-
-
+};
 
 //funcion de ruteo de registro
 async function signup(req, res){
@@ -269,19 +223,14 @@ async function signup(req, res){
         }
         else{
             console.log('Errores en la validacion de existencia encontrados');
-            res.status(401).json({message: erroresexistencia});
+            res.status(400).json({message: erroresexistencia});
         }
     }
 };
 
-
-
-
-
 async function ValidarExistenciaDatos(body){
     console.log('Iniciando validacion de existencia de datos');
 
-    let validacionExistencia = false;
     let errores = [];
 
     await userQueries
@@ -290,7 +239,6 @@ async function ValidarExistenciaDatos(body){
         .then(res => {
             if(res){
                 console.log(`Email ya existe en la DB : ${body.userData.userEmail}`);
-                validacionExistencia = true;
                 errores.push('Email ya esta en uso');
             }
         })
@@ -305,7 +253,6 @@ async function ValidarExistenciaDatos(body){
         .then(res => {
             if(res){
                 console.log(`Documento ya existe en la DB : ${body.userData.userDocument}`);
-                validacionExistencia = true;
                 errores.push('Documento ya esta en uso');
             }
         })
@@ -320,7 +267,6 @@ async function ValidarExistenciaDatos(body){
         .then(res => {
             if(res){
                 console.log(`Nombre de empresa ya existe en la DB : ${body.companyData.companyName}`);
-                validacionExistencia = true;
                 errores.push('Nombre de empresa ya esta en uso');
             }
         })
@@ -335,7 +281,6 @@ async function ValidarExistenciaDatos(body){
         .then(res => {
             if(res){
                 console.log(`RUT ya existe en la DB : ${body.companyData.companyRut}`);
-                validacionExistencia = true;
                 errores.push('RUT ya esta en uso');
             }
         })
@@ -345,17 +290,7 @@ async function ValidarExistenciaDatos(body){
         });
     await console.log(`Errores encontrados en validacion de existencias : ${errores}`);
     return errores;
-}
-
-
-
-
-
-
-
-
-
-
+};
 
 //Validaciones de datos
 
@@ -396,18 +331,5 @@ function validarLogin(body){
     };
     return Joi.validate(body, schema);
 };
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 module.exports = { login, logout, signup };

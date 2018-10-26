@@ -2,9 +2,6 @@ const knex = require('../db/connection');
 
 module.exports = {
     users: {
-        getRoles: function() {
-            return knex.select().table('Role');
-        },
         getOneByEmail: function(email){
             console.log(`Enviando Query SELECT a User con email: ${email}`);
             return knex.select().table('User').where('email', email);
@@ -16,5 +13,15 @@ module.exports = {
         insertUser: function(user){
             return knex('User').insert(user).returning('id');
         }
+    },
+    roles: {
+        getRoles: function() {
+            return knex.select().table('Role');
+        },
+        getRolById: function(id){
+            return knex.select().table('Role').where('id', id);
+        }
     }
 };
+
+// select name from "dbo.Role" where id = $1

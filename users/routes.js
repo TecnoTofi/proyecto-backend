@@ -3,7 +3,7 @@ const queries = require('./dbQueries');
 const roles = (req, res) => {
     console.log('Conexion GET entrante : /api/user/role');
     queries
-        .users
+        .roles
         .getRoles()
         .then(roles => {
             console.log('Informacion de Roles obtenida');

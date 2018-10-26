@@ -1,49 +1,46 @@
 let pool = require('../db/connection');
+const queries = require('./dbQueries');
 
-const categories =  (req, res) => {
-    console.log('Conexion GET entrante : /api/companies/types');
+//GET Categories
+const getCategories =  (req, res) => {
+    console.log('Conexion GET entrante : /api/company/category');
 
-    pool.connect((err, db, done) => {
-        //Si hubo problemas de conexion con la DB, tiro para afuera
-        if(err){
-            console.log(`Error al conectar con la base de datos : ${err}`);
-            return res.status(500).json({ message: `Error al conectar con la base de datos : ${err}`});
-        }
-        //Envio consulta SELECT
-        db.query('SELECT * FROM "dbo.CompanyCategory"', (err, typesTable) => {
-            done();
-            //Si hubo error en el select, tiro para afuera
-            if(err){
-                console.log(`Error en la query Select de companyCategory : ${err}`);
-                return res.status(500).json({ message: `Error en la query Select de companyCategory: ${err}`});
-            }
-            console.log('Informacion de Company Category enviada');
-            return res.status(200).json(typesTable.rows);
-        })
-    })
+    queries
+        .companies
+        .getCategories()
+        .then(categories => {
+            console.log('Informacion de Company Category obtenida');
+            res.status(200).json(categories);
+        });
+    console.log('Informacion de Company Category enviada');
 };
 
-const companies = (req, res) => {
-    console.log('Conexion GET entrante : /api/listadoCompanies/companies');
+//GET Company
+const getCompanies = (req, res) => {
+    console.log('Conexion GET entrante : /api/company/');
 
-    pool.connect((err, db, done) => {
-        //Si hubo problemas de conexion con la DB, tiro para afuera
-        if(err){
-            console.log(`Error al conectar con la base de datos : ${err}`);
-            return res.status(500).json({ message: `Error al conectar con la base de datos : ${err}`});
-        }
-        //Envio consulta SELECT
-        db.query('SELECT * FROM "dbo.Company"', (err, companies) => {
-            done();
-            //Si hubo error en el select, tiro para afuera
-            if(err){
-                console.log(`Error en la query Select de company : ${err}`);
-                return res.status(500).json({ message: `Error en la query Select de company: ${err}`});
-            }
-            console.log('Listado de companias enviado');
-            return res.status(200).json(companies.rows);
-        })
-    })
+    queries
+        .companies
+        .getAll()
+        .then(companies => {
+            console.log('Informacion de Company obtenida');
+            res.status(200).json(companies);
+        });
+    console.log('Informacion de Company enviada');
 };
 
-module.exports = { categories, companies }
+//POST Company
+const insertCompany = (req, res) => {
+    console.log('Conexion POST entrante : /api/company/');
+    
+    //realizar validaciones
+
+    queries
+        .companies
+        .insertCompany(req.body)
+        .then(result => {
+            res.json(result);
+        })
+};
+
+module.exports = { getCategories, getCompanies, insertCompany }

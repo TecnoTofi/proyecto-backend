@@ -4,9 +4,31 @@ const Joi = require('joi');
 //Incluimos modulo de encriptacion de contraseñas
 const bcrypt = require('bcrypt');
 //Incluimos modulo propio con pool de conexion a DB
-let pool = require('../db/connection');
+// let pool = require('../db/connection');
+const userQueries = require('../users/dbQueries');
+const companyQueries = require('../companies/dbQueries');
 
 const secreto = 'keyboard_cat';
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 //funcion ruteo de inicio de sesion
 const login = (req, res) => {
@@ -103,6 +125,18 @@ const login = (req, res) => {
     });
 };
 
+
+
+
+
+
+
+
+
+
+
+
+
 //funcion de ruteo de cierre de sesion
 const logout = (req, res) => {
     res.clearCookie('access_token', req.cookies.access_token, {
@@ -112,102 +146,149 @@ const logout = (req, res) => {
     res.status(200).json({message: 'Cierre de sesion exitoso'});
 }
 
+
+
+
+
+
+
+
+
+
+
+
+
+
 //funcion de ruteo de registro
 const signup = (req, res) => {
     console.log('Conexion POST entrante : /api/signup');
+    
     //valido datos
-    const {error} = validarRegistroEmpresas(req.body);
-    //Si falla la validacion tiro para afuera
-    if(error){
-        console.log(`Error en la validacion : ${error}`);
-        res.status(400).json({message: error.details[0].message});
+    console.log('Iniciando validacion de tipos de datos de User');
+    const validacionUsuarios = ValidarTipoDatosUsuario(req.body.userData);
+    console.log('Iniciando validacion de tipos de datos de Company');
+    const validacionEmpresas = validarTipoDatosEmpresa(req.body.companyData);
+
+    // Si falla la validacion tiro para afuera
+    if(validacionUsuarios.error && validacionEmpresas.error){
+        console.log('Error en la validacion de tipos de datos de usuario y empresa');
+        let errores = {
+            usuario: validacionUsuarios.error.details[0].message,
+            empresa: validacionEmpresas.error.details[0].message
+        };
+        res.status(400).json({message: errores});
     }
-    //encripto la contraseña
-    bcrypt.hash(req.body.userPassword, 10, (err, hash) => {
-        //Si falla la encriptacion, tiro para afuera
-        if(err){
-            console.log(`Error al crear hash : ${err}`);
-            res.status(500).json({error: err});
-        }
-        else{
-            //conecto a la base de datos
-            pool.connect((err, db, done) => {
-                //Si hubo problemas de conexion con la DB, tiro para afuera
-                if(err){
-                    console.log(`Error al conectar con la base de datos : ${err}`);
-                    res.status(500).json({ message: `Error al conectar con la base de datos : ${err}`});
-                }
+    else if(validacionUsuarios.error){
+        console.log('Error en la validacion de tipos de datos de usuario');
+        let errores = {
+            usuario: validacionUsuarios.error.details[0].message
+        };
+        res.status(400).json({message: errores});
+    }
+    else if(validacionEmpresas.error){
+        console.log('Error en la validacion de tipos de datos de empresa');
+        let errores = {
+            empresa: validacionEmpresas.error.details[0].message
+        };
+        res.status(400).json({message: errores});
+    }
+    else{
+        console.log('Validaciones de tipos de usuario correctas');
+        console.log('Comenzado encryptacion de contraseña');
 
-                let company = [
-                    req.body.companyName,
-                    req.body.companyRut,
-                    req.body.companyPhone,
-                    req.body.companyFirstStreet,
-                    req.body.companySecondStreet,
-                    req.body.companyDoorNumber,
-                    req.body.category
-                ]
+        //validar existencia
 
-                //Envio insert de la empresa
-                db.query('INSERT INTO "dbo.Company" (name, rut, phone, "firstStreet", "secondStreet", "doorNumber", "categoryId") VALUES ($1, $2, $3, $4, $5, $6, $7)', company, (err) => {
-        
-                    //Si hubo error en el insert, tiro para afuera
-                    if(err){
-                        console.log(`Error en la query INSERT de empresas : ${err}`);
-                        res.status(500).json({ message: `Error en la query INSERT de empresas: ${err}`});
-                    }
-        
-                    console.log(`Empresa insertada : ${req.body.companyName}`);
-        
-                    //Voy a buscar el id de la empresa insertada
-                    //Ver de conseguirlo con el insert, no con una query mas
-                    db.query('SELECT id FROM "dbo.Company" WHERE name =  $1', [req.body.companyName], (err, companyTable) => {
-        
-                        //Si hubo error en el select, tiro para afuera
-                        if(err){
-                            console.log(`Error en la query Select de empresas : ${err}`);
-                            res.status(500).json({ message: `Error en la query Select de empresas: ${err}`});
-                        }
-                        
-                        let companyId = companyTable.rows[0].id;
-                        console.log(`Empresa obtenida : ${companyId}`);
-        
-                        let user = [
-                            req.body.userName,
-                            req.body.userEmail,
-                            hash,
-                            req.body.userDocument,
-                            req.body.userPhone,
-                            req.body.userFirstStreet,
-                            req.body.userSecondStreet,
-                            req.body.userDoorNumber,
-                            req.body.role,
-                            companyId
-                        ]
+        //encripto la contraseña
+        bcrypt.hash(req.body.userData.userPassword, 10, (err, hash) => {
+            //Si falla la encriptacion, tiro para afuera
+            if(err){
+                console.log(`Error al crear hash : ${err}`);
+                res.status(500).json({error: err});
+            }
+            else{
+                console.log('Encryptacion de contraseña, correcta');
+                console.log('Preparacion de registro de empresa');
+                const companyData = {
+                    name: req.body.companyData.companyName,
+                    rut: req.body.companyData.companyRut,
+                    firstStreet: req.body.companyData.companyFirstStreet,
+                    secondStreet: req.body.companyData.companySecondStreet,
+                    doorNumber: req.body.companyData.companyDoorNumber,
+                    phone: req.body.companyData.companyPhone,
+                    categoryId: req.body.companyData.category
+                };
 
-                        //Envio insert del usuario
-                        db.query('INSERT INTO "dbo.User" (name, email, password, document, phone, "firstStreet", "secondStreet", "doorNumber", "roleId", "companyId") values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)', user, (err) => {
-                            done();
-                            //Si hubo error en el insert, tiro para afuera
-                            if(err){
-                                console.log(`Error en la query INSERT de usuarios : ${err}`);
-                                res.status(500).json({ message: `Error en la query INSERT de usuarios: ${err}`});
-                            }
-                
-                            console.log(`Usuario insertado : ${req.body.userName}`);
-                        });
+                let companyId;
+                console.log('Enviando query INSERT de Company');
+                companyQueries
+                    .companies
+                    .insertCompany(companyData)
+                    .then(res => {
+                        companyId = res;
+                    })
+                    .catch(err => {
+                        console.log(`Error en insert de Company : ${err}`);
+                        res.status(500).json({message: err});
                     });
-                    res.status(201).json({ message: 'Alta exitosa'});
-                });
-            });
-        }
-    });
+
+                console.log('Query correcta');
+                console.log(`Empresa insertada con id: ${companyId}`);
+                console.log('Preparacion de registro de usuario');
+                const userData = {
+                    phone: req.body.userData.userphone,
+                    email: req.body.userData.userEmail,
+                    password: hash,
+                    document: req.body.userData.userDocument,
+                    name: req.body.userData.userName,
+                    roleId: req.body.userData.role,
+                    companyId: companyId,
+                    firstStreet: req.body.userData.userFirstStreet,
+                    secondStreet: req.body.userData.userSecondStreet,
+                    doorNumber: req.body.userData.userDoorNumber
+                  };
+
+                let userId;
+                console.log('Enviando query INSERT de User');
+                userQueries
+                    .users
+                    .insertUser(userData)
+                    .then(res => {
+                        userId = res;
+                    })
+                    .catch(err => {
+                        console.log(`Error en insert de User : ${err}`);
+                        res.status(500).json({message: err});
+                    });
+
+                console.log('Query correcta');
+                console.log(`Usuario insertado con id: ${userId}`);
+                console.log('Registro finalizado');
+                res.status(201).json({message: 'Alta exitosa'});
+            }
+        });
+    }
 };
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 //Validaciones de datos
 
 //Validacion de nombres
-function validarRegistroEmpresas(body){
+function ValidarTipoDatosUsuario(body){
     const schema = {
         userName: Joi.string().min(3).max(50).required(),
         userEmail: Joi.string().min(6).max(50).email().required(),
@@ -217,17 +298,24 @@ function validarRegistroEmpresas(body){
         userFirstStreet: Joi.string().max(30),
         userSecondStreet: Joi.string().max(30),
         userDoorNumber: Joi.string().max(15),
+        role: Joi.number().required()
+    };
+    return Joi.validate(body, schema);
+};
+
+function validarTipoDatosEmpresa(body){
+    const schema = {
         companyName: Joi.string().min(3).max(50).required(),
         companyRut: Joi.string().min(12).max(12).required(),
         companyPhone: Joi.string().min(7).max(15).required(),
         companyFirstStreet: Joi.string().max(30).required(),
         companySecondStreet: Joi.string().max(30).required(),
         companyDoorNumber: Joi.string().max(15).required(),
-        category: Joi.number().required(),
-        role: Joi.number().required()
+        category: Joi.number().required()
     };
     return Joi.validate(body, schema);
-}
+};
+
 
 function validarLogin(body){
     const schema = {
@@ -235,6 +323,19 @@ function validarLogin(body){
         userPassword: Joi.string().min(8).max(20).required()
     };
     return Joi.validate(body, schema);
-}
+};
 
-module.exports = { login, logout, signup};
+
+
+
+
+
+
+
+
+
+
+
+
+
+module.exports = { login, logout, signup };

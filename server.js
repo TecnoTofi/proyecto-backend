@@ -2,19 +2,11 @@
 const express = require('express');
 //Incluimos modulo body-parser para complementar express
 const bodyParser = require('body-parser');
-
+//Incluimos cookie-parser para el manejo de cookies
 const cookieParser = require('cookie-parser');
-//Incluimos modulo PG para conectar con base de datos PostgreSQL
-// const pg = require('pg');
 //Incluimos modulo CORS para conectar con frontend React
 const cors = require('cors');
-//Incluimos modulo Joi para la validaciond de datos
-// const Joi = require('joi');
-// const listCompaniesRoutes = require('./listCompanies/index');
-//Inclusion de modulos propios
 
-//Incluimos conexion a la base de datos
-// let pool = require('./db/connection');
 //Incluimos autenticacion
 const authRoutes = require('./auth/index');
 //Incluimos ruteo de usuarios
@@ -52,8 +44,8 @@ app.use((req, res, next) => {
 
 //Monstamos ruteos propios
 app.use('/api/auth', authRoutes);
-app.use('/api/users', usersRoutes);
-app.use('/api/companies', companiesRoutes);
+app.use('/api/user', usersRoutes);
+app.use('/api/company', companiesRoutes);
 
 //Levanta servicio de escucha en el puerto indicado
 app.listen(PORT, (error) => {

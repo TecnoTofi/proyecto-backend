@@ -39,52 +39,65 @@ const getCompanies = (req, res) => {
 
 //POST Company
 async function insertCompany(body){
-    console.log('Entre a funcion en routes de companies');
-    
-    // let {error} = await validarTipoDatoCompany(body);
+    console.log('Accediendo a ../companies/routes/insertCompany');
+    let retorno = {
+        id: 0,
+        errores: ''
+    };
+    console.log('Enviando datos para validaciones de tipo');
+    let {error} = await validarTipoDatosCompany(body);
 
-    // if(!error){
+    if(!error){
+        console.log('Validacion de tipos de datos correcta');
 
-        // let company = {
-        //     name: body.companyName,
-        //     rut: body.companyRut,
-        //     firstStreet: body.companyFirstStreet,
-        //     secondStreet: body.companySecondStreet,
-        //     doorNumber: body.companyDoorNumber,
-        //     phone: body.companyPhone,
-        //     categoryId: body.category
-        // }
+        console.log('Preparando datos para insercion');
+        let company = {
+            name: body.companyName,
+            rut: body.companyRut,
+            firstStreet: body.companyFirstStreet,
+            secondStreet: body.companySecondStreet,
+            doorNumber: body.companyDoorNumber,
+            phone: body.companyPhone,
+            categoryId: body.category
+        }
+        console.log('Datos para insercion listos');
+        console.log('Enviando Querie INSERT de Company');
 
-        companyId = await queries
+        retorno.id = await queries
                         .companies
-                        .insert(body)
+                        .insert(company)
                         .then(id => {
-                            return id;
+                            console.log('Querie INSERT de Company correcta')
+                            return Number(id);
                         })
                         .catch(err => {
                             console.log(`Error en Query INSERT de Company : ${err}`);
-                            return 0;
+                            retorno.id = 0;
                         });
-        return companyId;
-    // }
-    // else{
-    //     console.log(`Error en la validacion de tipos de dato : ${error.details[0].message}`);
-    //     return 0;
-    // }
+    }
+    else{
+        console.log(`Error en la validacion de tipos de dato : ${error.details[0].message}`);
+        retorno.errores = error.details[0].message;
+    }
+    
+    if(await retorno.id == 0) console.log('Finalizando insercion fallida');
+    else console.log('Finalizando insercion correcta');
+    
+    return await retorno;
 };
 
-function validarTipoDatoCompany(body){
+function validarTipoDatosCompany(body){
     const schema = {
-        companyName: Joi.string().min(3).max(30).required(),
-        companyRut: Joi.number().required(),
-        companyPhone: Joi.number().required(),
-        companyFirstStreet: Joi.string().min(3).max(30).required(),
-        companySecondStreet: Joi.string().min(3).max(30).required(),
-        companyDoorNumber: Joi.number().required(),
-        category: Joi.number().required(),
-    }
-    return Joi.validate(schema, body);
-}
+        companyName: Joi.string().min(3).max(50).required(),
+        companyRut: Joi.string().min(12).max(12).required(),
+        companyPhone: Joi.string().min(7).max(15).required(),
+        companyFirstStreet: Joi.string().max(30).required(),
+        companySecondStreet: Joi.string().max(30).required(),
+        companyDoorNumber: Joi.string().max(15).required(),
+        category: Joi.number().required()
+    };
+    return Joi.validate(body, schema);
+};
 
 module.exports = { getCategories, getCompanies, insertCompany }
 

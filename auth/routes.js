@@ -159,47 +159,27 @@ async function signup(req, res){
             
             if(hash){
                 console.log('Encryptacion de contraseña, correcta');
-                console.log(hash);
-                console.log('Preparacion de registro de empresa');
-
-                const companyData = {
-                    name: req.body.companyData.companyName,
-                    rut: req.body.companyData.companyRut,
-                    firstStreet: req.body.companyData.companyFirstStreet,
-                    secondStreet: req.body.companyData.companySecondStreet,
-                    doorNumber: req.body.companyData.companyDoorNumber,
-                    phone: req.body.companyData.companyPhone,
-                    categoryId: req.body.companyData.category
-                };
 
                 console.log('Enviando query INSERT de Company');
-                let companyId = Number(await insertCompany(companyData));
-                                    
-                console.log('Query correcta');
-                console.log(`Empresa insertada con id: ${companyId}`);
-                console.log('Preparacion de registro de usuario');
-
-                const userData = {
-                    email: req.body.userData.userEmail,
-                    password: hash,
-                    name: req.body.userData.userName,
-                    roleId: req.body.userData.role,
-                    companyId: companyId,
-                    firstStreet: req.body.userData.userFirstStreet,
-                    secondStreet: req.body.userData.userSecondStreet,
-                    doorNumber: req.body.userData.userDoorNumber,
-                    phone: req.body.userData.userPhone,
-                    document: req.body.userData.userDocument
-                };
-
-                console.log('Enviando query INSERT de User');
-                let userId = Number(await insertUser(userData));
-
-                if(companyId && userId){
+                let company = await insertCompany(req.body.companyData);
+                
+                if(await company.id != 0){
                     console.log('Query correcta');
-                    console.log(`Usuario insertado con id: ${userId}`);
-                    console.log('Registro finalizado');
-                    res.status(201).json({message: 'Alta exitosa'});
+                    console.log(`Empresa insertada con id: ${company.id}`);
+
+                    console.log('Enviando query INSERT de User');
+                    let user = Number(await insertUser(req.body.userData, hash, company.id));
+
+                    if(await user.id != 0){
+                        console.log('Query correcta');
+                        console.log(`Usuario insertado con id: ${user.id}`);
+                        console.log('Registro finalizado');
+                        res.status(201).json({message: 'Alta exitosa'});
+                    }
+                    else{
+                        //mejorar estas respuestas
+                        res.status(500).json({message: 'Error en el alta'});
+                    }
                 }
                 else{
                     res.status(500).json({message: 'Error en el alta'});

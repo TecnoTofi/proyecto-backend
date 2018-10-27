@@ -6,10 +6,19 @@ const bcrypt = require('bcrypt');
 //Incluimos modulo propio con pool de conexion a DB
 const userQueries = require('../users/dbQueries');
 const companyQueries = require('../companies/dbQueries');
-const { insertCompany } = require('../companies/routes');
-const { insertUser } = require('../users/routes');
+const { insertCompany, validarTipoDatosCompany } = require('../companies/routes');
+const { insertUser, validarTipoDatosUser, validarLogin } = require('../users/routes');
 
 const secreto = 'keyboard_cat';
+
+
+
+
+
+
+
+
+
 
 //funcion ruteo de inicio de sesion
 async function login(req, res){
@@ -105,6 +114,15 @@ async function login(req, res){
     }
 };
 
+
+
+
+
+
+
+
+
+
 //funcion de ruteo de cierre de sesion
 const logout = (req, res) => {
     res.clearCookie('access_token', req.cookies.access_token, {
@@ -114,15 +132,22 @@ const logout = (req, res) => {
     res.status(200).json({message: 'Cierre de sesion exitoso'});
 };
 
+
+
+
+
+
+
+
 //funcion de ruteo de registro
 async function signup(req, res){
     console.log('Conexion POST entrante : /api/signup');
     
     //valido datos
     console.log('Iniciando validacion de tipos de datos de User');
-    const validacionUsuarios = await ValidarTipoDatosUsuario(req.body.userData);
+    const validacionUsuarios = await validarTipoDatosUser(req.body.userData);
     console.log('Iniciando validacion de tipos de datos de Company');
-    const validacionEmpresas = await validarTipoDatosEmpresa(req.body.companyData);
+    const validacionEmpresas = await validarTipoDatosCompany(req.body.companyData);
 
     // Si falla la validacion tiro para afuera
     if(validacionUsuarios.error && validacionEmpresas.error){
@@ -197,6 +222,11 @@ async function signup(req, res){
     }
 };
 
+
+
+
+
+
 async function ValidarExistenciaDatos(body){
     console.log('Iniciando validacion de existencia de datos');
 
@@ -259,46 +289,6 @@ async function ValidarExistenciaDatos(body){
         });
     await console.log(`Errores encontrados en validacion de existencias : ${errores}`);
     return errores;
-};
-
-//Validaciones de datos
-
-//Validacion de nombres
-function ValidarTipoDatosUsuario(body){
-    const schema = {
-        userName: Joi.string().min(3).max(50).required(),
-        userEmail: Joi.string().min(6).max(50).email().required(),
-        userPassword: Joi.string().min(8).max(20).required(),
-        userDocument: Joi.string().min(5).max(15).required(),
-        userPhone: Joi.string().min(7).max(15).required(),
-        userFirstStreet: Joi.string().max(30).allow('').allow(null),
-        userSecondStreet: Joi.string().max(30).allow('').allow(null),
-        userDoorNumber: Joi.string().max(15).allow('').allow(null),
-        role: Joi.number().required()
-    };
-    return Joi.validate(body, schema);
-};
-
-function validarTipoDatosEmpresa(body){
-    const schema = {
-        companyName: Joi.string().min(3).max(50).required(),
-        companyRut: Joi.string().min(12).max(12).required(),
-        companyPhone: Joi.string().min(7).max(15).required(),
-        companyFirstStreet: Joi.string().max(30).required(),
-        companySecondStreet: Joi.string().max(30).required(),
-        companyDoorNumber: Joi.string().max(15).required(),
-        category: Joi.number().required()
-    };
-    return Joi.validate(body, schema);
-};
-
-
-function validarLogin(body){
-    const schema = {
-        userEmail: Joi.string().min(6).max(50).email().required(),
-        userPassword: Joi.string().min(8).max(20).required()
-    };
-    return Joi.validate(body, schema);
 };
 
 module.exports = { login, logout, signup };

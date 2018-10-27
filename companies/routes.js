@@ -40,46 +40,38 @@ const getCompanies = (req, res) => {
 //POST Company
 async function insertCompany(body){
     console.log('Accediendo a ../companies/routes/insertCompany');
+
     let retorno = {
         id: 0,
         errores: ''
     };
-    console.log('Enviando datos para validaciones de tipo');
-    let {error} = await validarTipoDatosCompany(body);
 
-    if(!error){
-        console.log('Validacion de tipos de datos correcta');
-
-        console.log('Preparando datos para insercion');
-        let company = {
-            name: body.companyName,
-            rut: body.companyRut,
-            firstStreet: body.companyFirstStreet,
-            secondStreet: body.companySecondStreet,
-            doorNumber: body.companyDoorNumber,
-            phone: body.companyPhone,
-            categoryId: body.category
-        }
-        console.log('Datos para insercion listos');
-        console.log('Enviando Querie INSERT de Company');
-
-        retorno.id = await queries
-                        .companies
-                        .insert(company)
-                        .then(id => {
-                            console.log('Querie INSERT de Company correcta')
-                            return Number(id);
-                        })
-                        .catch(err => {
-                            console.log(`Error en Query INSERT de Company : ${err}`);
-                            retorno.id = 0;
-                        });
+    console.log('Preparando datos para insercion');
+    let company = {
+        name: body.companyName,
+        rut: body.companyRut,
+        firstStreet: body.companyFirstStreet,
+        secondStreet: body.companySecondStreet,
+        doorNumber: body.companyDoorNumber,
+        phone: body.companyPhone,
+        categoryId: body.category
     }
-    else{
-        console.log(`Error en la validacion de tipos de dato : ${error.details[0].message}`);
-        retorno.errores = error.details[0].message;
-    }
-    
+    console.log('Datos para insercion listos');
+    console.log('Enviando Querie INSERT de Company');
+
+    retorno.id = await queries
+                    .companies
+                    .insert(company)
+                    .then(id => {
+                        console.log('Querie INSERT de Company correcta')
+                        return Number(id);
+                    })
+                    .catch(err => {
+                        console.log(`Error en Query INSERT de Company : ${err}`);
+                        retorno.errores = err;
+                        retorno.id = 0;
+                    });
+
     if(await retorno.id == 0) console.log('Finalizando insercion fallida');
     else console.log('Finalizando insercion correcta');
     
@@ -99,15 +91,4 @@ function validarTipoDatosCompany(body){
     return Joi.validate(body, schema);
 };
 
-module.exports = { getCategories, getCompanies, insertCompany }
-
-
-// const companyData = {
-//     companyName: signupdata.companyName,
-//     companyRut: signupdata.companyRut,
-//     companyPhone: signupdata.companyPhone,
-//     companyFirstStreet: signupdata.companyFirstStreet,
-//     companySecondStreet: signupdata.companySecondStreet,
-//     companyDoorNumber: signupdata.companyDoorNumber,
-//     category: signupdata.category
-//   };  
+module.exports = { getCategories, getCompanies, insertCompany, validarTipoDatosCompany };

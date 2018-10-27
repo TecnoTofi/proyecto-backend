@@ -25,43 +25,33 @@ async function insertUser(body, hash, companyId){
         errores: ''
     }
 
-    console.log('Enviando datos para validaciones de tipo');
-    let { error } = ValidarTipoDatosUsuario(body);
+    console.log('Preparando datos para insercion');
 
-    if(!error){
-        console.log('Validacion de tipos de datos correcta');
+    const user = {
+        email: body.userEmail,
+        password: hash,
+        name: body.userName,
+        roleId: body.role,
+        companyId: companyId,
+        firstStreet: body.userFirstStreet,
+        secondStreet: body.userSecondStreet,
+        doorNumber: body.userDoorNumber,
+        phone: body.userPhone,
+        document: body.userDocument
+    };
 
-        console.log('Preparando datos para insercion');
-
-        const user = {
-            email: body.userEmail,
-            password: hash,
-            name: body.userName,
-            roleId: body.role,
-            companyId: companyId,
-            firstStreet: body.userFirstStreet,
-            secondStreet: body.userSecondStreet,
-            doorNumber: body.userDoorNumber,
-            phone: body.userPhone,
-            document: body.userDocument
-        };
-
-        retorno.id = queries
-                    .users
-                    .insert(user)
-                    .then(id => {
-                        console.log('Querie INSERT de Company correcta');
-                        return Number(id);
-                    })
-                    .catch(err => {
-                        console.log(`Error en insert de User : ${err}`);
-                        retorno.id = 0;
-                    });
-    }
-    else{
-        console.log(`Error en la validacion de tipos de dato : ${error.details[0].message}`);
-        retorno.errores = error.details[0].message;
-    }
+    retorno.id = queries
+                .users
+                .insert(user)
+                .then(id => {
+                    console.log('Querie INSERT de Company correcta');
+                    return Number(id);
+                })
+                .catch(err => {
+                    console.log(`Error en insert de User : ${err}`);
+                    retorno.errores = err;
+                    retorno.id = 0;
+                });
 
     if(await retorno.id == 0) console.log('Finalizando insercion fallida');
     else console.log('Finalizando insercion correcta');
@@ -69,7 +59,15 @@ async function insertUser(body, hash, companyId){
     return await retorno;
 };
 
-function ValidarTipoDatosUsuario(body){
+function validarLogin(body){
+    const schema = {
+        userEmail: Joi.string().min(6).max(50).email().required(),
+        userPassword: Joi.string().min(8).max(20).required()
+    };
+    return Joi.validate(body, schema);
+};
+
+function validarTipoDatosUser(body){
     const schema = {
         userName: Joi.string().min(3).max(50).required(),
         userEmail: Joi.string().min(6).max(50).email().required(),
@@ -84,4 +82,4 @@ function ValidarTipoDatosUsuario(body){
     return Joi.validate(body, schema);
 };
 
-module.exports = { roles, insertUser };
+module.exports = { roles, insertUser, validarTipoDatosUser, validarLogin };

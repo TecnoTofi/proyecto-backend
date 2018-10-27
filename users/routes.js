@@ -4,7 +4,7 @@ const roles = (req, res) => {
     console.log('Conexion GET entrante : /api/user/role');
     queries
         .roles
-        .getAll
+        .getAll()
         .then(roles => {
             console.log('Informacion de Roles obtenida');
             res.status(200).json(roles);

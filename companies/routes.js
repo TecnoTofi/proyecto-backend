@@ -1,4 +1,4 @@
-// let pool = require('../db/connection');
+const Joi = require('joi');
 const queries = require('./dbQueries');
 
 //GET Categories
@@ -38,21 +38,62 @@ const getCompanies = (req, res) => {
 };
 
 //POST Company
-const insertCompany = (req, res) => {
+async function insertCompany(req, res){
     console.log('Conexion POST entrante : /api/company/');
     
-    //realizar validaciones
+    let {error} = await validarTipoDatoCompany(req.body);
 
-    queries
-        .companies
-        .insert(req.body)
-        .then(result => {
-            res.json(result);
-        })
-        .catch(err => {
-            console.log(`Error en Query INSERT de Company : ${err}`);
-            res.status(500).json({message: err});
-         });
+    if(!error){
+
+        let company = {
+            name: req.body.companyName,
+            rut: req.body.companyRut,
+            firstStreet: req.body.companyFirstStreet,
+            secondStreet: req.body.companySecondStreet,
+            doorNumber: req.body.companyDoorNumber,
+            phone: req.body.companyPhone,
+            categoryId: req.body.category
+        }
+
+        queries
+            .companies
+            .insert(company)
+            .then(result => {
+                res.json(result);
+            })
+            .catch(err => {
+                console.log(`Error en Query INSERT de Company : ${err}`);
+                res.status(500).json({message: err});
+            });
+    }
+    else{
+        console.log(`Error en la validacion de tipos de dato : ${error.details[0].message}`);
+        res.status(400).json({message: error.details[0].message});
+    }
 };
 
+function validarTipoDatoCompany(body){
+    const schema = {
+        companyName: Joi.string().min(3).max(30).required(),
+        companyRut: Joi.number().required(),
+        companyPhone: Joi.number().required(),
+        companyFirstStreet: Joi.string().min(3).max(30).required(),
+        companySecondStreet: Joi.string().min(3).max(30).required(),
+        companyDoorNumber: Joi.number().required(),
+        category: Joi.number().required(),
+    }
+    return Joi.validate(schema, body);
+}
+
 module.exports = { getCategories, getCompanies, insertCompany }
+
+
+// const companyData = {
+//     companyName: signupdata.companyName,
+//     companyRut: signupdata.companyRut,
+//     companyPhone: signupdata.companyPhone,
+//     companyFirstStreet: signupdata.companyFirstStreet,
+//     companySecondStreet: signupdata.companySecondStreet,
+//     companyDoorNumber: signupdata.companyDoorNumber,
+//     category: signupdata.category
+//   };  

@@ -13,6 +13,8 @@ const authRoutes = require('./auth/index');
 const usersRoutes = require('./users/index');
 //Incluimos ruteo de empresas
 const companiesRoutes = require('./companies/index');
+//Incluimos ruteo de productos
+const productsRoutes = require('./products/index');
 
 //Establecemos el puerto segun variable de ambiente del servidor o 3000 para ambiente de desarrollo
 const PORT = process.env.PORT || 3000;
@@ -46,6 +48,7 @@ app.use((req, res, next) => {
 app.use('/api/auth', authRoutes);
 app.use('/api/user', usersRoutes);
 app.use('/api/company', companiesRoutes);
+app.use('/api/product', productsRoutes);
 
 //Levanta servicio de escucha en el puerto indicado
 app.listen(PORT, (error) => {

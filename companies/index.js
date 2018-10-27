@@ -4,7 +4,6 @@ const express = require('express');
 const router = express.Router();
 
 const CompanyRoutes = require('./routes');
-const VerifyToken = require('../auth/verifyToken');
 
 //Todas las rutas empiezan con /api/company
 

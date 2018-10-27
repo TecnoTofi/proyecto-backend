@@ -175,7 +175,7 @@ async function signup(req, res){
                     console.log('Enviando query INSERT de Company');
                     companyQueries
                         .companies
-                        .insertCompany(companyData)
+                        .insert(companyData)
                         .then(res => {
                             companyId = res;
                         })
@@ -204,7 +204,7 @@ async function signup(req, res){
                     console.log('Enviando query INSERT de User');
                     userQueries
                         .users
-                        .insertUser(userData)
+                        .insert(userData)
                         .then(res => {
                             userId = res;
                         })

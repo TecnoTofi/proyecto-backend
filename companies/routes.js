@@ -1,4 +1,4 @@
-let pool = require('../db/connection');
+// let pool = require('../db/connection');
 const queries = require('./dbQueries');
 
 //GET Categories
@@ -6,8 +6,8 @@ const getCategories =  (req, res) => {
     console.log('Conexion GET entrante : /api/company/category');
 
     queries
-        .companies
-        .getCategories()
+        .categories
+        .getAll()
         .then(categories => {
             console.log('Informacion de Company Category obtenida');
             res.status(200).json(categories);
@@ -45,7 +45,7 @@ const insertCompany = (req, res) => {
 
     queries
         .companies
-        .insertCompany(req.body)
+        .insert(req.body)
         .then(result => {
             res.json(result);
         })

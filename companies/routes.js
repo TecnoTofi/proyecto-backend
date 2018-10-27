@@ -38,38 +38,39 @@ const getCompanies = (req, res) => {
 };
 
 //POST Company
-async function insertCompany(req, res){
-    console.log('Conexion POST entrante : /api/company/');
+async function insertCompany(body){
+    console.log('Entre a funcion en routes de companies');
     
-    let {error} = await validarTipoDatoCompany(req.body);
+    // let {error} = await validarTipoDatoCompany(body);
 
-    if(!error){
+    // if(!error){
 
-        let company = {
-            name: req.body.companyName,
-            rut: req.body.companyRut,
-            firstStreet: req.body.companyFirstStreet,
-            secondStreet: req.body.companySecondStreet,
-            doorNumber: req.body.companyDoorNumber,
-            phone: req.body.companyPhone,
-            categoryId: req.body.category
-        }
+        // let company = {
+        //     name: body.companyName,
+        //     rut: body.companyRut,
+        //     firstStreet: body.companyFirstStreet,
+        //     secondStreet: body.companySecondStreet,
+        //     doorNumber: body.companyDoorNumber,
+        //     phone: body.companyPhone,
+        //     categoryId: body.category
+        // }
 
-        queries
-            .companies
-            .insert(company)
-            .then(result => {
-                res.json(result);
-            })
-            .catch(err => {
-                console.log(`Error en Query INSERT de Company : ${err}`);
-                res.status(500).json({message: err});
-            });
-    }
-    else{
-        console.log(`Error en la validacion de tipos de dato : ${error.details[0].message}`);
-        res.status(400).json({message: error.details[0].message});
-    }
+        companyId = await queries
+                        .companies
+                        .insert(body)
+                        .then(id => {
+                            return id;
+                        })
+                        .catch(err => {
+                            console.log(`Error en Query INSERT de Company : ${err}`);
+                            return 0;
+                        });
+        return companyId;
+    // }
+    // else{
+    //     console.log(`Error en la validacion de tipos de dato : ${error.details[0].message}`);
+    //     return 0;
+    // }
 };
 
 function validarTipoDatoCompany(body){

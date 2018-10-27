@@ -10,6 +10,5 @@ const CompanyRoutes = require('./routes');
 //Ruta para obtener el listado de companyCategory
 router.get('/category', CompanyRoutes.getCategories);
 router.get('/', CompanyRoutes.getCompanies);
-router.post('/', CompanyRoutes.insertCompany);
 
 module.exports = router;

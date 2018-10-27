@@ -16,4 +16,35 @@ const roles = (req, res) => {
     console.log('Informacion de Roles enviada');
 };
 
-module.exports = { roles };
+async function insertUser(body){
+    console.log('Entre a funcion en routes de users');
+
+    userId = queries
+                    .users
+                    .insert(body)
+                    .then(id => {
+                        return id;
+                    })
+                    .catch(err => {
+                        console.log(`Error en insert de User : ${err}`);
+                        res.status(500).json({message: err});
+                    });
+    return userId;
+};
+
+function ValidarTipoDatosUsuario(body){
+    const schema = {
+        userName: Joi.string().min(3).max(50).required(),
+        userEmail: Joi.string().min(6).max(50).email().required(),
+        userPassword: Joi.string().min(8).max(20).required(),
+        userDocument: Joi.string().min(5).max(15).required(),
+        userPhone: Joi.string().min(7).max(15).required(),
+        userFirstStreet: Joi.string().max(30).allow('').allow(null),
+        userSecondStreet: Joi.string().max(30).allow('').allow(null),
+        userDoorNumber: Joi.string().max(15).allow('').allow(null),
+        role: Joi.number().required()
+    };
+    return Joi.validate(body, schema);
+};
+
+module.exports = { roles, insertUser };

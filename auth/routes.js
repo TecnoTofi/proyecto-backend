@@ -6,6 +6,8 @@ const bcrypt = require('bcrypt');
 //Incluimos modulo propio con pool de conexion a DB
 const userQueries = require('../users/dbQueries');
 const companyQueries = require('../companies/dbQueries');
+const { insertCompany } = require('../companies/routes');
+const { insertUser } = require('../users/routes');
 
 const secreto = 'keyboard_cat';
 
@@ -38,7 +40,7 @@ async function login(req, res){
 
         let rol = await userQueries
                             .roles
-                            .getRolById(user.roleId)
+                            .getOneById(user.roleId)
                             .then(rol => {
                                 console.log(rol);
                                 if(rol) return rol
@@ -151,74 +153,62 @@ async function signup(req, res){
         const erroresexistencia = await ValidarExistenciaDatos(req.body);
 
         if(erroresexistencia.length == 0){
+
             console.log('Comenzado encryptacion de contraseña');
-            bcrypt.hash(req.body.userData.userPassword, 10, (err, hash) => {
-                //Si falla la encriptacion, tiro para afuera
-                if(err){
-                    console.log(`Error al crear hash : ${err}`);
-                    res.status(500).json({error: err});
-                }
-                else{
-                    console.log('Encryptacion de contraseña, correcta');
-                    console.log('Preparacion de registro de empresa');
-                    const companyData = {
-                        name: req.body.companyData.companyName,
-                        rut: req.body.companyData.companyRut,
-                        firstStreet: req.body.companyData.companyFirstStreet,
-                        secondStreet: req.body.companyData.companySecondStreet,
-                        doorNumber: req.body.companyData.companyDoorNumber,
-                        phone: req.body.companyData.companyPhone,
-                        categoryId: req.body.companyData.category
-                    };
-    
-                    let companyId;
-                    console.log('Enviando query INSERT de Company');
-                    companyQueries
-                        .companies
-                        .insert(companyData)
-                        .then(res => {
-                            companyId = res;
-                        })
-                        .catch(err => {
-                            console.log(`Error en insert de Company : ${err}`);
-                            res.status(500).json({message: err});
-                        });
-    
-                    console.log('Query correcta');
-                    console.log(`Empresa insertada con id: ${companyId}`);
-                    console.log('Preparacion de registro de usuario');
-                    const userData = {
-                        phone: req.body.userData.userphone,
-                        email: req.body.userData.userEmail,
-                        password: hash,
-                        document: req.body.userData.userDocument,
-                        name: req.body.userData.userName,
-                        roleId: req.body.userData.role,
-                        companyId: companyId,
-                        firstStreet: req.body.userData.userFirstStreet,
-                        secondStreet: req.body.userData.userSecondStreet,
-                        doorNumber: req.body.userData.userDoorNumber
-                      };
-    
-                    let userId;
-                    console.log('Enviando query INSERT de User');
-                    userQueries
-                        .users
-                        .insert(userData)
-                        .then(res => {
-                            userId = res;
-                        })
-                        .catch(err => {
-                            console.log(`Error en insert de User : ${err}`);
-                            res.status(500).json({message: err});
-                        });
-    
+            const hash = await bcrypt.hash(req.body.userData.userPassword, 10);
+            
+            if(hash){
+                console.log('Encryptacion de contraseña, correcta');
+                console.log(hash);
+                console.log('Preparacion de registro de empresa');
+
+                const companyData = {
+                    name: req.body.companyData.companyName,
+                    rut: req.body.companyData.companyRut,
+                    firstStreet: req.body.companyData.companyFirstStreet,
+                    secondStreet: req.body.companyData.companySecondStreet,
+                    doorNumber: req.body.companyData.companyDoorNumber,
+                    phone: req.body.companyData.companyPhone,
+                    categoryId: req.body.companyData.category
+                };
+
+                console.log('Enviando query INSERT de Company');
+                let companyId = Number(await insertCompany(companyData));
+                                    
+                console.log('Query correcta');
+                console.log(`Empresa insertada con id: ${companyId}`);
+                console.log('Preparacion de registro de usuario');
+
+                const userData = {
+                    email: req.body.userData.userEmail,
+                    password: hash,
+                    name: req.body.userData.userName,
+                    roleId: req.body.userData.role,
+                    companyId: companyId,
+                    firstStreet: req.body.userData.userFirstStreet,
+                    secondStreet: req.body.userData.userSecondStreet,
+                    doorNumber: req.body.userData.userDoorNumber,
+                    phone: req.body.userData.userPhone,
+                    document: req.body.userData.userDocument
+                };
+
+                console.log('Enviando query INSERT de User');
+                let userId = Number(await insertUser(userData));
+
+                if(companyId && userId){
                     console.log('Query correcta');
                     console.log(`Usuario insertado con id: ${userId}`);
                     console.log('Registro finalizado');
                     res.status(201).json({message: 'Alta exitosa'});
                 }
-            });
+                else{
+                    res.status(500).json({message: 'Error en el alta'});
+                }
+            }
+            else{
+                console.log(`Error al crear hash : ${err}`);
+                res.status(500).json({error: err});
+            }
         }
         else{
             console.log('Errores en la validacion de existencia encontrados');
@@ -301,9 +291,9 @@ function ValidarTipoDatosUsuario(body){
         userPassword: Joi.string().min(8).max(20).required(),
         userDocument: Joi.string().min(5).max(15).required(),
         userPhone: Joi.string().min(7).max(15).required(),
-        userFirstStreet: Joi.string().max(30),
-        userSecondStreet: Joi.string().max(30),
-        userDoorNumber: Joi.string().max(15),
+        userFirstStreet: Joi.string().max(30).allow('').allow(null),
+        userSecondStreet: Joi.string().max(30).allow('').allow(null),
+        userDoorNumber: Joi.string().max(15).allow('').allow(null),
         role: Joi.number().required()
     };
     return Joi.validate(body, schema);

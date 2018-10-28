@@ -43,70 +43,78 @@ async function login(req, res){
                         .catch(err => {
                             console.log(`Error en la Query SELECT de User para Email : ${err}`);
                             res.status(500).json({message: err});
-                        });
-                                
+                        });      
     if(user){
+        const comparacionPass = await bcrypt.compare(req.body.userPassword, user.password);
 
-        let rol = await userQueries
-                            .roles
-                            .getOneById(user.roleId)
-                            .then(rol => {
-                                console.log(rol);
-                                if(rol) return rol
-                                else return null;
-                            })
-                            .catch(err => {
-                                console.log(`Error en Query SELECT de Role : ${err}`);
-                                res.status(500).json({message: err});
-                            });
+        if(comparacionPass){
+            console.log('Comparacion correcta');
 
-        bcrypt
-            .compare(req.body.userPassword, user.password)
-            .then(result => {
+            const {userEmail, userPassword} = req.body;
 
-                if(result){
-                    console.log('Comparacion correcta');
-                    const {userEmail, userPassword} = req.body;
-                    console.log('Firmando token');
-                    jwt.sign({userEmail, userPassword}, secreto, {expiresIn: '1h'}, (error, token) => {
-                        if(error){
-                            console.log(`Error al firmar el token : ${error}`);
-                            res.status(500).json({message: 'Error al firmar el token'});
-                        }
-                        console.log('Token firmado correctamente');
-                        
-                        res.cookie('access_token', token, {
-                            maxAge: new Date(Date.now() + 3600),
-                            httpOnly: false
-                        });
+            console.log('Firmando token');
+            const token = await jwt.sign({userEmail, userPassword}, secreto, {expiresIn: '1h'})
 
-                        let data = {
-                            userType: rol.name,
-                            userName: user.name,
-                            userEmail: user.email,
-                            userId: user.id
-                        };
+            if(token){
+                console.log('Token firmado correctamente');
 
-                        console.log(`Preparacion de datos : ${data}`);
+                let rol = await userQueries
+                                    .roles
+                                    .getOneById(user.roleId)
+                                    .then(rol => {
+                                        console.log(`Informacion de Role obtenida correctamente`);
+                                        return rol
+                                    })
+                                    .catch(err => {
+                                        console.log(`Error en Query SELECT de Role : ${err}`);
+                                        res.status(500).json({message: err});
+                                    });
+                let company = await companyQueries
+                                        .companies
+                                        .getOneById(user.companyId)
+                                        .then(comp => {
+                                            console.log(`Informacion de Company obtenida correctamente`);
+                                            return comp
+                                        })
+                                        .catch(err => {
+                                            console.log(`Error en Query SELECT de Company : ${err}`);
+                                            res.status(500).json({message: err});
+                                        });
+                
+                res.cookie('access_token', token, {
+                    maxAge: new Date(Date.now() + 3600),
+                    httpOnly: false
+                });
 
-                        res.status(200).json({
-                            message: 'Loggeado correctamente',
-                            // token: token,
-                            userData: data
-                        });
-                        console.log('Loggin correcto');
-                        console.log('Response enviada correctamente');
-                    });
-                }//if de bcrypt
-            else{
-                console.log('Contraseña incorrecta');
-                res.json({message: 'Usuario o contraseña incorrectos.'});
+                let data = {
+                    userType: rol.name,
+                    userName: user.name,
+                    userEmail: user.email,
+                    userId: user.id,
+                    userCompanyName: company.name,
+                    userCompanyId: company.id
+                };
+
+                console.log(`Preparacion de datos : ${data}`);
+
+                res.status(200).json({
+                    message: 'Loggeado correctamente',
+                    token: token,
+                    userData: data
+                });
+                console.log('Loggin correcto');
+                console.log('Response enviada correctamente');
             }
-        })
-        .catch(err => {
-            console.log('Error al encyptar');
-            res.status(500).json({message: 'Error al encryptar'});
-        });
+            else{
+                console.log(`Error al firmar el token : ${error}`);
+                res.status(500).json({message: 'Error al firmar el token'});
+            }
+                
+        }
+        else{
+            console.log('Contraseña incorrecta');
+            res.json({message: 'Usuario o contraseña incorrectos.'});
+        }
     }
     else{
         console.log(`Email no existe en la plataforma : ${req.body.userEmail}`);

@@ -9,5 +9,6 @@ const UserRoutes = require('./routes');
 
 //Ruta para obtener el listado de Roles de usuario
 router.get('/role', UserRoutes.roles);
+router.get('/role/signup', UserRoutes.forSignup)
 
 module.exports = router;

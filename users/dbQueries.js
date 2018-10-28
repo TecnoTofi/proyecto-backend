@@ -42,6 +42,9 @@ module.exports = {
         getOneByName: function(name){
             return knex.select().table('Role').where('name', name).first();
         },
+        getForSignup: function(){
+            return knex.select().table('Role').whereIn('name', ['Minorista', 'Mayorista']);
+        },
         insert: function(rol){
             return knex('Role').insert(rol).returning('id');
         },

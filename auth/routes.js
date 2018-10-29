@@ -150,6 +150,7 @@ const logout = (req, res) => {
 
 //funcion de ruteo de registro
 async function signup(req, res){
+    // console.log(req);
     console.log(req.file);
     console.log('Conexion POST entrante : /api/signup');
     //valido datos
@@ -174,13 +175,16 @@ async function signup(req, res){
         companySecondStreet: req.body.companySecondStreet,
         companyDoorNumber: req.body.companyDoorNumber,
         category: req.body.category,
-        companyImage: req.file.path
+        imageName: req.file.filename,
+        imagePath: req.file.path
     }
 
-
+    //toque aca
     console.log('Iniciando validacion de tipos de datos de User');
+    // const validacionUsuarios = await validarTipoDatosUser(req.body.userData);
     const validacionUsuarios = await validarTipoDatosUser(valUser);
     console.log('Iniciando validacion de tipos de datos de Company');
+    // const validacionEmpresas = await validarTipoDatosCompany(req.body.companyData);
     const validacionEmpresas = await validarTipoDatosCompany(valComp);
 
     //agregar un if validacionUsuarios && validacionEmpresas para evitar undefined
@@ -210,14 +214,15 @@ async function signup(req, res){
     else{
         console.log('Validaciones de tipos de usuario correctas');
 
-        // const erroresexistencia = await ValidarExistenciaDatos(req.body);
+        const erroresexistencia = await ValidarExistenciaDatos(req.body);
         //toque aca
-        let erroresexistencia = [];
+        // let erroresexistencia = [];
         if(erroresexistencia.length == 0){
 
             console.log('Comenzado encryptacion de contraseña');
             //toque aca
-            const hash = await bcrypt.hash(req.body.userPassword, 10);
+            const hash = await bcrypt.hash(valUser.userPassword, 10);
+            // const hash = await bcrypt.hash(req.body.userData.userPassword, 10);
             
             if(hash){
                 console.log('Encryptacion de contraseña, correcta');
@@ -227,6 +232,7 @@ async function signup(req, res){
                 // let insertar = req.body.companyData;
                 // insertar.companyImage = req.file.path;
                 let company = await insertCompany(valComp);
+                // let company = await insertCompany(req.body.companyData);
                 
                 if(await company.id != 0){
                     console.log('Query correcta');
@@ -234,8 +240,8 @@ async function signup(req, res){
 
                     console.log('Enviando query INSERT de User');
                     //toque aca
+                    // let user = Number(await insertUser(valUser, hash, company.id));
                     let user = Number(await insertUser(valUser, hash, company.id));
-                    // let user = Number(await insertUser(req.body.userData, hash, company.id));
 
                     if(await user.id != 0){
                         console.log('Query correcta');
@@ -276,10 +282,10 @@ async function ValidarExistenciaDatos(body){
 
     await userQueries
         .users
-        .getOneByEmail(body.userData.userEmail)
+        .getOneByEmail(body.userEmail)
         .then(res => {
             if(res){
-                console.log(`Email ya existe en la DB : ${body.userData.userEmail}`);
+                console.log(`Email ya existe en la DB : ${body.userEmail}`);
                 errores.push('Email ya esta en uso');
             }
         })
@@ -290,10 +296,10 @@ async function ValidarExistenciaDatos(body){
 
     await userQueries
         .users
-        .getOneByDocument(body.userData.userDocument)
+        .getOneByDocument(body.userDocument)
         .then(res => {
             if(res){
-                console.log(`Documento ya existe en la DB : ${body.userData.userDocument}`);
+                console.log(`Documento ya existe en la DB : ${body.userDocument}`);
                 errores.push('Documento ya esta en uso');
             }
         })
@@ -304,10 +310,10 @@ async function ValidarExistenciaDatos(body){
 
     await companyQueries
         .companies
-        .getOneByName(body.companyData.companyName)
+        .getOneByName(body.companyName)
         .then(res => {
             if(res){
-                console.log(`Nombre de empresa ya existe en la DB : ${body.companyData.companyName}`);
+                console.log(`Nombre de empresa ya existe en la DB : ${body.companyName}`);
                 errores.push('Nombre de empresa ya esta en uso');
             }
         })
@@ -318,10 +324,10 @@ async function ValidarExistenciaDatos(body){
 
     await companyQueries
         .companies
-        .getOneByRut(body.companyData.companyRut)
+        .getOneByRut(body.companyRut)
         .then(res => {
             if(res){
-                console.log(`RUT ya existe en la DB : ${body.companyData.companyRut}`);
+                console.log(`RUT ya existe en la DB : ${body.companyRut}`);
                 errores.push('RUT ya esta en uso');
             }
         })

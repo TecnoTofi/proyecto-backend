@@ -5,7 +5,9 @@ const router = express.Router();
 const multer = require('multer');
 const storage = multer.diskStorage({
     destination: function(req, file, cb){
-        cb(null, '../uploads');
+        console.log(req);
+        console.log(file);
+        cb(null, './uploads/companies/');
     },
     filename: function(req, file, cb){
         cb(null, new Date().toISOString().replace(/:/g,'-') + file.originalname);
@@ -32,5 +34,6 @@ const AuthRoutes = require('./routes');
 router.post('/login', AuthRoutes.login);
 router.post('/logout', AuthRoutes.logout);
 router.post('/signup', upload.single('companyImage'), AuthRoutes.signup);
+// router.post('/signup', AuthRoutes.signup);
 
 module.exports = router;

@@ -150,8 +150,6 @@ const logout = (req, res) => {
 
 //funcion de ruteo de registro
 async function signup(req, res){
-    // console.log(req);
-    console.log(req.file);
     console.log('Conexion POST entrante : /api/signup');
     //valido datos
     

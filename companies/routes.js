@@ -1,5 +1,6 @@
 const Joi = require('joi');
 const queries = require('./dbQueries');
+const fs = require('fs');
 
 //GET Categories
 const getCategories =  (req, res) => {
@@ -28,6 +29,10 @@ const getCompanies = (req, res) => {
         .getAll()
         .then(companies => {
             console.log('Informacion de Company obtenida');
+
+            let data = fs.readFileSync(companies[8].imagePath);
+            console.log(data);
+
             res.status(200).json(companies);
         })
         .catch(err => {

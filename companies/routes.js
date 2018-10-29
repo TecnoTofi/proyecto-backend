@@ -54,7 +54,8 @@ async function insertCompany(body){
         secondStreet: body.companySecondStreet,
         doorNumber: body.companyDoorNumber,
         phone: body.companyPhone,
-        categoryId: body.category
+        categoryId: body.category,
+        companyImage: body.companyImage
     }
     console.log('Datos para insercion listos');
     console.log('Enviando Querie INSERT de Company');
@@ -86,7 +87,8 @@ function validarTipoDatosCompany(body){
         companyFirstStreet: Joi.string().max(30).required(),
         companySecondStreet: Joi.string().max(30).required(),
         companyDoorNumber: Joi.string().max(15).required(),
-        category: Joi.number().required()
+        category: Joi.number().required(),
+        companyImage: Joi.allow('').allow(null)
     };
     return Joi.validate(body, schema);
 };

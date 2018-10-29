@@ -9,6 +9,7 @@ const companyQueries = require('../companies/dbQueries');
 const { insertCompany, validarTipoDatosCompany } = require('../companies/routes');
 const { insertUser, validarTipoDatosUser, validarLogin } = require('../users/routes');
 
+
 const secreto = 'keyboard_cat';
 
 
@@ -149,14 +150,40 @@ const logout = (req, res) => {
 
 //funcion de ruteo de registro
 async function signup(req, res){
+    console.log(req.file);
     console.log('Conexion POST entrante : /api/signup');
-    
     //valido datos
-    console.log('Iniciando validacion de tipos de datos de User');
-    const validacionUsuarios = await validarTipoDatosUser(req.body.userData);
-    console.log('Iniciando validacion de tipos de datos de Company');
-    const validacionEmpresas = await validarTipoDatosCompany(req.body.companyData);
+    
+    let valUser = {
+        userName: req.body.userName,
+        userEmail: req.body.userEmail,
+        userPassword: req.body.userPassword,
+        userDocument: req.body.userDocument,
+        userPhone: req.body.userPhone,
+        userFirstStreet: req.body.userFirstStreet,
+        userSecondStreet: req.body.userSecondStreet,
+        userDoorNumber: req.body.userDoorNumber,
+        role: req.body.role
+    }
 
+    let valComp = {
+        companyName: req.body.companyName,
+        companyRut: req.body.companyRut,
+        companyPhone: req.body.companyPhone,
+        companyFirstStreet: req.body.companyFirstStreet,
+        companySecondStreet: req.body.companySecondStreet,
+        companyDoorNumber: req.body.companyDoorNumber,
+        category: req.body.category,
+        companyImage: req.file.path
+    }
+
+
+    console.log('Iniciando validacion de tipos de datos de User');
+    const validacionUsuarios = await validarTipoDatosUser(valUser);
+    console.log('Iniciando validacion de tipos de datos de Company');
+    const validacionEmpresas = await validarTipoDatosCompany(valComp);
+
+    //agregar un if validacionUsuarios && validacionEmpresas para evitar undefined
     // Si falla la validacion tiro para afuera
     if(validacionUsuarios.error && validacionEmpresas.error){
         console.log('Error en la validacion de tipos de datos de usuario y empresa');
@@ -183,25 +210,32 @@ async function signup(req, res){
     else{
         console.log('Validaciones de tipos de usuario correctas');
 
-        const erroresexistencia = await ValidarExistenciaDatos(req.body);
-
+        // const erroresexistencia = await ValidarExistenciaDatos(req.body);
+        //toque aca
+        let erroresexistencia = [];
         if(erroresexistencia.length == 0){
 
             console.log('Comenzado encryptacion de contraseña');
-            const hash = await bcrypt.hash(req.body.userData.userPassword, 10);
+            //toque aca
+            const hash = await bcrypt.hash(req.body.userPassword, 10);
             
             if(hash){
                 console.log('Encryptacion de contraseña, correcta');
 
                 console.log('Enviando query INSERT de Company');
-                let company = await insertCompany(req.body.companyData);
+                // toque aca
+                // let insertar = req.body.companyData;
+                // insertar.companyImage = req.file.path;
+                let company = await insertCompany(valComp);
                 
                 if(await company.id != 0){
                     console.log('Query correcta');
                     console.log(`Empresa insertada con id: ${company.id}`);
 
                     console.log('Enviando query INSERT de User');
-                    let user = Number(await insertUser(req.body.userData, hash, company.id));
+                    //toque aca
+                    let user = Number(await insertUser(valUser, hash, company.id));
+                    // let user = Number(await insertUser(req.body.userData, hash, company.id));
 
                     if(await user.id != 0){
                         console.log('Query correcta');

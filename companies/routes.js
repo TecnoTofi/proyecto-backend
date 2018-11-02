@@ -29,6 +29,11 @@ const getCompanies = (req, res) => {
         .getAll()
         .then(companies => {
             console.log('Informacion de Company obtenida');
+            let regex = /\\/g;
+            const empresas = companies.map(comp => {
+                comp.imagePath = comp.imagePath.replace(regex, '/');
+                return comp;
+            });
             res.status(200).json(companies);
         })
         .catch(err => {

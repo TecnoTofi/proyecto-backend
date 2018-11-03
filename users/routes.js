@@ -90,9 +90,9 @@ function validarTipoDatosUser(body){
         userPassword: Joi.string().min(8).max(20).required(),
         userDocument: Joi.string().min(5).max(15).required(),
         userPhone: Joi.string().min(7).max(15).required(),
-        userFirstStreet: Joi.string().max(30).allow('').allow(null),
-        userSecondStreet: Joi.string().max(30).allow('').allow(null),
-        userDoorNumber: Joi.string().max(15).allow('').allow(null),
+        userFirstStreet: Joi.string().min(3).max(30).allow('').allow(null),
+        userSecondStreet: Joi.string().min(3).max(30).allow('').allow(null),
+        userDoorNumber: Joi.string().max(6).allow('').allow(null),
         role: Joi.number().required()
     };
     return Joi.validate(body, schema);

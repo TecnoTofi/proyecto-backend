@@ -1,15 +1,19 @@
+//Incluimos JsonWebToken para autenticacion
 const jwt = require('jsonwebtoken');
 //Incluimos modulo Joi para la validaciond de datos
 const Joi = require('joi');
-//Incluimos modulo de encriptacion de contraseñas
+//Incluimos modulo Bcrypt de encriptacion de contraseñas
 const bcrypt = require('bcrypt');
 //Incluimos modulo propio con pool de conexion a DB
 const userQueries = require('../users/dbQueries');
+//Incluimos dbQueries de Company
 const companyQueries = require('../companies/dbQueries');
+//Incluimos funciones de insert y validacion para company
 const { insertCompany, validarTipoDatosCompany } = require('../companies/routes');
+//Incluimos funciones de insert y validacion para user
 const { insertUser, validarTipoDatosUser, validarLogin } = require('../users/routes');
 
-
+//Declaramos el secreto para JWT
 const secreto = 'keyboard_cat';
 
 
@@ -21,18 +25,18 @@ const secreto = 'keyboard_cat';
 
 
 
-//funcion ruteo de inicio de sesion
+// Ruteo de inicio de sesion
 async function login(req, res){
     console.log('Conexion POST entrante : /api/login');
-
+    //Enviamos a validar el tipo de datos recibidos
     let {error} = await validarLogin(req.body);
-
+    //Si hay error devolvemos y no continuamos
     if(error){
         console.log(`Error en la validacion : ${error}`);
         return res.status(400).json({message: error.details[0].message});
     }
     console.log('Validacion de datos exitosa');
-    
+    //Buscamos el email en la BD
     let user = await userQueries
                         .users
                         .getOneByEmail(req.body.userEmail)
@@ -44,21 +48,22 @@ async function login(req, res){
                         .catch(err => {
                             console.log(`Error en la Query SELECT de User para Email : ${err}`);
                             res.status(500).json({message: err});
-                        });      
+                        });
+    //Si el usuario existe, procedemos a comparar la contraseña encriptada
     if(user){
         const comparacionPass = await bcrypt.compare(req.body.userPassword, user.password);
-
+        //Si la contraseña esta bien, avanzamos a firmar el token
         if(comparacionPass){
             console.log('Comparacion correcta');
 
             const {userEmail, userPassword} = req.body;
-
+            //Firmamos el token con la info necesaria
             console.log('Firmando token');
             const token = await jwt.sign({userEmail, userPassword}, secreto, {expiresIn: '1h'})
-
+            //Si se creo correctamente el token, pasamos a buscar info extra
             if(token){
                 console.log('Token firmado correctamente');
-
+                //traemos el rol del usuario que esta iniciando sesion
                 let rol = await userQueries
                                     .roles
                                     .getOneById(user.roleId)
@@ -70,6 +75,7 @@ async function login(req, res){
                                         console.log(`Error en Query SELECT de Role : ${err}`);
                                         res.status(500).json({message: err});
                                     });
+                //traemos la compañia a la que pertenece el usuario que esta iniciando sesion
                 let company = await companyQueries
                                         .companies
                                         .getOneById(user.companyId)
@@ -81,12 +87,12 @@ async function login(req, res){
                                             console.log(`Error en Query SELECT de Company : ${err}`);
                                             res.status(500).json({message: err});
                                         });
-                
+                //creamos el cookie
                 res.cookie('access_token', token, {
                     maxAge: new Date(Date.now() + 3600),
                     httpOnly: false
                 });
-
+                //armamos el cuerpo de la respuesta
                 let data = {
                     userType: rol.name,
                     userName: user.name,
@@ -97,7 +103,7 @@ async function login(req, res){
                 };
 
                 console.log(`Preparacion de datos : ${data}`);
-
+                //enviamos la respuesta con el token y el cuerpo
                 res.status(200).json({
                     message: 'Loggeado correctamente',
                     token: token,
@@ -132,12 +138,14 @@ async function login(req, res){
 
 
 
-//funcion de ruteo de cierre de sesion
+//ruteo de cierre de sesion
 const logout = (req, res) => {
+    //indicamos borrar cookie
     res.clearCookie('access_token', req.cookies.access_token, {
         maxAge: new Date(Date.now() + 3600),
         httpOnly: false
     });
+    //enviamos response
     res.status(200).json({message: 'Cierre de sesion exitoso'});
 };
 
@@ -151,8 +159,8 @@ const logout = (req, res) => {
 //funcion de ruteo de registro
 async function signup(req, res){
     console.log('Conexion POST entrante : /api/signup');
-    //valido datos
     
+    //armamos body para user
     let valUser = {
         userName: req.body.userName,
         userEmail: req.body.userEmail,
@@ -165,6 +173,7 @@ async function signup(req, res){
         role: req.body.role
     }
 
+    // armamos body para company
     let valComp = {
         companyName: req.body.companyName,
         companyRut: req.body.companyRut,
@@ -177,17 +186,19 @@ async function signup(req, res){
         imagePath: req.file.path
     }
 
-    //toque aca
+    //envio bodies para validar tipos de datos
     console.log('Iniciando validacion de tipos de datos de User');
-    // const validacionUsuarios = await validarTipoDatosUser(req.body.userData);
     const validacionUsuarios = await validarTipoDatosUser(valUser);
     console.log('Iniciando validacion de tipos de datos de Company');
-    // const validacionEmpresas = await validarTipoDatosCompany(req.body.companyData);
     const validacionEmpresas = await validarTipoDatosCompany(valComp);
 
     //agregar un if validacionUsuarios && validacionEmpresas para evitar undefined
-    // Si falla la validacion tiro para afuera
-    if(validacionUsuarios.error && validacionEmpresas.error){
+    //Respondo acorde a si fallo algo en las validaciones de tipo
+    if(!validacionUsuarios.error || !validacionEmpresas.error){
+        console.log('Error en la validacion de tipos de datos : Undefined');
+        res.status(500).json({message: 'Error inesperado'});
+    }
+    else if(validacionUsuarios.error && validacionEmpresas.error){
         console.log('Error en la validacion de tipos de datos de usuario y empresa');
         let errores = {
             usuario: validacionUsuarios.error.details[0].message,
@@ -212,35 +223,33 @@ async function signup(req, res){
     else{
         console.log('Validaciones de tipos de usuario correctas');
 
+        //Si las validaciones de tipo esta bien, valido que los datos unicos no existan ya
         const erroresexistencia = await ValidarExistenciaDatos(req.body);
-        //toque aca
-        // let erroresexistencia = [];
+
+        //Si no estan repetidos los datos, seguimos con el ecriptado de la contraseña
         if(erroresexistencia.length == 0){
 
             console.log('Comenzado encryptacion de contraseña');
-            //toque aca
+            //Encriptamos la contraseña
             const hash = await bcrypt.hash(valUser.userPassword, 10);
-            // const hash = await bcrypt.hash(req.body.userData.userPassword, 10);
             
+            //Si la encriptacion salio bien, pasamos al insert de company
             if(hash){
                 console.log('Encryptacion de contraseña, correcta');
 
                 console.log('Enviando query INSERT de Company');
-                // toque aca
-                // let insertar = req.body.companyData;
-                // insertar.companyImage = req.file.path;
+                //Enviamos insert a company
                 let company = await insertCompany(valComp);
-                // let company = await insertCompany(req.body.companyData);
                 
+                //Si el insert de company salio bien, paso a insert de usuario
                 if(await company.id != 0){
                     console.log('Query correcta');
                     console.log(`Empresa insertada con id: ${company.id}`);
 
                     console.log('Enviando query INSERT de User');
-                    //toque aca
-                    // let user = Number(await insertUser(valUser, hash, company.id));
+                    //envio insert de user
                     let user = Number(await insertUser(valUser, hash, company.id));
-
+                    //si el insert de usuer salio bien, envio response
                     if(await user.id != 0){
                         console.log('Query correcta');
                         console.log(`Usuario insertado con id: ${user.id}`);
@@ -272,12 +281,13 @@ async function signup(req, res){
 
 
 
-
+//Validaciones de existencia de datos unicos en BD
 async function ValidarExistenciaDatos(body){
     console.log('Iniciando validacion de existencia de datos');
 
     let errores = [];
-
+    
+    //Me fijo que no exista ya el email
     await userQueries
         .users
         .getOneByEmail(body.userEmail)
@@ -291,7 +301,8 @@ async function ValidarExistenciaDatos(body){
             console.log(`Error en la Query SELECT de User para Email : ${err}`);
             res.status(500).json({message: err});
         });
-
+    
+    //Me fijo que no exista ya el documento de identidad
     await userQueries
         .users
         .getOneByDocument(body.userDocument)
@@ -306,6 +317,7 @@ async function ValidarExistenciaDatos(body){
             res.status(500).json({message: err});
         });
 
+    // Me fijo que no exista ya el nombre de la empresa
     await companyQueries
         .companies
         .getOneByName(body.companyName)
@@ -320,6 +332,7 @@ async function ValidarExistenciaDatos(body){
             res.status(500).json({message: err});
         });
 
+    //Me fijo que no exista ya el RUT
     await companyQueries
         .companies
         .getOneByRut(body.companyRut)
@@ -333,8 +346,10 @@ async function ValidarExistenciaDatos(body){
             console.log(`Error en la Query SELECT de Company para Rut : ${err}`);
             res.status(500).json({message: err});
         });
+    //envio response
     await console.log(`Errores encontrados en validacion de existencias : ${errores}`);
     return errores;
 };
 
+//Exporto funciones de ruteo
 module.exports = { login, logout, signup };

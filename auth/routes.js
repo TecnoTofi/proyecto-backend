@@ -1,3 +1,4 @@
+require('dotenv').config();
 //Incluimos JsonWebToken para autenticacion
 const jwt = require('jsonwebtoken');
 //Incluimos modulo Bcrypt de encriptacion de contraseñas
@@ -12,9 +13,10 @@ const { insertCompany, validarTipoDatosCompany } = require('../companies/routes'
 const { insertUser, validarTipoDatosUser, validarLogin } = require('../users/routes');
 
 //Declaramos el secreto para JWT
-const secreto = 'keyboard_cat';
+const secreto = process.env.COOKIE_SECRET;
 
 function verifyToken (req, res, next) {
+    console.log(secreto);
     if(!req.headers.token){
         console.log('No hay token, acceso no autorizado');
         res.status(401).json({message: 'Acceso no autorizado'});

@@ -120,7 +120,18 @@ async function insertProduct(req, res){
 async function insertCompanyProduct(req, res){
     console.log('Conexion POST entrante : /api/product/company');
 
-    let {error} = await validarRegistroEmpresaProducto(req.body);
+    let valProduct = {
+        companyId: req.body.companyId,
+        productId: req.body.productId,
+        productName: req.body.productName,
+        productDescription: req.body.productDescription,
+        productPrice: req.body.productPrice,
+        productStock: req.body.productStock
+    }
+
+    console.log(valProduct);
+
+    let {error} = await validarRegistroEmpresaProducto(valProduct);
 
     if(!error){
 
@@ -148,6 +159,7 @@ async function insertCompanyProduct(req, res){
                                 res.status(500).json()
                             });
         if(company && product){
+
             let companyProduct = {
                 companyId: company.id,
                 productId: product.id,
@@ -155,6 +167,7 @@ async function insertCompanyProduct(req, res){
                 description: req.body.productDescription,
                 price: req.body.productPrice,
                 stock: req.body.productStock
+                //imagen
             }
 
             productQueries

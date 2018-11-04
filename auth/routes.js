@@ -177,6 +177,7 @@ const logout = (req, res) => {
 
 //funcion de ruteo de registro
 async function signup(req, res){
+    console.log(req.body);
     console.log('Conexion POST entrante : /api/signup');
     
     //armamos body para user
@@ -211,13 +212,16 @@ async function signup(req, res){
     console.log('Iniciando validacion de tipos de datos de Company');
     const validacionEmpresas = await validarTipoDatosCompany(valComp);
 
+    // console.log('Validacion users', validacionUsuarios);
+    // console.log('Validacion companies', validacionEmpresas);
+
     //agregar un if validacionUsuarios && validacionEmpresas para evitar undefined
     //Respondo acorde a si fallo algo en las validaciones de tipo
-    if(!validacionUsuarios.error || !validacionEmpresas.error){
-        console.log('Error en la validacion de tipos de datos : Undefined');
-        res.status(500).json({message: 'Error inesperado'});
-    }
-    else if(validacionUsuarios.error && validacionEmpresas.error){
+    // if(!validacionUsuarios.error || !validacionEmpresas.error){
+    //     console.log('Error en la validacion de tipos de datos : Undefined');
+    //     res.status(500).json({message: 'Error inesperado'});
+    // }
+    if(validacionUsuarios.error && validacionEmpresas.error){
         console.log('Error en la validacion de tipos de datos de usuario y empresa');
         let errores = {
             usuario: validacionUsuarios.error.details[0].message,

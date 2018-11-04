@@ -36,9 +36,8 @@ const upload = multer({
 
 //Incluimos rutas de Auth
 const AuthRoutes = require('./routes');
-// const AuthVerify = require('./verifyToken');
 //Creamos ruteos HTTP 
-router.post('/', AuthRoutes.verifyToken);
+router.post('/', AuthRoutes.verifyToken, AuthRoutes.login);
 router.post('/login', AuthRoutes.login);
 router.post('/logout', AuthRoutes.logout);
 //Multer intermedia para manejar la imagen

@@ -17,7 +17,7 @@ const secreto = 'keyboard_cat';
 
 
 
-function verifyToken (req, res) {
+function verifyToken (req, res, next) {
     if(!req.body.token){
         console.log('No hay token, acceso no autorizado');
         res.status(401).json({message: 'Acceso no autorizado'});
@@ -32,49 +32,9 @@ function verifyToken (req, res) {
             else{
                 req.body.userEmail = userData.userEmail;
                 req.body.userPassword = userData.userPassword;
-                login(req, res);
-                // res.status(200).json('Token valido');
-                // let user = await userQueries
-                //         .users
-                //         .getOneByEmail(userData.userEmail)
-                //         .then(res => {
-                //             console.log(res);
-                //             if(res) return res
-                //             else return null
-                //         })
-                //         .catch(err => {
-                //             console.log(`Error en la Query SELECT de User para Email : ${err}`);
-                //             res.status(500).json({message: err});
-                //         });
-                // let rol = await userQueries
-                //             .roles
-                //             .getOneById(user.roleId)
-                //             .then(rol => {
-                //                 console.log(`Informacion de Role obtenida correctamente`);
-                //                 return rol
-                //             })
-                //             .catch(err => {
-                //                 console.log(`Error en Query SELECT de Role : ${err}`);
-                //                 res.status(500).json({message: err});
-                //             });
-                // //traemos la compañia a la que pertenece el usuario que esta iniciando sesion
-                // let company = await companyQueries
-                //                         .companies
-                //                         .getOneById(user.companyId)
-                //                         .then(comp => {
-                //                             console.log(`Informacion de Company obtenida correctamente`);
-                //                             return comp
-                //                         })
-                //                         .catch(err => {
-                //                             console.log(`Error en Query SELECT de Company : ${err}`);
-                //                             res.status(500).json({message: err});
-                //                         });
-
-                
+                // login(req, res);
+                next();
             }
-            
-
-            // next();
         });
     }
 }

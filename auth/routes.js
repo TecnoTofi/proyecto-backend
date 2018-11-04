@@ -16,7 +16,6 @@ const { insertUser, validarTipoDatosUser, validarLogin } = require('../users/rou
 const secreto = process.env.COOKIE_SECRET;
 
 function verifyToken (req, res, next) {
-    console.log(secreto);
     if(!req.headers.token){
         console.log('No hay token, acceso no autorizado');
         res.status(401).json({message: 'Acceso no autorizado'});

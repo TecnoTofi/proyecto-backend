@@ -1,5 +1,6 @@
 //Incluimos modulo express para el manejo HTTP
 const express = require('express');
+const morgan = require('morgan');
 //Incluimos modulo body-parser para complementar express
 const bodyParser = require('body-parser');
 //Incluimos cookie-parser para el manejo de cookies
@@ -21,6 +22,7 @@ const PORT = process.env.PORT || 3000;
 
 //Inicializamos APP
 const app = express();
+app.use(morgan('dev'));
 app.use(cors({
     credentials: true
 }));

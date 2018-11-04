@@ -4,12 +4,13 @@ const express = require('express');
 const router = express.Router();
 
 const ProductRoutes = require('./routes');
+const { verifyToken } = require('../auth/routes');
 
 //Todas las rutas empiezan con /api/product
 
 router.get('/category', ProductRoutes.getCategories);
 router.get('/', ProductRoutes.getProducts);
-router.post('/', ProductRoutes.insertProduct);
-router.post('/company', ProductRoutes.insertCompanyProduct);
+router.post('/', verifyToken, ProductRoutes.insertProduct);
+router.post('/company', verifyToken, ProductRoutes.insertCompanyProduct);
 
 module.exports = router;

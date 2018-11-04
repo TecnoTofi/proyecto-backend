@@ -14,16 +14,13 @@ const { insertUser, validarTipoDatosUser, validarLogin } = require('../users/rou
 //Declaramos el secreto para JWT
 const secreto = 'keyboard_cat';
 
-
-
-
 function verifyToken (req, res, next) {
-    if(!req.body.token){
+    if(!req.headers.token){
         console.log('No hay token, acceso no autorizado');
         res.status(401).json({message: 'Acceso no autorizado'});
     }
     else{
-        const token = req.body.token;
+        const token = req.headers.token;
         jwt.verify(token, secreto, (error, userData) => {
             if(error){
                 console.log(`Error en la verificacion del token : ${error}`);
@@ -38,10 +35,6 @@ function verifyToken (req, res, next) {
         });
     }
 }
-
-
-
-
 
 // Ruteo de inicio de sesion
 async function login(req, res){
@@ -148,15 +141,6 @@ async function login(req, res){
     }
 };
 
-
-
-
-
-
-
-
-
-
 //ruteo de cierre de sesion
 const logout = (req, res) => {
     //indicamos borrar cookie
@@ -167,13 +151,6 @@ const logout = (req, res) => {
     //enviamos response
     res.status(200).json({message: 'Cierre de sesion exitoso'});
 };
-
-
-
-
-
-
-
 
 //funcion de ruteo de registro
 async function signup(req, res){
@@ -299,10 +276,6 @@ async function signup(req, res){
         }
     }
 };
-
-
-
-
 
 //Validaciones de existencia de datos unicos en BD
 async function ValidarExistenciaDatos(body){

@@ -38,12 +38,19 @@ const getProducts = (req, res) => {
 async function insertProduct(req, res){
     console.log('Conexion POSTR entrante : /api/product');
 
-    let {error} = await validarRegistroProducto(req.body);
+    let valProduct = {
+        productName: req.body.productName,
+        productCode: req.body.productCode,
+        category: req.body.category
+        //imagen
+    }
+
+    let {error} = await validarRegistroProducto(valProduct);
 
     if(!error){
         let categoria = await productQueries
                                     .categories
-                                    .getOneById(req.body.category)
+                                    .getOneById(valProduct.category)
                                     .then(cat => {
                                         console.log('Informacion de ProductCategory obtenida');
                                         return cat;
@@ -57,20 +64,46 @@ async function insertProduct(req, res){
             let product = {
                 name: req.body.productName,
                 code : req.body.productCode,
-                category : req.body.category
+                //agregar imagen aca
             };
         
-            productQueries
-                .products
-                .insert(product)
-                .then(productId => {
-                    console.log('Producto insertado correctamente');
-                    res.status(201).json(productId);
-                })
-                .catch(err => {
-                    console.log(`Error en Query INSERT de Product : ${err}`);
-                    res.status(500).json({message: err});
-                });
+            productId = await productQueries
+                            .products
+                            .insert(product)
+                            .then(id => {
+                                console.log('Producto insertado correctamente');
+                                return id;
+                                // res.status(201).json(productId);
+                            })
+                            .catch(err => {
+                                console.log(`Error en Query INSERT de Product : ${err}`);
+                                res.status(500).json({message: err});
+                            });
+
+            let prodCategory = {
+                productId: productId[0],
+                categoryId: categoria.id
+            }
+
+            prodCatId = await productQueries
+                            .products
+                            .insertProdCategory(prodCategory)
+                            .then(id => {
+                                console.log('ProdCategory insertado correctamente');
+                                return id;
+                            })
+                            .catch(err => {
+                                console.log(`Error en Query INSERT de ProdCategory : ${err}`);
+                                res.status(500).json({message: err});
+                            });
+
+            if(productId && prodCatId){
+                res.status(201).json({message: 'insertado correctamente'});
+            }
+            else{
+                console.log(`Error inesperado`);
+                res.status(500).json({message: 'Error inesperado'});
+            }
         }
         else{
             console.log(`No existe ProductCategory con id ${req.body.category}`);
@@ -154,7 +187,7 @@ async function insertCompanyProduct(req, res){
 function validarRegistroProducto(body) {
     const schema = {
         productName: Joi.string().min(3).max(30).required(),
-        productCode: Joi.number().required(),
+        productCode: Joi.string().required(),
         category: Joi.number().required(),
     };
     return Joi.validate(body, schema);

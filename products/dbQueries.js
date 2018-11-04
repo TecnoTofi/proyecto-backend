@@ -45,6 +45,9 @@ module.exports ={
         },
         delete: function(id){
             return knex('Product').where('id', id).del();
+        },
+        insertProdCategory: function(prodCategory){
+            return knex('ProdCategory').insert(prodCategory).returning('id');
         }
     },
     companyProduct: {

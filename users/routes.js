@@ -78,7 +78,8 @@ async function insertUser(body, hash, companyId){
 function validarLogin(body){
     const schema = {
         userEmail: Joi.string().min(6).max(50).email().required(),
-        userPassword: Joi.string().min(8).max(20).required()
+        userPassword: Joi.string().min(8).max(20).required(),
+        token: Joi.string().allow('').allow(null)
     };
     return Joi.validate(body, schema);
 };

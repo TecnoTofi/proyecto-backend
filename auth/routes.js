@@ -1,7 +1,5 @@
 //Incluimos JsonWebToken para autenticacion
 const jwt = require('jsonwebtoken');
-//Incluimos modulo Joi para la validaciond de datos
-const Joi = require('joi');
 //Incluimos modulo Bcrypt de encriptacion de contraseñas
 const bcrypt = require('bcrypt');
 //Incluimos modulo propio con pool de conexion a DB
@@ -19,7 +17,67 @@ const secreto = 'keyboard_cat';
 
 
 
+function verifyToken (req, res) {
+    if(!req.body.token){
+        console.log('No hay token, acceso no autorizado');
+        res.status(401).json({message: 'Acceso no autorizado'});
+    }
+    else{
+        const token = req.body.token;
+        jwt.verify(token, secreto, (error, userData) => {
+            if(error){
+                console.log(`Error en la verificacion del token : ${error}`);
+                res.status(422).json({message: `Error en la verificacion del token : ${error}`});
+            }
+            else{
+                req.body.userEmail = userData.userEmail;
+                req.body.userPassword = userData.userPassword;
+                login(req, res);
+                // res.status(200).json('Token valido');
+                // let user = await userQueries
+                //         .users
+                //         .getOneByEmail(userData.userEmail)
+                //         .then(res => {
+                //             console.log(res);
+                //             if(res) return res
+                //             else return null
+                //         })
+                //         .catch(err => {
+                //             console.log(`Error en la Query SELECT de User para Email : ${err}`);
+                //             res.status(500).json({message: err});
+                //         });
+                // let rol = await userQueries
+                //             .roles
+                //             .getOneById(user.roleId)
+                //             .then(rol => {
+                //                 console.log(`Informacion de Role obtenida correctamente`);
+                //                 return rol
+                //             })
+                //             .catch(err => {
+                //                 console.log(`Error en Query SELECT de Role : ${err}`);
+                //                 res.status(500).json({message: err});
+                //             });
+                // //traemos la compañia a la que pertenece el usuario que esta iniciando sesion
+                // let company = await companyQueries
+                //                         .companies
+                //                         .getOneById(user.companyId)
+                //                         .then(comp => {
+                //                             console.log(`Informacion de Company obtenida correctamente`);
+                //                             return comp
+                //                         })
+                //                         .catch(err => {
+                //                             console.log(`Error en Query SELECT de Company : ${err}`);
+                //                             res.status(500).json({message: err});
+                //                         });
 
+                
+            }
+            
+
+            // next();
+        });
+    }
+}
 
 
 
@@ -27,6 +85,7 @@ const secreto = 'keyboard_cat';
 
 // Ruteo de inicio de sesion
 async function login(req, res){
+    console.log(req.body)
     console.log('Conexion POST entrante : /api/login');
     //Enviamos a validar el tipo de datos recibidos
     let {error} = await validarLogin(req.body);
@@ -352,4 +411,4 @@ async function ValidarExistenciaDatos(body){
 };
 
 //Exporto funciones de ruteo
-module.exports = { login, logout, signup };
+module.exports = { login, logout, signup, verifyToken };

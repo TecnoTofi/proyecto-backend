@@ -44,10 +44,12 @@ async function insertProduct(req, res){
         category: req.body.category
         //imagen
     }
+    //no validar una categoria, sino un array
 
     let {error} = await validarRegistroProducto(valProduct);
 
     if(!error){
+        //esto no es necesario
         let categoria = await productQueries
                                     .categories
                                     .getOneById(valProduct.category)
@@ -84,7 +86,7 @@ async function insertProduct(req, res){
                 productId: productId[0],
                 categoryId: categoria.id
             }
-
+            //recorrer array de categorias
             prodCatId = await productQueries
                             .products
                             .insertProdCategory(prodCategory)

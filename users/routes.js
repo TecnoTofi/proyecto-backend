@@ -60,7 +60,7 @@ async function insertUser(body, hash, companyId){
                 .users
                 .insert(user)
                 .then(id => {
-                    console.log('Querie INSERT de Company correcta');
+                    console.log('Querie INSERT de User correcta');
                     return Number(id);
                 })
                 .catch(err => {

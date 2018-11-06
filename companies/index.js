@@ -9,6 +9,7 @@ const CompanyRoutes = require('./routes');
 
 //Ruta para obtener el listado de companyCategory
 router.get('/category', CompanyRoutes.getCategories);
+router.get('/type', CompanyRoutes.getTypes);
 router.get('/', CompanyRoutes.getCompanies);
 
 module.exports = router;

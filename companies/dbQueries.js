@@ -48,5 +48,25 @@ module.exports = {
         delete: function(id){
             return knex('CompanyCategory').where('id', id).del();
         }
+    },
+    types: {
+        getAll: function(){
+            return knex.select().table('CompanyType');
+        },
+        getOneById: function(id){
+            return knex.select().table('CompanyType').where('id', id).first();
+        },
+        getOneByName: function(name){
+            return knex.select().table('CompanyType').where('name', name).first();
+        },
+        insert: function(category){
+            return knex('CompanyType').insert(category).returning('id');
+        },
+        modify: function(id, name){
+            return knex('CompanyType').where('id', id).update('name', name);
+        },
+        delete: function(id){
+            return knex('CompanyType').where('id', id).del();
+        }
     }
 };

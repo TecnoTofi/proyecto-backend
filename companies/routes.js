@@ -20,6 +20,23 @@ const getCategories =  (req, res) => {
     console.log('Informacion de Company Category enviada');
 };
 
+const getTypes =  (req, res) => {
+    console.log('Conexion GET entrante : /api/company/type');
+
+    queries
+        .types
+        .getAll()
+        .then(types => {
+            console.log('Informacion de Company Types obtenida');
+            res.status(200).json(types);
+        })
+        .catch(err => {
+           console.log(`Error en Query SELECT de CompanyType : ${err}`);
+           res.status(500).json({message: err});
+        });
+    console.log('Informacion de Company Type enviada');
+};
+
 //GET Company
 const getCompanies = (req, res) => {
     console.log('Conexion GET entrante : /api/company/');
@@ -60,13 +77,15 @@ async function insertCompany(body){
         secondStreet: body.companySecondStreet,
         doorNumber: body.companyDoorNumber,
         phone: body.companyPhone,
-        categoryId: body.category,
+        typeId: body.typeId,
+        categoryId: body.categoryId,
+        description: body.companyDescription,
         imageName: body.imageName,
         imagePath: body.imagePath
     }
     console.log('Datos para insercion listos');
     console.log('Enviando Querie INSERT de Company');
-
+    console.log(company);
     retorno.id = await queries
                     .companies
                     .insert(company)
@@ -94,11 +113,13 @@ function validarTipoDatosCompany(body){
         companyFirstStreet: Joi.string().max(30).required(),
         companySecondStreet: Joi.string().max(30).required(),
         companyDoorNumber: Joi.string().max(15).required(),
-        category: Joi.number().required(),
+        typeId: Joi.number().required(),
+        categoryId: Joi.number().required(),
+        companyDescription: Joi.string().min(5).max(100).required(),
         imageName: Joi.allow('').allow(null),
         imagePath: Joi.allow('').allow(null)
     };
     return Joi.validate(body, schema);
 };
 
-module.exports = { getCategories, getCompanies, insertCompany, validarTipoDatosCompany };
+module.exports = { getCategories, getTypes, getCompanies, insertCompany, validarTipoDatosCompany };

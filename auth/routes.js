@@ -179,7 +179,9 @@ async function signup(req, res){
         companyFirstStreet: req.body.companyFirstStreet,
         companySecondStreet: req.body.companySecondStreet,
         companyDoorNumber: req.body.companyDoorNumber,
-        category: req.body.category,
+        typeId: req.body.companyType,
+        categoryId: req.body.companyCategory,
+        companyDescription: req.body.companyDescription,
         imageName: req.file.filename,
         imagePath: req.file.path
     }
@@ -240,6 +242,7 @@ async function signup(req, res){
 
                 console.log('Enviando query INSERT de Company');
                 //Enviamos insert a company
+                console.log(valComp);
                 let company = await insertCompany(valComp);
                 
                 //Si el insert de company salio bien, paso a insert de usuario

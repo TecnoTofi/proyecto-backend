@@ -51,7 +51,7 @@ const getCompanies = (req, res) => {
                 comp.imagePath = comp.imagePath.replace(regex, '/');
                 return comp;
             });
-            res.status(200).json(companies);
+            res.status(200).json(empresas);
         })
         .catch(err => {
             console.log(`Error en Query SELECT de Company : ${err}`);

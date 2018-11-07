@@ -26,7 +26,13 @@ const getProducts = (req, res) => {
         .getAll()
         .then(products => {
             console.log('Informaicon de Product obtenida');
-            res.status(200).json(products);
+            let regex = /\\/g;
+            const productos = products.map(prod => {
+                prod.imagePath = prod.imagePath.replace(regex, '/');
+                return prod;
+            });
+            console.log(productos);
+            res.status(200).json(productos);
         })
         .catch(err =>{
             console.log(`Error en Query SELECT a Product : ${err}`);
@@ -39,34 +45,22 @@ async function insertProduct(req, res){
     console.log('Conexion POSTR entrante : /api/product');
 
     let valProduct = {
-        productName: req.body.productName,
-        productCode: req.body.productCode,
-        category: req.body.category
-        //imagen
+        productName: req.body.name,
+        productCode: req.body.code
     }
     //no validar una categoria, sino un array
+    let categories = JSON.parse('[' + req.body.categories + ']');
 
     let {error} = await validarRegistroProducto(valProduct);
+    let valCategories = await validarCategorias(categories);
 
-    if(!error){
-        //esto no es necesario
-        let categoria = await productQueries
-                                    .categories
-                                    .getOneById(valProduct.category)
-                                    .then(cat => {
-                                        console.log('Informacion de ProductCategory obtenida');
-                                        return cat;
-                                    })
-                                    .catch(err => {
-                                        console.log(`Error en Query SELECT de ProductCategory : ${err}`);
-                                        res.status(500).json()
-                                    });
-        if(categoria){
+    if(!error && !valCategories){
 
             let product = {
-                name: req.body.productName,
-                code : req.body.productCode,
-                //agregar imagen aca
+                name: req.body.name,
+                code : req.body.code,
+                imageName: req.file.filename,
+                imagePath: req.file.path
             };
         
             productId = await productQueries
@@ -82,35 +76,39 @@ async function insertProduct(req, res){
                                 res.status(500).json({message: err});
                             });
 
-            let prodCategory = {
-                productId: productId[0],
-                categoryId: categoria.id
-            }
-            //recorrer array de categorias
-            prodCatId = await productQueries
-                            .products
-                            .insertProdCategory(prodCategory)
-                            .then(id => {
-                                console.log('ProdCategory insertado correctamente');
-                                return id;
-                            })
-                            .catch(err => {
-                                console.log(`Error en Query INSERT de ProdCategory : ${err}`);
-                                res.status(500).json({message: err});
-                            });
 
-            if(productId && prodCatId){
+            for(let cat in categories){
+
+                let prodCategory = {
+                    productId: productId[0],
+                    categoryId: categories[cat]
+                }
+
+                await productQueries
+                        .products
+                        .insertProdCategory(prodCategory)
+                        .then(id => {
+                            console.log('ProdCategory insertado correctamente');
+                            return id;
+                        })
+                        .catch(err => {
+                            console.log(`Error en Query INSERT de ProdCategory : ${err}`);
+                            res.status(500).json({message: err});
+                        });
+            }
+
+            if(productId){
                 res.status(201).json({message: 'insertado correctamente'});
             }
             else{
                 console.log(`Error inesperado`);
                 res.status(500).json({message: 'Error inesperado'});
             }
-        }
-        else{
-            console.log(`No existe ProductCategory con id ${req.body.category}`);
-            res.status(400).json({message: `No existe ProductCategory con id ${req.body.category}`});
-        }
+        // }
+        // else{
+        //     console.log(`No existe ProductCategory con id ${req.body.category}`);
+        //     res.status(400).json({message: `No existe ProductCategory con id ${req.body.category}`});
+        // }
     }
     else{
         console.log(`Error en la validacion de tipos de dato : ${error.details[0].message}`);
@@ -202,10 +200,30 @@ async function insertCompanyProduct(req, res){
 function validarRegistroProducto(body) {
     const schema = {
         productName: Joi.string().min(3).max(30).required(),
-        productCode: Joi.string().required(),
-        category: Joi.number().required(),
+        productCode: Joi.string().required()
     };
     return Joi.validate(body, schema);
+}
+
+async function validarCategorias(categorias){
+    console.log('Iniciando validacion de categorias');
+    
+    let error = false;
+
+    for(let cat in categorias){
+        error = await productQueries
+                        .categories
+                        .getOneById(categorias[cat])
+                        .then(res => {
+                            if(!res) return true
+                        })
+                        .catch(err => {
+                            console.log(`Error en la Query SELECT de Category : ${err}`);
+                            // res.status(500).json({message: err});
+                        });
+    }
+    //se esta retornando al mismo timepo que se recorre el for, arreglar esto
+    return error;
 }
 
 function validarRegistroEmpresaProducto(body) {

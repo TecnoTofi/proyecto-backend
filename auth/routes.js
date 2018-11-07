@@ -16,6 +16,8 @@ const { insertUser, validarTipoDatosUser, validarLogin } = require('../users/rou
 const secreto = process.env.COOKIE_SECRET;
 
 function verifyToken (req, res, next) {
+    console.log('Iniciando validacion de token');
+
     if(!req.headers.token){
         console.log('No hay token, acceso no autorizado');
         res.status(401).json({message: 'Acceso no autorizado'});
@@ -28,6 +30,7 @@ function verifyToken (req, res, next) {
                 res.status(422).json({message: `Error en la verificacion del token : ${error}`});
             }
             else{
+                console.log('Validacion de token exitosa');
                 req.body.userEmail = userData.userEmail;
                 req.body.userPassword = userData.userPassword;
                 // login(req, res);

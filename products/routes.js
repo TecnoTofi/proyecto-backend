@@ -40,6 +40,28 @@ const getProducts = (req, res) => {
         });
 };
 
+async function getProductByCompany(req, res){
+    let products = await productQueries
+                            .companyProduct
+                            .getByCompany(req.params.id)
+                            .then(result =>{
+                                return result
+
+                            })
+                            .catch(error =>{
+                                res.status(500).json({message:'Error al obtener listado de productos'})
+
+                            })    
+    if(products.length>0){
+
+        res.status(200).json({products:products});
+    }
+    else{
+
+        res.status(200).json({message:'no tiene productos asociados'});
+    }
+}
+
 //POST /api/product
 async function insertProduct(req, res){
     console.log('Conexion POSTR entrante : /api/product');
@@ -239,4 +261,4 @@ function validarRegistroEmpresaProducto(body) {
 }
 
 
-module.exports = { getCategories, getProducts, insertProduct, insertCompanyProduct };
+module.exports = { getCategories, getProducts, insertProduct, insertCompanyProduct, getProductByCompany };

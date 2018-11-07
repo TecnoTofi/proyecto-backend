@@ -42,5 +42,6 @@ router.get('/category', ProductRoutes.getCategories);
 router.get('/', ProductRoutes.getProducts);
 router.post('/', upload.single('image'), verifyToken, ProductRoutes.insertProduct);
 router.post('/company', verifyToken, ProductRoutes.insertCompanyProduct);
+router.get('/company/:id', verifyToken, ProductRoutes.getProductByCompany);
 
 module.exports = router;

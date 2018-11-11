@@ -62,7 +62,7 @@ async function getAllProductsGenericList(req, res){
                             })
     console.log(categories);
     let response = productos.map(prod => {
-        prod.categories =[];
+        prod.categories = [];
         prodCategories.map(cat => {
             if(cat.productId === prod.id){
                 let name = categories.filter(cate => {
@@ -78,18 +78,79 @@ async function getAllProductsGenericList(req, res){
 }
 
 async function getProductByCompany(req, res){
-    let products = await productQueries
-                            .companyProduct
-                            .getByCompany(req.params.id)
-                            .then(result =>{
-                                console.log(result.rows);
-                                return result.rows
-                            })
-                            .catch(err =>{
-                                console.log(err);
-                                res.status(500).json({message:'Error al obtener listado de productos'})
+
+    let productos = await productQueries
+                            .products
+                            .getAll()
+                            .then(data => {
+                                return data;
                             });
-    res.status(200).json({products: products});
+
+    let companyProducts = await productQueries
+                                    .companyProduct
+                                    .getAll()
+                                    .then(data => {
+                                        return data;
+                                    });
+    // console.log('companyProducts', companyProducts);
+    let companies = await companyQueries
+                            .companies
+                            .getAll()
+                            .then(data => {
+                                return data;
+                            });
+    let prodCategories = await productQueries
+                                .prodCategory
+                                .getAll()
+                                .then(data => {
+                                    return data;
+                                });
+    let categories = await productQueries
+                            .categories
+                            .getAll()
+                            .then(data => {
+                                return data;
+                            })
+    // console.log(categories);
+    let response = companyProducts.map(prod => {
+        prod.categories = [];
+        prod.companyName = '';
+        prod.code = '';
+        prodCategories.map(cat => {
+            if(cat.productId === prod.productId){
+                let name = categories.filter(cate => {
+                    return cate.id === cat.categoryId
+                });
+                let category = {id: cat.categoryId, name: name[0].name};
+                prod.categories.push(category);
+            }
+        });
+        companies.map(comp => {
+            if(comp.id === prod.companyId){
+                prod.companyName = comp.name;
+            }
+        });
+        productos.map(p => {
+            if(prod.productId === p.id){
+                prod.code = p.code;
+            }
+        });
+        return prod;
+    });
+    res.status(200).json(response);
+
+    // let products = await productQueries
+    //                         .companyProduct
+    //                         .getByCompany(req.params.id)
+    //                         .then(result =>{
+    //                             console.log(result.rows);
+    //                             return result.rows
+    //                         })
+    //                         .catch(err =>{
+    //                             console.log(err);
+    //                             res.status(500).json({message:'Error al obtener listado de productos'})
+    //                         });
+    // res.status(200).json({products: products});
 }
 
 //POST /api/product

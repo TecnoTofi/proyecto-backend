@@ -18,7 +18,7 @@ const getCategories = (req, res) => {
         });
 };
 
-const getProducts = (req, res) => {
+const getAllProducts = (req, res) => {
     console.log('Conexion GET entrante : /api/product');
 
     productQueries
@@ -31,7 +31,7 @@ const getProducts = (req, res) => {
                 prod.imagePath = prod.imagePath.replace(regex, '/');
                 return prod;
             });
-            console.log(productos);
+            // console.log(productos);
             res.status(200).json(productos);
         })
         .catch(err =>{
@@ -40,26 +40,56 @@ const getProducts = (req, res) => {
         });
 };
 
+async function getAllProductsGenericList(req, res){
+    //no me gusta como anda esto, ya que hace muchos recorridos innecesarios
+    let productos = await productQueries
+                    .products
+                    .getAll()
+                    .then(data => {
+                        return data;
+                    });
+    let prodCategories = await productQueries
+                            .prodCategory
+                            .getAll()
+                            .then(data => {
+                                return data;
+                            });
+    let categories = await productQueries
+                            .categories
+                            .getAll()
+                            .then(data => {
+                                return data;
+                            })
+    console.log(categories);
+    let response = productos.map(prod => {
+        prod.categories =[];
+        prodCategories.map(cat => {
+            if(cat.productId === prod.id){
+                let name = categories.filter(cate => {
+                    return cate.id === cat.categoryId
+                });
+                let category = {id: cat.categoryId, name: name[0].name};
+                prod.categories.push(category);
+            }
+        })
+        return prod;
+    });
+    res.status(200).json(response);
+}
+
 async function getProductByCompany(req, res){
     let products = await productQueries
                             .companyProduct
                             .getByCompany(req.params.id)
                             .then(result =>{
-                                return result
-
+                                console.log(result.rows);
+                                return result.rows
                             })
-                            .catch(error =>{
+                            .catch(err =>{
+                                console.log(err);
                                 res.status(500).json({message:'Error al obtener listado de productos'})
-
-                            })    
-    if(products.length>0){
-
-        res.status(200).json({products:products});
-    }
-    else{
-
-        res.status(200).json({message:'no tiene productos asociados'});
-    }
+                            });
+    res.status(200).json({products: products});
 }
 
 //POST /api/product
@@ -107,8 +137,8 @@ async function insertProduct(req, res){
                 }
 
                 await productQueries
-                        .products
-                        .insertProdCategory(prodCategory)
+                        .prodCategory
+                        .insert(prodCategory)
                         .then(id => {
                             console.log('ProdCategory insertado correctamente');
                             return id;
@@ -261,4 +291,4 @@ function validarRegistroEmpresaProducto(body) {
 }
 
 
-module.exports = { getCategories, getProducts, insertProduct, insertCompanyProduct, getProductByCompany };
+module.exports = { getCategories, getAllProducts, insertProduct, insertCompanyProduct, getProductByCompany, getAllProductsGenericList };

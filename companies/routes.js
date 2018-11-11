@@ -90,7 +90,7 @@ async function insertCompany(body){
                     .companies
                     .insert(company)
                     .then(id => {
-                        console.log('Querie INSERT de Company correcta')
+                        console.log('Querie INSERT de Company correcta')//no necesariamente
                         return Number(id);
                     })
                     .catch(err => {
@@ -104,6 +104,18 @@ async function insertCompany(body){
     
     return await retorno;
 };
+
+async function getAllForList(req, res){
+    console.log('entre');
+    await queries
+                    .companies
+                    .getOneForDetail(40)
+                    .then(response => {
+                        console.log('hay response');
+                        res.status(200).json(response);
+                    })
+                    .catch(err => console.log(err));
+}
 
 function validarTipoDatosCompany(body){
     const schema = {
@@ -122,4 +134,4 @@ function validarTipoDatosCompany(body){
     return Joi.validate(body, schema);
 };
 
-module.exports = { getCategories, getTypes, getCompanies, insertCompany, validarTipoDatosCompany };
+module.exports = { getCategories, getTypes, getCompanies, insertCompany, validarTipoDatosCompany, getAllForList };

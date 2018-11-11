@@ -38,10 +38,17 @@ const { verifyToken } = require('../auth/routes');
 
 //Todas las rutas empiezan con /api/product
 
+//Obtener todas las categorias de productos
 router.get('/category', ProductRoutes.getCategories);
-router.get('/', ProductRoutes.getProducts);
+//Obtener todos los productos
+// router.get('/', ProductRoutes.getAllProducts);
+//Insertar un producto
 router.post('/', upload.single('image'), verifyToken, ProductRoutes.insertProduct);
+//Asociar un producto a una empresa
 router.post('/company', verifyToken, ProductRoutes.insertCompanyProduct);
+//Obtener los productos de una empresa por su ID
 router.get('/company/:id', verifyToken, ProductRoutes.getProductByCompany);
+//Obtener todos los productos con datos para el listado generico
+router.get('/', ProductRoutes.getAllProductsGenericList);
 
 module.exports = router;

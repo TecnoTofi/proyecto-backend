@@ -47,7 +47,7 @@ router.post('/', upload.single('image'), verifyToken, ProductRoutes.insertProduc
 //Asociar un producto a una empresa
 router.post('/company', verifyToken, ProductRoutes.insertCompanyProduct);
 //Obtener los productos de una empresa por su ID
-router.get('/company/:id', verifyToken, ProductRoutes.getProductByCompany);
+router.get('/company/:id', ProductRoutes.getProductByCompany);
 //Obtener todos los productos con datos para el listado generico
 router.get('/', ProductRoutes.getAllProductsGenericList);
 

@@ -137,6 +137,7 @@ async function getProductByCompany(req, res){
         });
         return prod;
     });
+    // console.log(response);
     res.status(200).json(response);
 
     // let products = await productQueries
@@ -352,4 +353,11 @@ function validarRegistroEmpresaProducto(body) {
 }
 
 
-module.exports = { getCategories, getAllProducts, insertProduct, insertCompanyProduct, getProductByCompany, getAllProductsGenericList };
+module.exports = {
+    getCategories,
+    getAllProducts,
+    insertProduct,
+    insertCompanyProduct,
+    getProductByCompany,
+    getAllProductsGenericList
+};

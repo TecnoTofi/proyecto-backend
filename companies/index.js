@@ -14,5 +14,7 @@ router.get('/type', CompanyRoutes.getTypes);
 //Obtener todas las empresas
 router.get('/', CompanyRoutes.getCompanies);
 router.get('/test', CompanyRoutes.getAllForList);
+//Obtener una compania por id
+router.get('/:id',CompanyRoutes.getOneCompany);
 
 module.exports = router;

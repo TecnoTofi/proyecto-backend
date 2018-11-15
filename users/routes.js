@@ -33,6 +33,23 @@ const forSignup = (req, res) => {
     console.log('Informacion de Roles enviada');
 };
 
+const getOneUser = (req, res) => {
+    console.log('Conexion GET entrante : /api/user');
+    //console.log(req.params.id)
+    queries
+        .users
+        .getOneById(26)
+        .then(user => {
+            console.log('Informacion de usuario obtenida');
+            res.status(200).json(user);
+        })
+        .catch(err => {
+            console.log(`Error en Query SELECT de Role : ${err}`);
+            res.status(500).json({message: err});
+         });
+    console.log('Informacion de usuario enviada');
+};
+
 async function insertUser(body, hash, companyId){
     console.log('Accediendo a ../user/routes/insertUser');
 
@@ -75,6 +92,48 @@ async function insertUser(body, hash, companyId){
     return await retorno;
 };
 
+async function updateUser(body,id,hash){
+
+    console.log('Accediendo a ../user/routes/updateUser');
+
+    let retorno = {
+        id: 0,
+        errores: ''
+    }
+
+    console.log('Preparando datos para modificacion');
+
+    const user = {
+        email: body.userEmail,
+        password: hash,
+        name: body.userName,
+        roleId: body.role,
+        firstStreet: body.userFirstStreet,
+        secondStreet: body.userSecondStreet,
+        doorNumber: body.userDoorNumber,
+        phone: body.userPhone,
+        document: body.userDocument
+    };
+
+    retorno.id = queries
+                .users
+                .update(id, user)
+                .then(id => {
+                    console.log('Querie update de User correcta');
+                    return Number(id);
+                })
+                .catch(err => {
+                    console.log(`Error en update de User : ${err}`);
+                    retorno.errores = err;
+                    retorno.id = 0;
+                });
+
+    if(await retorno.id == 0) console.log('Finalizando update fallido');
+    else console.log('Finalizando update correcto');
+    
+    return await retorno;
+};
+
 function validarLogin(body){
     const schema = {
         userEmail: Joi.string().min(6).max(50).email().required(),
@@ -99,4 +158,12 @@ function validarTipoDatosUser(body){
     return Joi.validate(body, schema);
 };
 
-module.exports = { roles, insertUser, validarTipoDatosUser, validarLogin, forSignup };
+module.exports = {
+    roles,
+    insertUser,
+    validarTipoDatosUser,
+    validarLogin,
+    forSignup,
+    getOneUser,
+    updateUser
+};

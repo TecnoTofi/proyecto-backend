@@ -60,6 +60,29 @@ const getCompanies = (req, res) => {
     console.log('Informacion de Company enviada');
 };
 
+const getOneCompany = (req, res) => {
+    console.log('Conexion GET entrante : /api/company/id');
+    //console.log(req);
+    // req.params.id
+
+    queries
+        .companies
+        .getOneById(47)
+        .then(company => {
+            console.log('Informacion de una Company obtenida');
+            /*let regex = /\\/g;
+            const company = companies.map(comp => {
+                comp.imagePath = comp.imagePath.replace(regex, '/');
+                return comp;*/
+                res.status(200).json(company);
+            })
+        .catch(err => {
+            console.log(`Error en Query SELECT de Company : ${err}`);
+            res.status(500).json({message: err});
+         });
+    console.log('Informacion de Company enviada');
+};
+
 //POST Company
 async function insertCompany(body){
     console.log('Accediendo a ../companies/routes/insertCompany');
@@ -105,6 +128,50 @@ async function insertCompany(body){
     return await retorno;
 };
 
+async function updateCompany(body,id){
+    console.log('Accediendo a ../companies/routes/UpdateCompany');
+
+    let retorno = {
+        id: 0,
+        errores: ''
+    };
+
+    console.log('Preparando datos para insercion');
+    let company = {
+        name: body.companyName,
+        rut: body.companyRut,
+        firstStreet: body.companyFirstStreet,
+        secondStreet: body.companySecondStreet,
+        doorNumber: body.companyDoorNumber,
+        phone: body.companyPhone,
+        typeId: body.typeId,
+        categoryId: body.categoryId,
+        description: body.companyDescription,
+        imageName: body.imageName,
+        imagePath: body.imagePath
+    }
+    console.log('Datos para update listos');
+    console.log('Enviando Querie Update de Company');
+    console.log(company);
+    retorno.id = await queries
+                    .companies
+                    .modify(id,company)
+                    .then(id => {
+                        console.log('Querie update de Company correcta')//no necesariamente
+                        return Number(id);
+                    })
+                    .catch(err => {
+                        console.log(`Error en Query update de Company : ${err}`);
+                        retorno.errores = err;
+                        retorno.id = 0;
+                    });
+
+    if(await retorno.id == 0) console.log('Finalizando update fallido');
+    else console.log('Finalizando update correcta');
+    
+    return await retorno;
+};
+
 async function getAllForList(req, res){
     console.log('entre');
     await queries
@@ -134,4 +201,13 @@ function validarTipoDatosCompany(body){
     return Joi.validate(body, schema);
 };
 
-module.exports = { getCategories, getTypes, getCompanies, insertCompany, validarTipoDatosCompany, getAllForList };
+module.exports = {
+    getCategories,
+    getTypes,
+    getCompanies,
+    insertCompany,
+    validarTipoDatosCompany,
+    getAllForList,
+    getOneCompany,
+    updateCompany
+};

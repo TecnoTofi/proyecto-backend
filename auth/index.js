@@ -40,8 +40,11 @@ const AuthRoutes = require('./routes');
 router.post('/', AuthRoutes.verifyToken, AuthRoutes.login);
 router.post('/login', AuthRoutes.login);
 router.post('/logout', AuthRoutes.logout);
+//Edicion de usuarios y compania
+router.post('/update/user/:idUser/company/:idEmpr', upload.single('companyImage'), AuthRoutes.actualizarPerfil);
 //Multer intermedia para manejar la imagen
 router.post('/signup', upload.single('companyImage'), AuthRoutes.signup);
+
 
 //Exportamos el router
 module.exports = router;

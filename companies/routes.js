@@ -129,7 +129,7 @@ async function insertCompany(body){
 };
 
 async function updateCompany(body,id){
-    console.log('Accediendo a ../companies/routes/UpdateCompany');
+    console.log('Accediendo a ../companies/routes/updateCompany');
 
     let retorno = {
         id: 0,

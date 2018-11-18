@@ -78,6 +78,7 @@ async function getAllProductsGenericList(req, res){
 }
 
 async function getProductByCompany(req, res){
+    console.log('id de la empresa', req.params.id);
 
     let productos = await productQueries
                             .products
@@ -92,10 +93,9 @@ async function getProductByCompany(req, res){
                                     .then(data => {
                                         return data;
                                     });
-    // console.log('companyProducts', companyProducts);
-    let companies = await companyQueries
+    let company = await companyQueries
                             .companies
-                            .getAll()
+                            .getOneById(req.params.id)
                             .then(data => {
                                 return data;
                             });
@@ -111,10 +111,9 @@ async function getProductByCompany(req, res){
                             .then(data => {
                                 return data;
                             })
-    // console.log(categories);
     let response = companyProducts.map(prod => {
         prod.categories = [];
-        prod.companyName = '';
+        prod.companyName = company.name;
         prod.code = '';
         prodCategories.map(cat => {
             if(cat.productId === prod.productId){
@@ -125,11 +124,6 @@ async function getProductByCompany(req, res){
                 prod.categories.push(category);
             }
         });
-        companies.map(comp => {
-            if(comp.id === prod.companyId){
-                prod.companyName = comp.name;
-            }
-        });
         productos.map(p => {
             if(prod.productId === p.id){
                 prod.code = p.code;
@@ -137,7 +131,12 @@ async function getProductByCompany(req, res){
         });
         return prod;
     });
-    // console.log(response);
+
+    response = response.filter(prod => {
+        return prod.companyId === req.params.id;
+    });
+
+    console.log(response);
     res.status(200).json(response);
 
     // let products = await productQueries

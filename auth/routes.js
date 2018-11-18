@@ -322,7 +322,7 @@ async function actualizarPerfil(req, res){
         categoryId: req.body.companyCategory,
         companyDescription: req.body.companyDescription,
         imageName: req.file.filename,
-        imagePath: req.file.path
+        imagePath: req.fil  
     }
     console.log(valComp);
 

@@ -310,6 +310,70 @@ async function insertCompanyProduct(req, res){
     }
 };
 
+async function updateCompanyProduct(req, res){
+    console.log('Conexion POST entrante : /api/product/update/company');
+    let idProduct= req.params.idProd;
+    console.log('idProduct', idProduct);
+
+    let valProduct = {
+        companyId: req.body.companyId,
+        productId: req.body.productId,
+        name: req.body.productName,
+        description: req.body.productDescription,
+        price: req.body.productPrice,
+        stock: req.body.productStock,
+        /*imageName: req.file.filename,
+        imagePath: req.file.path*/
+    }
+
+    console.log(valProduct);
+
+    let {error} = await validarRegistroEmpresaProducto2(valProduct);
+
+    if(!error){
+
+            productQueries
+                .companyProduct
+                .modify(idProduct ,valProduct)
+                .then(productId => {
+                    console.log('CompanyProduct modificado correctamente');
+                    res.status(201).json(productId);
+                })
+                .catch(err => {
+                    console.log(`Error en Query Update de CompanyProduct : ${err}`);
+                    res.status(500).json({message: err});
+                });
+        }
+    else{
+        console.log(`Error en la validacion de tipos de dato : ${error.details[0].message}`);
+        res.status(400).json({message: error.details[0].message});
+    }
+};
+
+async function deleteCompanyProduct(req, res){
+    console.log('Conexion POST entrante : /api/product/delete/company');
+    
+    let idProduct= req.params.idProd;
+    
+    console.log('idProduct', idProduct);
+
+            productQueries
+                .companyProduct
+                .delete(idProduct)
+                .then(productId => {
+                    console.log('CompanyProduct eliminado correctamente');
+                    res.status(201).json(productId);
+                })
+                .catch(err => {
+                    console.log(`Error en Query delete de CompanyProduct : ${err}`);
+                    res.status(500).json({message: err});
+                });
+};
+
+function reducirStock(id, cantidad){
+    console.log('reducir stock', id, cantidad);
+}
+
 function validarRegistroProducto(body) {
     const schema = {
         productName: Joi.string().min(3).max(30).required(),
@@ -351,6 +415,18 @@ function validarRegistroEmpresaProducto(body) {
     return Joi.validate(body, schema);
 }
 
+function validarRegistroEmpresaProducto2(body) {
+    const schema = {
+        companyId:Joi.number().required(),
+        productId:Joi.number().required(),
+        name: Joi.string().min(3).max(30).required(),
+        description:Joi.string().min(5).max(50).required(),
+        price:Joi.number().required(),
+        stock:Joi.number().required(),
+    };
+    return Joi.validate(body, schema);
+}
+
 
 module.exports = {
     getCategories,
@@ -358,5 +434,8 @@ module.exports = {
     insertProduct,
     insertCompanyProduct,
     getProductByCompany,
-    getAllProductsGenericList
+    getAllProductsGenericList,
+    reducirStock,
+    updateCompanyProduct,
+    deleteCompanyProduct
 };

@@ -50,5 +50,10 @@ router.post('/company', verifyToken, ProductRoutes.insertCompanyProduct);
 router.get('/company/:id', ProductRoutes.getProductByCompany);
 //Obtener todos los productos con datos para el listado generico
 router.get('/', ProductRoutes.getAllProductsGenericList);
+//modificar Producto
+//router.post('/update/company/:idProd/', upload.single('productImage'), ProductRoutes.updateCompanyProduct);
+router.post('/update/company/:idProd', ProductRoutes.updateCompanyProduct);
+//eliminar producto
+router.post('/delete/company/:idProd', ProductRoutes.deleteCompanyProduct);
 
 module.exports = router;

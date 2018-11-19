@@ -479,4 +479,10 @@ async function ValidarExistenciaDatos(body){
 };
 
 //Exporto funciones de ruteo
-module.exports = { login, logout, signup, verifyToken, actualizarPerfil };
+module.exports = {
+    login,
+    logout,
+    signup,
+    verifyToken,
+    actualizarPerfil
+};

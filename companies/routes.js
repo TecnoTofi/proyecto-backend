@@ -48,7 +48,9 @@ const getCompanies = (req, res) => {
             console.log('Informacion de Company obtenida');
             let regex = /\\/g;
             const empresas = companies.map(comp => {
-                comp.imagePath = comp.imagePath.replace(regex, '/');
+                console.log(comp);
+                if(comp.imagePath) comp.imagePath = comp.imagePath.replace(regex, '/');
+                console.log(comp);
                 return comp;
             });
             res.status(200).json(empresas);

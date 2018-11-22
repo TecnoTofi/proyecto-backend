@@ -13,7 +13,8 @@ const { insertCompany, validarTipoDatosCompany, updateCompany } = require('../co
 const { insertUser, validarTipoDatosUser, validarLogin, updateUser } = require('../users/routes');
 
 //Declaramos el secreto para JWT
-const secreto = process.env.COOKIE_SECRET;
+// const secreto = process.env.COOKIE_SECRET;
+const secreto = 'process.env.COOKIE_SECRET';
 
 function verifyToken (req, res, next) {
     console.log('Iniciando validacion de token');
@@ -185,8 +186,8 @@ async function signup(req, res){
         typeId: req.body.companyType,
         categoryId: req.body.companyCategory,
         companyDescription: req.body.companyDescription,
-        // imageName: req.file.filename,
-        // imagePath: req.file.path
+        imageName: req.file.filename,
+        imagePath: req.file.path
     }
 
     //envio bodies para validar tipos de datos

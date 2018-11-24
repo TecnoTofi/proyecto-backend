@@ -239,7 +239,9 @@ async function insertCompanyProduct(req, res){
         productName: req.body.productName,
         productDescription: req.body.productDescription,
         productPrice: req.body.productPrice,
-        productStock: req.body.productStock
+        productStock: req.body.productStock,
+        imageName: req.body.imageName,
+        imagePath: req.body.imagePath
     }
 
     console.log(valProduct);
@@ -279,8 +281,9 @@ async function insertCompanyProduct(req, res){
                 name: req.body.productName,
                 description: req.body.productDescription,
                 price: req.body.productPrice,
-                stock: req.body.productStock
-                //imagen
+                stock: req.body.productStock,
+                imageName: req.body.imageName,
+                imagePath: req.body.imagePath
             }
 
             productQueries
@@ -288,7 +291,7 @@ async function insertCompanyProduct(req, res){
                 .insert(companyProduct)
                 .then(productId => {
                     console.log('CompanyProduct insertado correctamente');
-                    res.status(201).json(productId);
+                    res.status(201).json(productId[0]);
                 })
                 .catch(err => {
                     console.log(`Error en Query INSERT de CompanyProduct : ${err}`);
@@ -411,6 +414,8 @@ function validarRegistroEmpresaProducto(body) {
         productDescription:Joi.string().min(5).max(50).required(),
         productPrice:Joi.number().required(),
         productStock:Joi.number().required(),
+        imageName: Joi.string().min(3).max(150).required(),
+        imagePath: Joi.string().min(3).max(150).required()
     };
     return Joi.validate(body, schema);
 }

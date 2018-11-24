@@ -7,16 +7,16 @@ const router= express.Router();
 const PackagesRoutes = require('./routes');
 const { verifyToken } = require('../auth/routes');
 
-//Todas las rutas empiezan con /api/packages
+//Todas las rutas empiezan con /api/package
 
 //Obtener todos los paquetes
-router.get('/package', PackagesRoutes.getAllPackages);
+router.get('/', PackagesRoutes.getAllPackages);
 //Obtener todos los paquetes de una compania
 router.get('/company/:idComp', PackagesRoutes.getAllPackagesByCompany);
 //Insertar un paquete
-router.post('/'/*, upload.single('image'), verifyToken*/, PackagesRoutes.insertPackages);
+// router.post('/'/*, upload.single('image'), verifyToken*/, PackagesRoutes.insertPackages);
 //Agregar productos al paquete
-router.post('/product'/*, verifyToken*/, PackagesRoutes.insertPackageProduct);
+// router.post('/product'/*, verifyToken*/, PackagesRoutes.insertPackageProduct);
 //Obtener los productos de un paquete por su ID
 router.get('/products/:id', PackagesRoutes.getAllProductByPackage);
 //modificar paquete
@@ -27,5 +27,7 @@ router.post('/delete/idPack', PackagesRoutes.deletePackage);
 router.post('/product/update/idPacProd', PackagesRoutes.updatePackageProduct);
 //eliminar lineas del paquete
 router.post('/product/delete/idPacProd', PackagesRoutes.deletePackageProduct);
+//prueba
+router.post('/', PackagesRoutes.insertPackagesCompleto);
 
 module.exports = router;

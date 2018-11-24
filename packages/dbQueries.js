@@ -2,39 +2,39 @@ const knex = require('../db/connection');
 
 module.exports = {
 
-    packages: {
+    package: {
         getAll: function(){
-            return knex.select().table('Packages');
+            return knex.select().table('Package');
         },
         getOneById: function(id){
-            return knex.select().table('Packages').where('id', id).first();
+            return knex.select().table('Package').where('id', id).first();
         },
         getAllByCompanyId: function(id){
-            return knex.select().table('Packages').where('companyId', id);
+            return knex.select().table('Package').where('companyId', id);
         },
         insert: function(package){
-            return knex('Packages').insert(package).returning('id');
+            return knex('Package').insert(package).returning('id');
         },
         modify: function(id, package){
-            return knex('Packages').where('id', id).update(package);
+            return knex('Package').where('id', id).update(package);
         },
         delete: function(id){
-            return knex('Packages').where('id', id).del();
+            return knex('Package').where('id', id).del();
         }
     },
 
-    packagesProduct: {
+    packageProduct: {
         getAll: function(){
-            return knex.select().table('PackageProducts');
+            return knex.select().table('PackageProduct');
         },
         getAllById: function(id){
-            return knex.select().table('PackageProducts').where('packageId', id);
+            return knex.select().table('PackageProduct').where('packageId', id);
         },
         insert: function(packageProd){
-            return knex('PackageProducts').insert(packageProd).returning('id');
+            return knex('PackageProduct').insert(packageProd).returning('id');
         },
         modify: function(id, packageProd){
-            return knex('PackageProducts').where('id', id).update(packageProd);
+            return knex('PackageProduct').where('id', id).update(packageProd);
         },
         delete: function(id){
             return knex('PackageProduct').where('id', id).del();

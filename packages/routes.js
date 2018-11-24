@@ -263,6 +263,75 @@ function validarRegistroPackageProduct(body) {
     return Joi.validate(body, schema);
 }
 
+async function insertPackagesCompleto(req, res){
+    console.log('Conexion POST entrante : /api/package');
+
+    let valPackage = {
+        price: req.body.price,
+        description: req.body.description,
+        companyId:req.body.companyId
+    }
+
+    let {error} = await validarRegistroPackage(valPackage);
+
+    if(!error){
+
+        // let {error} = await validarRegistroPackageProduct(valPackageProduct);
+
+        if(!error){
+            packageId = await packageQueries
+                            .package
+                            .insert(valPackage)
+                            .then(id => {
+                                console.log('Paquete insertado correctamente');
+                                return id[0];
+                            })
+                            .catch(err => {
+                                console.log(`Error en Query INSERT de Product : ${err}`);
+                                res.status(500).json({message: err});
+                            });
+            let contadorOk = 0;
+            for(let prod in req.body.products){
+
+                let valPackageProduct = {
+                    packageId: packageId,
+                    productId: req.body.products[prod].id,
+                    quantity: req.body.products[prod].cantidad
+                }
+                await packageQueries
+                    .packageProduct
+                    .insert(valPackageProduct)
+                    .then(id => {
+                        console.log('Producto insertado correctamente en paquete');
+                        if(id[0]) contadorOk++;
+                    })
+                    .catch(err => {
+                        console.log(`Error en Query INSERT de packageProduct : ${err}`);
+                        res.status(500).json({message: err});
+                    });
+                }
+
+            if(contadorOk === req.body.products.length){
+                res.status(201).json({message: 'insertado correctamente'});
+            }
+            else{
+                console.log(`Error en insert de linea de paquete`);
+                res.status(500).json({message: 'Error en insert de linea de paquete'});
+            }
+        }
+        else{
+            console.log(`Error en la validacion de tipos de dato de linea de paquete : ${error.details[0].message}`);
+            res.status(400).json({message: error.details[0].message});
+        }
+    }
+    else{
+        console.log(`Error en la validacion de tipos de dato : ${error.details[0].message}`);
+        res.status(400).json({message: error.details[0].message});
+    }
+    
+};
+
+
 
 
 module.exports = {
@@ -274,5 +343,6 @@ module.exports = {
     deletePackage,
     insertPackageProduct,
     updatePackageProduct,
-    deletePackageProduct
+    deletePackageProduct,
+    insertPackagesCompleto
 };

@@ -21,9 +21,6 @@ const pedidosRoutes = require('./pedidos/index');
 //Incluimos ruteo de paquetes
 const packageRoutes = require('./packages/index');
 
-//Establecemos el puerto segun variable de ambiente del servidor o 3000 para ambiente de desarrollo
-const PORT = process.env.PORT || 3000;
-
 //Inicializamos APP
 const app = express();
 app.use(morgan('dev'));
@@ -59,6 +56,8 @@ app.use('/api/product', productsRoutes);
 app.use('/api/package',packageRoutes);
 app.use('/api/pedido', pedidosRoutes);
 
+//Establecemos el puerto segun variable de ambiente del servidor o 3000 para ambiente de desarrollo
+const PORT = process.env.PORT || 3000;
 //Levanta servicio de escucha en el puerto indicado
 app.listen(PORT, (error) => {
     if(error) console.log(`Error interno al levantar servicio : ${error}`);

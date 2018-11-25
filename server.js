@@ -56,6 +56,7 @@ app.use('/api/product', productsRoutes);
 app.use('/api/package',packageRoutes);
 app.use('/api/pedido', pedidosRoutes);
 
+//Mensaje de bienvenida a /
 app.get('/', (req, res) => {
     res.json({message: 'Bienvenido a la plataforma'});
   });

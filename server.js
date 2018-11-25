@@ -56,6 +56,10 @@ app.use('/api/product', productsRoutes);
 app.use('/api/package',packageRoutes);
 app.use('/api/pedido', pedidosRoutes);
 
+app.get('/', (req, res) => {
+    res.json({message: 'Bienvenido a la plataforma'});
+  });
+
 //Establecemos el puerto segun variable de ambiente del servidor o 3000 para ambiente de desarrollo
 const PORT = process.env.PORT || 3000;
 //Levanta servicio de escucha en el puerto indicado

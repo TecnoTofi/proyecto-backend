@@ -134,6 +134,28 @@ async function updateUser(body,id,hash){
     return await retorno;
 };
 
+async function getUser(userId){
+    console.log(`Buscando usuario con id: ${userId}`);
+    let message = '';
+    let user = await queries
+                .users
+                .getOneById(userId)
+                .then(data => {
+                    //undefined si no existe
+                    if(!data) {
+                        console.log(`No existe usuario con id: ${userId}`);
+                        message += `No existe un usuario con id ${userId}`;
+                    }
+                    //ver capaz de retornar sin la password
+                    return data;
+                })
+                .catch(err => {
+                    console.log('Error en Query SELECT de User: ', err);
+                    message += `Error en Query SELECT de User: ${err}`;
+                });
+    return {user, message};
+}
+
 function validarLogin(body){
     const schema = {
         userEmail: Joi.string().min(6).max(50).email().required(),
@@ -165,5 +187,6 @@ module.exports = {
     validarLogin,
     forSignup,
     getOneUser,
-    updateUser
+    updateUser,
+    getUser
 };

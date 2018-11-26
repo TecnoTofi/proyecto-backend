@@ -7,7 +7,7 @@ const { verifyToken } = require('../auth/routes');
 //Todas las rutas empiezan con /api/pedido
 
 //Realizar un pedido
-router.post('/', verifyToken, PedidoRoutes.realizarPedido);
+router.post('/', PedidoRoutes.realizarPedido); //agregar validacion de token
 //Obtener un pedido por ID
 router.get('/:id', PedidoRoutes.getPedidoById);
 //Obtener pedidos de un usuario

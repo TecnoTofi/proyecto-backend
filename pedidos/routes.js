@@ -1,5 +1,9 @@
 const Joi = require('joi');
-const pedidoQueries = require('./dbQueries');
+const queries = require('./dbQueries');
+const RoutesUsers = require('../users/routes');
+const RoutesCompanies = require('../companies/routes');
+const RoutesProducts = require('../products/routes');
+const RoutesPackages = require('../packages/routes');
 const companyQueries = require('../companies/dbQueries');
 const userQueries = require('../users/dbQueries');
 const productQueries = require('../products/dbQueries');
@@ -7,46 +11,78 @@ const { reducirStock } = require('../products/routes');
 
 function getPedidoById(req, res){
     console.log(`Conexion GET entrante : /api/pedido/${req.params.id}`);
-    pedidosQueries
+
+    queries
         .pedidos
         .getOneById(req.params.id)
         .then(data => {
-            console.log('Informacion de pedido obtenida correctamente');
-            res.status(200).json(data);
+            if(data){
+                console.log('Informacion de pedido obtenida correctamente');
+                res.status(200).json(data);
+            }
+            else{
+                console.log(`No existe pedido para el ID: ${req.params.id}`);
+                res.status(400).json({message: `No existe pedido para el ID: ${req.params.id}`});
+            }
         })
-        .catch(err => console.log(err));
+        .catch(err => {
+            console.log('Error en Query SELECT de Pedido', err);
+            res.status(500).json({message: 'Hubo un error al ejecutar la consulta'});
+        });
 }
 
 function getPedidoByUser(req, res){
     console.log(`Conexion GET entrante : /api/pedido/user/${req.params.id}`);
-    pedidosQueries
-    .pedidos
-    .getByUser(req.params.id)
-    .then(data => {
-        console.log('Informacion de pedidos obtenida correctamente');
-        res.status(200).json(data);
-    })
-    .catch(err => console.log(err));
+
+    queries
+        .pedidos
+        .getByUser(req.params.id)
+        .then(data => {
+            if(data && data.length > 0){
+                console.log('Informacion de pedidos obtenida correctamente');
+                res.status(200).json(data);
+            }
+            else{
+                console.log(`No existen pedidos para el user ID: ${req.params.id}`);
+                res.status(400).json({message: `No existe pedido para el user ID: ${req.params.id}`});
+            }
+        })
+        .catch(err => {
+            console.log('Error en Query SELECT de Pedido', err);
+            res.status(500).json({message: 'Hubo un error al ejecutar la consulta'});
+        });
 }
 
 function getTransactionsByPedidoId(req, res){
     console.log(`Conexion GET entrante : /api/pedido/${req.params.id}/transactions`);
-    pedidosQueries
-    .transactions
-    .getByPedido(req.params.id)
-    .then(data => {
-        console.log('Informacion de transacciones obtenida correctamente');
-        res.status(200).json(data);
-    })
-    .catch(err => console.log(err));
+
+    queries
+        .transactions
+        .getByPedido(req.params.id)
+        .then(data => {
+            if(data && data.length > 0){
+                console.log('Informacion de transacciones obtenida correctamente');
+                res.status(200).json(data);
+            }
+            else{
+                console.log(`No existe pedido para el ID: ${req.params.id}`);
+                res.status(400).json({message: `No existe pedido para el ID: ${req.params.id}`});
+            }
+        })
+        .catch(err => {
+            console.log('Error en Query SELECT de Transaction', err);
+            res.status(500).json({message: 'Hubo un error al ejecutar la consulta'});
+        });
 }
 
 async function realizarPedido(req, res){
     console.log('Conexion POST entrante : /api/pedido');
-    
-    //validacion
+
+    console.log('Request', req.body);
+
+    // validacion de tipos
     console.log('Comenzando validacion JOI de request');
-    let { error } = validarPedido(body);
+    let { error } = validarPedido(req.body);
     
     if(error){
         console.log(`Error en la validacion de request: ${error.details[0].message}`)
@@ -55,106 +91,60 @@ async function realizarPedido(req, res){
     else{
         console.log('Validacion JOI exitosa');
 
-        //validacion de existencia (userId, sellerId y buyerId)
+        //validacion de existencia (userId, sellerId, buyerId, productos y paquetes)
         let errorMessage = '';
 
-        console.log(`Yendo a buscar usuario con id: ${req.body.userId}`);
-        let user = await userQueries
-                    .users
-                    .getOneById(req.body.userId)
-                    .then(data => {
-                        //undefined si no existe
-                        if(!data) {
-                            console.log(`No existe usuario con id: ${req.body.userId}`);
-                            errorMessage+= `No existe un usuario con id ${req.body.userId}`;
-                        }
-                        return data;
-                    })
-                    .catch(err => {
-                        console.log('Error en Query SELECT de User: ', err);
-                        errorMessage+= `Error en Query SELECT de User: ${err}`;
-                    });
+        let busquedaUser = await RoutesUsers.getUser(req.body.userId);
+        // console.log(busquedaUser);
+        if(!busquedaUser.user) errorMessage += '\n' + busquedaUser.message;
 
-        console.log(`Yendo a buscar compania seller con id: ${req.body.sellerId}`);
-        let seller = await companyQueries
-                        .companies
-                        .getOneById(req.body.sellerId)
-                        .then(data => {
-                            //undefined si no existe
-                            if(!data) {
-                                console.log(`No existe company seller con id: ${req.body.sellerId}`);
-                                errorMessage+= `No existe una company seller con id ${req.body.sellerId}`;
-                            }
-                            return data;
-                        })
-                        .catch(err => {
-                            console.log('Error en Query SELECT de Company seller: ', err);
-                            errorMessage+= `Error en Query SELECT de Company seler: ${err}`;
-                        });
+        // console.log(`Buscando compania vendedora con id: ${req.body.sellerId}`);
+        // let busquedaSeller = await RoutesCompanies.getCompany(req.body.sellerId);
+        // // console.log(busquedaSeller);
+        // if(!busquedaSeller.company) errorMessage += '\n' + busquedaSeller.message;
 
-        console.log(`Yendo a buscar compania buyer con id: ${req.body.buyerId}`);
-        let buyer = await companyQueries
-                        .companies
-                        .getOneById(req.body.buyerId)
-                        .then(data => {
-                            //undefined si no existe
-                            if(!data) {
-                                console.log(`No existe company buyer con id: ${req.body.buyerId}`);
-                                errorMessage+= `No existe una company buyer con id ${req.body.buyerId}`;
-                            }
-                            return data;
-                        })
-                        .catch(err => {
-                            console.log('Error en Query SELECT de Company buyer: ', err);
-                            errorMessage+= `Error en Query SELECT de Company buyer: ${err}`;
-                        });
+        console.log(`Buscando compania compradora con id: ${req.body.buyerId}`);
+        let busquedaBuyer = await RoutesCompanies.getCompany(req.body.buyerId);
+        // console.log(busquedaBuyer);
+        if(!busquedaBuyer.company) errorMessage += '\n' + busquedaBuyer.message;
 
-        if(req.body.products){
-            req.body.products.map(prod => {
-                productQueries
-                    .companyProduct
-                    .getOneById(prod.id)
-                    .then(data => {
-                        //undefined si no existe
-                        if(!data) {
-                            console.log(`No existe producto con id: ${prod.id}`);
-                            errorMessage+= `No existe un producto con id ${prod.id}`;
-                        }
-                    })
-                    .catch(err => {
-                        console.log('Error en Query SELECT de CompanyProduct: ', err);
-                        errorMessage+= `Error en Query SELECT de CompanyProduct: ${err}`;
-                    });
-            });
+        let busquedaProductos;
+
+        if(req.body.products && req.body.products.length > 0){
+            busquedaProductos = await Promise.all(req.body.products.map(async prod => {
+                let busProd = await RoutesProducts.getProduct(prod.id);
+                if(!busProd.product) errorMessage += '\n' + busProd.message;
+                else{
+                    busProd.seller = prod.sellerId;
+                    busProd.quantity = prod.quantity;
+                }
+
+                return busProd;
+            }));
+            console.log(busquedaProductos);
         }
 
-        if(req.body.packages){
-            req.body.packages.map(package => {
-                //hay que crear companyPackages
-                productQueries
-                    .companyPackages
-                    .getOneById(package.id)
-                    .then(data => {
-                        //undefined si no existe
-                        if(!data) {
-                            console.log(`No existe package con id: ${package.id}`);
-                            errorMessage+= `No existe un paquete con id ${package.id}`;
-                        }
-                    })
-                    .catch(err => {
-                        console.log('Error en Query SELECT de Package: ', err);
-                        errorMessage+= `Error en Query SELECT de Package: ${err}`;
-                    });
-            });
+        let busquedaPaquetes;
+
+        if(req.body.packages && req.body.packages.length > 0){
+            busquedaPaquetes = await Promise.all(req.body.packages.map(async package => {
+                let busPack = await RoutesPackages.getPackage(package.id);
+                if(!busPack.package) errorMessage += '\n' + busPack.message;
+                else{
+                    busPack.seller = package.sellerId;
+                    busPack.quantity = package.quantity;
+                }
+            }));
+            console.log(busquedaPaquetes);
         }
 
-        //creo que aca va a saltar automatico por no esperar todo lo de arriba
         if(errorMessage){
             console.log('Errores encontrados en las validaciones de existencias: ', errorMessage);
             res.status(400).json({message: errorMessage});
         }
         else{
-            console.log('Validacion de existencias exitosa');
+            res.status(200).json({message: 'OK'});
+            console.log('Validaciones de existencias exitosas');
             //Preparacion de objectos knex a insertar
 
             errorMessage = '';
@@ -163,46 +153,14 @@ async function realizarPedido(req, res){
             let pedido = {
                 userId: req.body.userId
             };
-            console.log('Creando objeto transaction para insercion');
-            let transaction = {
-                amount: req.body.amount,
-                specialDiscount: req.body.specialDiscount,
-                sellerId: req.body.sellerId,
-                buyerId: req.body.buyerId,
-                timestamp: new Date()
-            }
-            console.log('Enviando Query INSERT para Pedido');
-            let pedidoId = pedidoQueries
-                            .pedidos
-                            .insert(pedido)
-                            .then(data => {
-                                //ver si esto es necesario
-                                if(!data){
-                                    console.log('Error en la insercion de Pedido');
-                                    errorMessage += 'No se pudo insertar el Pedido';
-                                }
-                                return data;
-                            })
-                            .catch(err => {
-                                console.log('Error en Query INSERT de Pedido: ', err);
-                                errorMessage+= `Error en Query INSERT de Pedido: ${err}`;
-                            });
 
-            let transactionId = pedidoQueries
-                            .transactions
-                            .insert(transaction)
-                            .then(data => {
-                                //ver si esto es necesario
-                                if(!data){
-                                    console.log('Error en la insercion de Transaction');
-                                    errorMessage += 'No se pudo insertar el Transaction';
-                                }
-                                return data;
-                            })
-                            .catch(err => {
-                                console.log('Error en Query INSERT de Transaction: ', err);
-                                errorMessage+= `Error en Query INSERT de Transaction: ${err}`;
-                            });
+            console.log('Enviando Query INSERT para Pedido');
+            let pedidoId = await insertPedido(pedido);
+
+            // Armar transacciones, una por cada company seller
+            let transacciones = armarTransactions(req.body.products, req.body.packages);
+
+            //Armar logica para realizar los insert de cada transaccion con el listado de arriba
 
             //Realizar logica para determinar el company id segun el type
             // let delivery = {
@@ -217,16 +175,140 @@ async function realizarPedido(req, res){
     }
 }
 
+async function insertPedido(pedido){
+    let message = '';
+    let id = await queries
+            .pedidos
+            .insert(pedido)
+            .then(data => {
+                console.log(`Pedido insertado correctamente, ID: ${data[0]}`);
+                return data[0];
+            })
+            .catch(err => {
+                console.log('Error en Query INSERT de Pedido: ', err);
+                message += `Error en Query INSERT de Pedido: ${err}`;
+            });
+    return { id, message};
+}
+
+async function insertarTransaccion(transaction){
+    let message = '';
+    let id = queries
+                .transactions
+                .insert(transaction)
+                .then(data => {
+                    console.log(`Transaccion insertada correctamente, ID: ${data[0]}`);
+                    return data[0];
+                })
+                .catch(err => {
+                    console.log('Error en Query INSERT de Transaction: ', err);
+                    errorMessage+= `Error en Query INSERT de Transaction: ${err}`;
+                });
+    return { id, message };
+}
+
+function armarTransactions(productos, paquetes){
+    console.log('Armando transacciones para insertar en DB...');
+
+    let transactionProducts = [];
+    if(productos && productos.length > 0){
+        for(let prod of productos){
+            let i = 0;
+            let inserteNuevo = false;
+            while((transactionProducts.length === 0 || i < transactionProducts.length) && !inserteNuevo){
+                if(transactionProducts.length === 0 || transactionProducts[i].sellerId !== prod.sellerId){
+                    let tranProd = {
+                        sellerId: prod.sellerId,
+                        productos: [
+                            {
+                                id: prod.id,
+                                quantity: prod.quantity
+                            }
+                        ]
+                    }
+                    inserteNuevo = true;
+                    transactionProducts.push(tranProd);
+                }
+                else{
+                    let sellerProd = { id: prod.id, quantity: prod.quantity };
+                    transactionProducts[i].productos.push(sellerProd);
+                }
+                i++;
+            }
+        }
+    }
+    // console.log('Vendedores unicos de productos', transactionProducts);
+
+    let transactionPackages = [];
+    if(paquetes && paquetes.length > 0){
+        for(let pack of paquetes){
+            let i = 0;
+            let inserteNuevo = false;
+            while((transactionPackages.length === 0 || i < transactionPackages.length) && !inserteNuevo){
+                if(transactionPackages.length === 0 || transactionPackages[i].sellerId !== pack.sellerId){
+                    let tranProd = {
+                        sellerId: pack.sellerId,
+                        paquetes: [
+                            {
+                                id: pack.id,
+                                quantity: pack.quantity
+                            }
+                        ]
+                    }
+                    inserteNuevo = true;
+                    transactionPackages.push(tranProd);
+                }
+                else{
+                    let sellerPack = { id: pack.id, quantity: pack.quantity };
+                    transactionPackages[i].productos.push(sellerPack);
+                }
+                i++;
+            }
+        }
+    }
+    // console.log('Vendedores unicos de paquetes', transactionPackages);
+
+    let transacciones  = [];
+    if(transactionPackages.length === 0 && transactionProducts.length > 0)
+        transacciones = transactionProducts;
+    else if(transactionProducts.length === 0 && transactionPackages.length > 0)
+        transacciones = transactionPackages;
+    else if (transactionProducts.length > 0 && transactionPackages.length > 0){
+        transacciones = transactionProducts;
+
+        for(let item of transactionPackages){
+            console.log('dentor del for')
+            let i = 0;
+            let inserte = false;
+            while(i < transactionProducts.length && !inserte){
+                console.log('entre al while')
+                if(transactionProducts[i].sellerId === item.sellerId){
+                    console.log('entre aca');
+                    console.log('tranprods', transactionProducts[i]);
+                    console.log('sellers', transacciones[i]);
+                    transacciones[i].paquetes = item.paquetes;
+                    inserte = true;
+                }
+                i++;
+            }
+            if(!inserte){
+                transacciones.push(item);
+            }
+        }
+    }
+    console.log('Transacciones armadas', transacciones);
+    return transacciones;
+}
+
 function validarPedido(body){
     const schema = {
         userId: Joi.number().required(),
         amount: Joi.number().required(),
-        specialDiscount: Joi.number().allow(null),
-        sellerId: Joi.number().required(),
+        specialDiscount: Joi.number().required(),
         buyerId: Joi.number().required(),
         products: Joi.array().allow(null),
         packages: Joi.array().allow(null),
-        deliveryType: Joi.string().required
+        deliveryType: Joi.string().required()
     };
     return Joi.validate(body, schema);
 }

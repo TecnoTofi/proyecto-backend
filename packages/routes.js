@@ -1,13 +1,13 @@
 const Joi = require('joi');
 const productQueries = require('../products/dbQueries');
 const companyQueries = require('../companies/dbQueries');
-const packageQueries = require('./dbQueries');
+const queries = require('./dbQueries');
 
 
 const getAllPackages = (req, res) => {
     console.log('Conexion GET entrante : /api/packages');
 
-    packageQueries
+    queries
         .packages
         .getAll()
         .then(data => {
@@ -24,7 +24,7 @@ const getAllPackagesByCompany = (req, res) => {
     console.log('Conexion GET entrante : /api/packages');
     let idCompany= req.params.idComp;
 
-    packageQueries
+    queries
         .packages
         .getAllByCompanyId(idCompany)
         .then(data => {
@@ -41,7 +41,7 @@ const getAllProductByPackage = (req, res) => {
     console.log('Conexion GET entrante : /api/packages');
     let idPackage= req.params.id;
 
-    packageQueries
+    queries
         .packagesProduct
         .getAllById(idPackage)
         .then(data => {
@@ -68,7 +68,7 @@ async function insertPackages(req, res){
 
     if(!error){
 
-            packageId = await packageQueries
+            packageId = await queries
                             .packages
                             .insert(valPackage)
                             .then(id => {
@@ -114,7 +114,7 @@ async function updatePackage(req, res){
 
     if(!error){
 
-            packageQueries
+            queries
                 .packages
                 .modify(idPackage ,valPackage)
                 .then(packageId => {
@@ -139,7 +139,7 @@ async function deletePackage(req, res){
     
     console.log('idPackage', idPackage);
 
-            packageQueries
+            queries
                 .packages
                 .delete(idPackage)
                 .then(packageId => {
@@ -165,7 +165,7 @@ async function insertPackageProduct(req, res){
 
     if(!error){
 
-            packageProductId = await packageQueries
+            packageProductId = await queries
                             .packagesProduct
                             .insert(valPackageProduct)
                             .then(id => {
@@ -209,7 +209,7 @@ async function updatePackageProduct(req, res){
 
     if(!error){
 
-            packageQueries
+            queries
                 .packagesProduct
                 .modify(idPackageProduct ,valPackageProduct)
                 .then(id => {
@@ -232,7 +232,7 @@ async function deletePackageProduct(req, res){
     let idPackageProduct= req.params.idPacProd;
     console.log('idProductPackage', idPackageProduct);
 
-            packageQueries
+            queries
                 .packagesProduct
                 .delete(idPackageProduct)
                 .then(id => {
@@ -244,24 +244,6 @@ async function deletePackageProduct(req, res){
                     res.status(500).json({message: err});
                 });
 };
-
-function validarRegistroPackage(body) {
-    const schema = {
-        price:Joi.number().required(),
-        description: Joi.string().min(3).max(30).required(),
-        companyId:Joi.number().required(),
-    };
-    return Joi.validate(body, schema);
-}
-
-function validarRegistroPackageProduct(body) {
-    const schema = {
-        packageId:Joi.number().required(),
-        productId:Joi.number().required(),
-        quantity: Joi.number().required(),
-    };
-    return Joi.validate(body, schema);
-}
 
 async function insertPackagesCompleto(req, res){
     console.log('Conexion POST entrante : /api/package');
@@ -279,7 +261,7 @@ async function insertPackagesCompleto(req, res){
         // let {error} = await validarRegistroPackageProduct(valPackageProduct);
 
         if(!error){
-            packageId = await packageQueries
+            packageId = await queries
                             .package
                             .insert(valPackage)
                             .then(id => {
@@ -298,7 +280,7 @@ async function insertPackagesCompleto(req, res){
                     productId: req.body.products[prod].id,
                     quantity: req.body.products[prod].cantidad
                 }
-                await packageQueries
+                await queries
                     .packageProduct
                     .insert(valPackageProduct)
                     .then(id => {
@@ -331,8 +313,44 @@ async function insertPackagesCompleto(req, res){
     
 };
 
+async function getPackage(packageId){
+    console.log(`Buscando paquete con id: ${packageId}`);
+    let message = '';
+    let package = await queries
+                            .companyQueries
+                            .getOneById(packageId)
+                            .then(data => {
+                                //undefined si no existe
+                                if(!data) {
+                                    console.log(`No existe paquete con id: ${packageId}`);
+                                    message += `No existe un paquete con id ${packageId}`;
+                                }
+                                return data;
+                            })
+                            .catch(err => {
+                                console.log('Error en Query SELECT de Package: ', err);
+                                message += `Error en Query SELECT de Package: ${err}`;
+                            });
+    return { package, message };
+}
 
+function validarRegistroPackage(body) {
+    const schema = {
+        price:Joi.number().required(),
+        description: Joi.string().min(3).max(30).required(),
+        companyId:Joi.number().required(),
+    };
+    return Joi.validate(body, schema);
+}
 
+function validarRegistroPackageProduct(body) {
+    const schema = {
+        packageId:Joi.number().required(),
+        productId:Joi.number().required(),
+        quantity: Joi.number().required(),
+    };
+    return Joi.validate(body, schema);
+}
 
 module.exports = {
     getAllPackages,
@@ -344,5 +362,6 @@ module.exports = {
     insertPackageProduct,
     updatePackageProduct,
     deletePackageProduct,
-    insertPackagesCompleto
+    insertPackagesCompleto,
+    getPackage
 };

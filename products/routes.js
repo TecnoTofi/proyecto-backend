@@ -1,11 +1,11 @@
 const Joi = require('joi');
-const productQueries = require('./dbQueries');
+const queries = require('./dbQueries');
 const companyQueries = require('../companies/dbQueries');
 
 const getCategories = (req, res) => {
     console.log('Conexion GET entrante : /api/product');
 
-    productQueries
+    queries
         .categories
         .getAll()
         .then(categories => {
@@ -21,7 +21,7 @@ const getCategories = (req, res) => {
 const getAllProducts = (req, res) => {
     console.log('Conexion GET entrante : /api/product');
 
-    productQueries
+    queries
         .products
         .getAll()
         .then(products => {
@@ -42,19 +42,19 @@ const getAllProducts = (req, res) => {
 
 async function getAllProductsGenericList(req, res){
     //no me gusta como anda esto, ya que hace muchos recorridos innecesarios
-    let productos = await productQueries
+    let productos = await queries
                     .products
                     .getAll()
                     .then(data => {
                         return data;
                     });
-    let prodCategories = await productQueries
+    let prodCategories = await queries
                             .prodCategory
                             .getAll()
                             .then(data => {
                                 return data;
                             });
-    let categories = await productQueries
+    let categories = await queries
                             .categories
                             .getAll()
                             .then(data => {
@@ -80,14 +80,14 @@ async function getAllProductsGenericList(req, res){
 async function getProductByCompany(req, res){
     console.log('id de la empresa', req.params.id);
 
-    let productos = await productQueries
+    let productos = await queries
                             .products
                             .getAll()
                             .then(data => {
                                 return data;
                             });
 
-    let companyProducts = await productQueries
+    let companyProducts = await queries
                                     .companyProduct
                                     .getAll()
                                     .then(data => {
@@ -99,13 +99,13 @@ async function getProductByCompany(req, res){
                             .then(data => {
                                 return data;
                             });
-    let prodCategories = await productQueries
+    let prodCategories = await queries
                                 .prodCategory
                                 .getAll()
                                 .then(data => {
                                     return data;
                                 });
-    let categories = await productQueries
+    let categories = await queries
                             .categories
                             .getAll()
                             .then(data => {
@@ -176,7 +176,7 @@ async function insertProduct(req, res){
                 imagePath: req.file.path
             };
         
-            productId = await productQueries
+            productId = await queries
                             .products
                             .insert(product)
                             .then(id => {
@@ -197,7 +197,7 @@ async function insertProduct(req, res){
                     categoryId: categories[cat]
                 }
 
-                await productQueries
+                await queries
                         .prodCategory
                         .insert(prodCategory)
                         .then(id => {
@@ -262,7 +262,7 @@ async function insertCompanyProduct(req, res){
                                 res.status(500).json()
                             });
 
-        let product = await productQueries
+        let product = await queries
                             .products
                             .getOneById(req.body.productId)
                             .then(prod => {
@@ -286,7 +286,7 @@ async function insertCompanyProduct(req, res){
                 imagePath: req.body.imagePath
             }
 
-            productQueries
+            queries
                 .companyProduct
                 .insert(companyProduct)
                 .then(productId => {
@@ -335,7 +335,7 @@ async function updateCompanyProduct(req, res){
 
     if(!error){
 
-            productQueries
+            queries
                 .companyProduct
                 .modify(idProduct ,valProduct)
                 .then(productId => {
@@ -360,7 +360,7 @@ async function deleteCompanyProduct(req, res){
     
     console.log('idProduct', idProduct);
 
-            productQueries
+            queries
                 .companyProduct
                 .delete(idProduct)
                 .then(productId => {
@@ -391,7 +391,7 @@ async function validarCategorias(categorias){
     let error = false;
 
     for(let cat in categorias){
-        error = await productQueries
+        error = await queries
                         .categories
                         .getOneById(categorias[cat])
                         .then(res => {
@@ -404,6 +404,27 @@ async function validarCategorias(categorias){
     }
     //se esta retornando al mismo timepo que se recorre el for, arreglar esto
     return error;
+}
+
+async function getProduct(productId){
+    console.log(`Buscando producto con id: ${productId}`);
+    let message = '';
+    let product = await queries
+                        .companyProduct
+                        .getOneById(productId)
+                        .then(data => {
+                            //undefined si no existe
+                            if(!data) {
+                                console.log(`No existe producto con id: ${productId}`);
+                                message += `No existe un producto con id ${productId}`;
+                            }
+                            return data;
+                        })
+                        .catch(err => {
+                            console.log('Error en Query SELECT de CompanyProduct: ', err);
+                            message += `Error en Query SELECT de CompanyProduct: ${err}`;
+                        });
+    return { product, message };
 }
 
 function validarRegistroEmpresaProducto(body) {
@@ -442,5 +463,6 @@ module.exports = {
     getAllProductsGenericList,
     reducirStock,
     updateCompanyProduct,
-    deleteCompanyProduct
+    deleteCompanyProduct,
+    getProduct
 };

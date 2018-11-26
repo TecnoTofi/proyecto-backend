@@ -186,6 +186,26 @@ async function getAllForList(req, res){
                     .catch(err => console.log(err));
 }
 
+async function getCompany(companyId){
+    let message = '';
+    let company = await queries
+                    .companies
+                    .getOneById(companyId)
+                    .then(data => {
+                        //undefined si no existe
+                        if(!data) {
+                            console.log(`No existe company con id: ${companyId}`);
+                            message += `No existe una company con id ${companyId}`;
+                        }
+                        return data;
+                    })
+                    .catch(err => {
+                        console.log('Error en Query SELECT de Company: ', err);
+                        message += `Error en Query SELECT de Company: ${err}`;
+                    });
+    return { company, message };
+}
+
 function validarTipoDatosCompany(body){
     const schema = {
         companyName: Joi.string().min(3).max(50).required(),
@@ -211,5 +231,6 @@ module.exports = {
     validarTipoDatosCompany,
     getAllForList,
     getOneCompany,
-    updateCompany
+    updateCompany,
+    getCompany
 };

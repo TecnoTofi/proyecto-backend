@@ -31,16 +31,30 @@ module.exports = {
     },
     transactionProducts: {
         getAll: function(){
-            return knex.select().table('TransactionProducts');
+            return knex.select().table('TransactionProduct');
         },
         getOneById: function(id){
-            return knex.select().table('TransactionProducts').where('id', id).first();
+            return knex.select().table('TransactionProduct').where('id', id).first();
         },
         getByTransaction: function(transactionId){
-            return knex.select().table('TransactionProducts').where('transactionId', transactionId);
+            return knex.select().table('TransactionProduct').where('transactionId', transactionId);
         },
         insert: function(transactionProduct){
-            return knex('TransactionProducts').insert(transactionProduct).returning('id');
+            return knex('TransactionProduct').insert(transactionProduct).returning('id');
+        }
+    },
+    transactionPackages: {
+        getAll: function(){
+            return knex.select().table('TransactionPackage');
+        },
+        getOneById: function(id){
+            return knex.select().table('TransactionPackage').where('id', id).first();
+        },
+        getByTransaction: function(transactionId){
+            return knex.select().table('TransactionPackage').where('transactionId', transactionId);
+        },
+        insert: function(transactionPackage){
+            return knex('TransactionPackage').insert(transactionPackage).returning('id');
         }
     },
     deliveries: {

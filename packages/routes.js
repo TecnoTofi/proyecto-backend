@@ -248,69 +248,84 @@ async function deletePackageProduct(req, res){
 async function insertPackagesCompleto(req, res){
     console.log('Conexion POST entrante : /api/package');
 
-    let valPackage = {
-        price: req.body.price,
-        description: req.body.description,
-        companyId:req.body.companyId
+    console.log(req.body);
+    // console.log(req.body.products[0]);
+
+    let i = 0;
+    while(i < req.body.products.length){
+        console.log(req.body.products[i]);
+        i++;
     }
 
-    let {error} = await validarRegistroPackage(valPackage);
+    // let valPackage = {
+    //     price: req.body.price,
+    //     description: req.body.description,
+    //     companyId:req.body.companyId,
+    //     imageName: req.file.filename,
+    //     imagePath: req.file.path
+    // }
 
-    if(!error){
+    // let products = JSON.parse('[' + '{' + req.body.products + '}' + ']');
+    // console.log(products);
 
-        // let {error} = await validarRegistroPackageProduct(valPackageProduct);
+    // let {error} = await validarRegistroPackage(valPackage);
 
-        if(!error){
-            packageId = await queries
-                            .package
-                            .insert(valPackage)
-                            .then(id => {
-                                console.log('Paquete insertado correctamente');
-                                return id[0];
-                            })
-                            .catch(err => {
-                                console.log(`Error en Query INSERT de Product : ${err}`);
-                                res.status(500).json({message: err});
-                            });
-            let contadorOk = 0;
-            for(let prod in req.body.products){
+    // if(!error){
 
-                let valPackageProduct = {
-                    packageId: packageId,
-                    productId: req.body.products[prod].id,
-                    quantity: req.body.products[prod].cantidad
-                }
-                await queries
-                    .packageProduct
-                    .insert(valPackageProduct)
-                    .then(id => {
-                        console.log('Producto insertado correctamente en paquete');
-                        if(id[0]) contadorOk++;
-                    })
-                    .catch(err => {
-                        console.log(`Error en Query INSERT de packageProduct : ${err}`);
-                        res.status(500).json({message: err});
-                    });
-                }
+    //     // let {error} = await validarRegistroPackageProduct(valPackageProduct);
 
-            if(contadorOk === req.body.products.length){
-                res.status(201).json({message: 'insertado correctamente'});
-            }
-            else{
-                console.log(`Error en insert de linea de paquete`);
-                res.status(500).json({message: 'Error en insert de linea de paquete'});
-            }
-        }
-        else{
-            console.log(`Error en la validacion de tipos de dato de linea de paquete : ${error.details[0].message}`);
-            res.status(400).json({message: error.details[0].message});
-        }
-    }
-    else{
-        console.log(`Error en la validacion de tipos de dato : ${error.details[0].message}`);
-        res.status(400).json({message: error.details[0].message});
-    }
-    
+    //     if(!error){
+    //         packageId = await packageQueries
+    //                         .package
+    //                         .insert(valPackage)
+    //                         .then(id => {
+    //                             console.log('Paquete insertado correctamente');
+    //                             return id[0];
+    //                         })
+    //                         .catch(err => {
+    //                             console.log(`Error en Query INSERT de Product : ${err}`);
+    //                             res.status(500).json({message: err});
+    //                         })                
+    //         let contadorOk = 0;
+
+    //         for(let prod in products){
+                
+    //             let valPackageProduct = {
+    //                 packageId: packageId,
+    //                 productId: products[prod].id,
+    //                 quantity: products[prod].cantidad
+    //             }
+    //             console.log(valPackageProduct);
+    //             await packageQueries
+    //                 .packageProduct
+    //                 .insert(valPackageProduct)
+    //                 .then(id => {
+    //                     console.log('Producto insertado correctamente en paquete');
+    //                     if(id[0]) contadorOk++;
+    //                 })
+    //                 .catch(err => {
+    //                     console.log(`Error en Query INSERT de packageProduct : ${err}`);
+    //                     res.status(500).json({message: err});
+    //                 });
+    //             }
+
+    //         if(contadorOk === req.body.products.length){
+    //             res.status(201).json({message: 'insertado correctamente'});
+    //         }
+    //         else{
+    //             console.log(`Error en insert de linea de paquete`);
+    //             res.status(500).json({message: 'Error en insert de linea de paquete'});
+    //         }
+    //     }
+    //     else{
+    //         console.log(`Error en la validacion de tipos de dato de linea de paquete : ${error.details[0].message}`);
+    //         res.status(400).json({message: error.details[0].message});
+    //     }
+    // }
+    // else{
+    //     console.log(`Error en la validacion de tipos de dato : ${error.details[0].message}`);
+    //     res.status(400).json({message: error.details[0].message});
+    // }
 };
 
 async function getPackage(packageId){
@@ -339,6 +354,8 @@ function validarRegistroPackage(body) {
         price:Joi.number().required(),
         description: Joi.string().min(3).max(30).required(),
         companyId:Joi.number().required(),
+        imageName: Joi.string().min(3).max(150).required(),
+        imagePath: Joi.string().min(3).max(150).required()
     };
     return Joi.validate(body, schema);
 }

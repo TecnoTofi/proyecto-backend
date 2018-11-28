@@ -157,76 +157,79 @@ async function getProductByCompany(req, res){
 async function insertProduct(req, res){
     console.log('Conexion POSTR entrante : /api/product');
 
+    console.log('body', req.body);
+
     let valProduct = {
         productName: req.body.name,
         productCode: req.body.code
     }
     //no validar una categoria, sino un array
     let categories = JSON.parse('[' + req.body.categories + ']');
+    console.log('categories', categories);
 
     let {error} = await validarRegistroProducto(valProduct);
     let valCategories = await validarCategorias(categories);
 
-    if(!error && !valCategories){
+    // if(!error && !valCategories){
 
-            let product = {
-                name: req.body.name,
-                code : req.body.code,
-                imageName: req.file.filename,
-                imagePath: req.file.path
-            };
+    //         let product = {
+    //             name: req.body.name,
+    //             code : req.body.code,
+    //             imageName: req.file.filename,
+    //             imagePath: req.file.path
+    //         };
         
-            productId = await queries
-                            .products
-                            .insert(product)
-                            .then(id => {
-                                console.log('Producto insertado correctamente');
-                                return id;
-                                // res.status(201).json(productId);
-                            })
-                            .catch(err => {
-                                console.log(`Error en Query INSERT de Product : ${err}`);
-                                res.status(500).json({message: err});
-                            });
+    //         productId = await queries
+    //                         .products
+    //                         .insert(product)
+    //                         .then(id => {
+    //                             console.log('Producto insertado correctamente');
+    //                             return id;
+    //                             // res.status(201).json(productId);
+    //                         })
+    //                         .catch(err => {
+    //                             console.log(`Error en Query INSERT de Product : ${err}`);
+    //                             res.status(500).json({message: err});
+    //                         });
 
 
-            for(let cat in categories){
+    //         for(let cat in categories){
 
-                let prodCategory = {
-                    productId: productId[0],
-                    categoryId: categories[cat]
-                }
+    //             let prodCategory = {
+    //                 productId: productId[0],
+    //                 categoryId: categories[cat]
+    //             }
 
-                await queries
-                        .prodCategory
-                        .insert(prodCategory)
-                        .then(id => {
-                            console.log('ProdCategory insertado correctamente');
-                            return id;
-                        })
-                        .catch(err => {
-                            console.log(`Error en Query INSERT de ProdCategory : ${err}`);
-                            res.status(500).json({message: err});
-                        });
-            }
+    //             await queries
+    //                     .prodCategory
+    //                     .insert(prodCategory)
+    //                     .then(id => {
+    //                         console.log('ProdCategory insertado correctamente');
+    //                         return id;
+    //                     })
+    //                     .catch(err => {
+    //                         console.log(`Error en Query INSERT de ProdCategory : ${err}`);
+    //                         res.status(500).json({message: err});
+    //                     });
+    //         }
 
-            if(productId){
-                res.status(201).json({message: 'insertado correctamente'});
-            }
-            else{
-                console.log(`Error inesperado`);
-                res.status(500).json({message: 'Error inesperado'});
-            }
-        // }
-        // else{
-        //     console.log(`No existe ProductCategory con id ${req.body.category}`);
-        //     res.status(400).json({message: `No existe ProductCategory con id ${req.body.category}`});
-        // }
-    }
-    else{
-        console.log(`Error en la validacion de tipos de dato : ${error.details[0].message}`);
-        res.status(400).json({message: error.details[0].message});
-    }
+    //         if(productId){
+    //             res.status(201).json({message: 'insertado correctamente'});
+    //         }
+    //         else{
+    //             console.log(`Error inesperado`);
+    //             res.status(500).json({message: 'Error inesperado'});
+    //         }
+    //     // }
+    //     // else{
+    //     //     console.log(`No existe ProductCategory con id ${req.body.category}`);
+    //     //     res.status(400).json({message: `No existe ProductCategory con id ${req.body.category}`});
+    //     // }
+    // }
+    // else{
+    //     console.log(`Error en la validacion de tipos de dato : ${error.details[0].message}`);
+    //     res.status(400).json({message: error.details[0].message});
+    // }
     
 };
 

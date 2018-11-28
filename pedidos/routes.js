@@ -78,7 +78,7 @@ function getTransactionsByPedidoId(req, res){
 async function realizarPedido(req, res){
     console.log('Conexion POST entrante : /api/pedido');
 
-    console.log('Request', req.body);
+    // console.log('Request', req.body);
 
     // validacion de tipos
     console.log('Comenzando validacion JOI de request');
@@ -92,7 +92,7 @@ async function realizarPedido(req, res){
         console.log('Validacion JOI exitosa');
 
         //validacion de existencia (userId, sellerId, buyerId, productos y paquetes)
-        let errorMessage = '';
+        let errorMessage = ''; // cambiar esto por un array de mensajes para poder iterar
 
         let busquedaUser = await RoutesUsers.getUser(req.body.userId);
         // console.log(busquedaUser);
@@ -108,35 +108,44 @@ async function realizarPedido(req, res){
         // console.log(busquedaBuyer);
         if(!busquedaBuyer.company) errorMessage += '\n' + busquedaBuyer.message;
 
+        //validar que la compania es la misma que la del usuario
+
         let busquedaProductos;
-
-        if(req.body.products && req.body.products.length > 0){
-            busquedaProductos = await Promise.all(req.body.products.map(async prod => {
-                let busProd = await RoutesProducts.getProduct(prod.id);
-                if(!busProd.product) errorMessage += '\n' + busProd.message;
-                else{
-                    busProd.seller = prod.sellerId;
-                    busProd.quantity = prod.quantity;
-                }
-
-                return busProd;
-            }));
-            console.log(busquedaProductos);
-        }
-
         let busquedaPaquetes;
 
-        if(req.body.packages && req.body.packages.length > 0){
-            busquedaPaquetes = await Promise.all(req.body.packages.map(async package => {
-                let busPack = await RoutesPackages.getPackage(package.id);
-                if(!busPack.package) errorMessage += '\n' + busPack.message;
-                else{
-                    busPack.seller = package.sellerId;
-                    busPack.quantity = package.quantity;
-                }
-            }));
-            console.log(busquedaPaquetes);
+//probar todo esto nuevamente
+        if(req.body.contenido && req.body.contenido.length > 0){
+            if(req.body.contenido.productos && req.body.contenido.productos.length > 0){
+                busquedaProductos = await Promise.all(req.body.contenido.productos.map(async prod => {
+                    let busProd = await RoutesProducts.getProduct(prod.id);
+                    if(!busProd.product) errorMessage += '\n' + busProd.message;
+                    else{
+                        //validacion de seller
+                        busProd.seller = prod.sellerId; //para que era esto?
+                        busProd.quantity = prod.quantity; //para que era esto?
+                    }
+    
+                    return busProd;
+                }));
+                console.log(busquedaProductos); //para que era esto?
+            }
+    
+            if(req.body.contenido.packages && req.body.contenido.packages.length > 0){
+                busquedaPaquetes = await Promise.all(req.body.contenido.packages.map(async package => {
+                    let busPack = await RoutesPackages.getPackage(package.id);
+                    if(!busPack.package) errorMessage += '\n' + busPack.message;
+                    else{
+                        busPack.seller = package.sellerId; //para que era esto?
+                        busPack.quantity = package.quantity; //para que era esto?
+                    }
+                }));
+                console.log(busquedaPaquetes); //para que era esto?
+            }
         }
+        else{
+            // error no vino contenido
+        }
+        
 
         if(errorMessage){
             console.log('Errores encontrados en las validaciones de existencias: ', errorMessage);
@@ -155,12 +164,14 @@ async function realizarPedido(req, res){
             };
 
             console.log('Enviando Query INSERT para Pedido');
-            let pedidoId = await insertPedido(pedido);
+            // let pedidoId = await insertPedido(pedido);
 
             // Armar transacciones, una por cada company seller
             let transacciones = armarTransactions(req.body.products, req.body.packages);
 
             //Armar logica para realizar los insert de cada transaccion con el listado de arriba
+            //specialDiscount es por empresa, por lo tanto deberia haber uno por cada transaccion
+            //Hacer que llegue un listado de transacciones ya armado en lugar de armarlo?
 
             //Realizar logica para determinar el company id segun el type
             // let delivery = {
@@ -193,7 +204,7 @@ async function insertPedido(pedido){
 
 async function insertarTransaccion(transaction){
     let message = '';
-    let id = queries
+    let id = await queries
                 .transactions
                 .insert(transaction)
                 .then(data => {
@@ -202,8 +213,40 @@ async function insertarTransaccion(transaction){
                 })
                 .catch(err => {
                     console.log('Error en Query INSERT de Transaction: ', err);
-                    errorMessage+= `Error en Query INSERT de Transaction: ${err}`;
+                    message+= `Error en Query INSERT de Transaction: ${err}`;
                 });
+    return { id, message };
+}
+
+async function insertarTransactionProduct(tranProd){
+    let message = '';
+    let id = await queries
+                    .transactionProducts
+                    .insert(tranProd)
+                    .then(data => {
+                        console.log(`Producto de transaccion insertado correctamente, ID: ${data[0]}`);
+                        return data[0];
+                    })
+                    .catch(err => {
+                        console.log('Error en Query INSERT de TransactionProduct: ', err);
+                        message+= `Error en Query INSERT de TransactionProduct: ${err}`;
+                    });
+    return { id, message };
+}
+
+async function insertarTransactionPackage(tranPack){
+    let message = '';
+    let id = await queries
+                    .transactionPackages
+                    .insert(tranPack)
+                    .then(data => {
+                        console.log(`Paquete de transaccion insertado correctamente, ID: ${data[0]}`);
+                        return data[0];
+                    })
+                    .catch(err => {
+                        console.log('Error en Query INSERT de TransactionPackage: ', err);
+                        message+= `Error en Query INSERT de TransactionPackage: ${err}`;
+                    });
     return { id, message };
 }
 
@@ -306,8 +349,7 @@ function validarPedido(body){
         amount: Joi.number().required(),
         specialDiscount: Joi.number().required(),
         buyerId: Joi.number().required(),
-        products: Joi.array().allow(null),
-        packages: Joi.array().allow(null),
+        contenido: Joi.array().allow(null),
         deliveryType: Joi.string().required()
     };
     return Joi.validate(body, schema);

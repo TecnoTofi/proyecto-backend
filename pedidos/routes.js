@@ -77,8 +77,10 @@ function getTransactionsByPedidoId(req, res){
 
 async function realizarPedido(req, res){
     console.log('Conexion POST entrante : /api/pedido');
+    // console.log(req.body);
+    // res.status(200).json({message: 'bien'});
 
-    // console.log('Request', req.body);
+    console.log('Request', req.body);
 
     // validacion de tipos
     console.log('Comenzando validacion JOI de request');
@@ -92,97 +94,97 @@ async function realizarPedido(req, res){
         console.log('Validacion JOI exitosa');
 
         //validacion de existencia (userId, sellerId, buyerId, productos y paquetes)
-        let errorMessage = ''; // cambiar esto por un array de mensajes para poder iterar
+//         let errorMessage = ''; // cambiar esto por un array de mensajes para poder iterar
 
-        let busquedaUser = await RoutesUsers.getUser(req.body.userId);
-        // console.log(busquedaUser);
-        if(!busquedaUser.user) errorMessage += '\n' + busquedaUser.message;
+//         let busquedaUser = await RoutesUsers.getUser(req.body.userId);
+//         // console.log(busquedaUser);
+//         if(!busquedaUser.user) errorMessage += '\n' + busquedaUser.message;
 
-        // console.log(`Buscando compania vendedora con id: ${req.body.sellerId}`);
-        // let busquedaSeller = await RoutesCompanies.getCompany(req.body.sellerId);
-        // // console.log(busquedaSeller);
-        // if(!busquedaSeller.company) errorMessage += '\n' + busquedaSeller.message;
+//         // console.log(`Buscando compania vendedora con id: ${req.body.sellerId}`);
+//         // let busquedaSeller = await RoutesCompanies.getCompany(req.body.sellerId);
+//         // // console.log(busquedaSeller);
+//         // if(!busquedaSeller.company) errorMessage += '\n' + busquedaSeller.message;
 
-        console.log(`Buscando compania compradora con id: ${req.body.buyerId}`);
-        let busquedaBuyer = await RoutesCompanies.getCompany(req.body.buyerId);
-        // console.log(busquedaBuyer);
-        if(!busquedaBuyer.company) errorMessage += '\n' + busquedaBuyer.message;
+//         console.log(`Buscando compania compradora con id: ${req.body.buyerId}`);
+//         let busquedaBuyer = await RoutesCompanies.getCompany(req.body.buyerId);
+//         // console.log(busquedaBuyer);
+//         if(!busquedaBuyer.company) errorMessage += '\n' + busquedaBuyer.message;
 
-        //validar que la compania es la misma que la del usuario
+//         //validar que la compania es la misma que la del usuario
 
-        let busquedaProductos;
-        let busquedaPaquetes;
+//         let busquedaProductos;
+//         let busquedaPaquetes;
 
-//probar todo esto nuevamente
-        if(req.body.contenido && req.body.contenido.length > 0){
-            if(req.body.contenido.productos && req.body.contenido.productos.length > 0){
-                busquedaProductos = await Promise.all(req.body.contenido.productos.map(async prod => {
-                    let busProd = await RoutesProducts.getProduct(prod.id);
-                    if(!busProd.product) errorMessage += '\n' + busProd.message;
-                    else{
-                        //validacion de seller
-                        busProd.seller = prod.sellerId; //para que era esto?
-                        busProd.quantity = prod.quantity; //para que era esto?
-                    }
+// //probar todo esto nuevamente
+//         if(req.body.contenido && req.body.contenido.length > 0){
+//             if(req.body.contenido.productos && req.body.contenido.productos.length > 0){
+//                 busquedaProductos = await Promise.all(req.body.contenido.productos.map(async prod => {
+//                     let busProd = await RoutesProducts.getProduct(prod.id);
+//                     if(!busProd.product) errorMessage += '\n' + busProd.message;
+//                     else{
+//                         //validacion de seller
+//                         busProd.seller = prod.sellerId; //para que era esto?
+//                         busProd.quantity = prod.quantity; //para que era esto?
+//                     }
     
-                    return busProd;
-                }));
-                console.log(busquedaProductos); //para que era esto?
-            }
+//                     return busProd;
+//                 }));
+//                 console.log(busquedaProductos); //para que era esto?
+//             }
     
-            if(req.body.contenido.packages && req.body.contenido.packages.length > 0){
-                busquedaPaquetes = await Promise.all(req.body.contenido.packages.map(async package => {
-                    let busPack = await RoutesPackages.getPackage(package.id);
-                    if(!busPack.package) errorMessage += '\n' + busPack.message;
-                    else{
-                        busPack.seller = package.sellerId; //para que era esto?
-                        busPack.quantity = package.quantity; //para que era esto?
-                    }
-                }));
-                console.log(busquedaPaquetes); //para que era esto?
-            }
-        }
-        else{
-            // error no vino contenido
-        }
+//             if(req.body.contenido.packages && req.body.contenido.packages.length > 0){
+//                 busquedaPaquetes = await Promise.all(req.body.contenido.packages.map(async package => {
+//                     let busPack = await RoutesPackages.getPackage(package.id);
+//                     if(!busPack.package) errorMessage += '\n' + busPack.message;
+//                     else{
+//                         busPack.seller = package.sellerId; //para que era esto?
+//                         busPack.quantity = package.quantity; //para que era esto?
+//                     }
+//                 }));
+//                 console.log(busquedaPaquetes); //para que era esto?
+//             }
+//         }
+//         else{
+//             // error no vino contenido
+//         }
         
 
-        if(errorMessage){
-            console.log('Errores encontrados en las validaciones de existencias: ', errorMessage);
-            res.status(400).json({message: errorMessage});
-        }
-        else{
-            res.status(200).json({message: 'OK'});
-            console.log('Validaciones de existencias exitosas');
-            //Preparacion de objectos knex a insertar
+//         if(errorMessage){
+//             console.log('Errores encontrados en las validaciones de existencias: ', errorMessage);
+//             res.status(400).json({message: errorMessage});
+//         }
+//         else{
+//             res.status(200).json({message: 'OK'});
+//             console.log('Validaciones de existencias exitosas');
+//             //Preparacion de objectos knex a insertar
 
-            errorMessage = '';
+//             errorMessage = '';
 
-            console.log('Creando objeto pedido para insercion');
-            let pedido = {
-                userId: req.body.userId
-            };
+//             console.log('Creando objeto pedido para insercion');
+//             let pedido = {
+//                 userId: req.body.userId
+//             };
 
-            console.log('Enviando Query INSERT para Pedido');
-            // let pedidoId = await insertPedido(pedido);
+//             console.log('Enviando Query INSERT para Pedido');
+//             // let pedidoId = await insertPedido(pedido);
 
-            // Armar transacciones, una por cada company seller
-            let transacciones = armarTransactions(req.body.products, req.body.packages);
+//             // Armar transacciones, una por cada company seller
+//             let transacciones = armarTransactions(req.body.products, req.body.packages);
 
-            //Armar logica para realizar los insert de cada transaccion con el listado de arriba
-            //specialDiscount es por empresa, por lo tanto deberia haber uno por cada transaccion
-            //Hacer que llegue un listado de transacciones ya armado en lugar de armarlo?
+//             //Armar logica para realizar los insert de cada transaccion con el listado de arriba
+//             //specialDiscount es por empresa, por lo tanto deberia haber uno por cada transaccion
+//             //Hacer que llegue un listado de transacciones ya armado en lugar de armarlo?
 
-            //Realizar logica para determinar el company id segun el type
-            // let delivery = {
-            //     type: req.body.deliveryType,
-            //     transactionId,
-            //     companyId: '',
-            //     userId: req.body.userId,
-            //     timestamp: new Date(),
-            //     status: 'Pendiente'
-            // }
-        }
+//             //Realizar logica para determinar el company id segun el type
+//             // let delivery = {
+//             //     type: req.body.deliveryType,
+//             //     transactionId,
+//             //     companyId: '',
+//             //     userId: req.body.userId,
+//             //     timestamp: new Date(),
+//             //     status: 'Pendiente'
+//             // }
+//         }
     }
 }
 

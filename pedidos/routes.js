@@ -1,13 +1,13 @@
 const Joi = require('joi');
 const queries = require('./dbQueries');
-const RoutesUsers = require('../users/routes');
-const RoutesCompanies = require('../companies/routes');
-const RoutesProducts = require('../products/routes');
-const RoutesPackages = require('../packages/routes');
-const companyQueries = require('../companies/dbQueries');
-const userQueries = require('../users/dbQueries');
-const productQueries = require('../products/dbQueries');
-const { reducirStock } = require('../products/routes');
+const { getUser } = require('../users/routes');
+const { getCompany } = require('../companies/routes');
+// const RoutesPackages = require('../packages/routes');
+// const companyQueries = require('../companies/dbQueries');
+// const userQueries = require('../users/dbQueries');
+// const productQueries = require('../products/dbQueries');
+const { reducirStock: reducirStockProd } = require('../products/routes');
+const { reducirStock: reducirStockPack } = require('../packages/routes');
 
 function getPedidoById(req, res){
     console.log(`Conexion GET entrante : /api/pedido/${req.params.id}`);
@@ -93,27 +93,35 @@ async function realizarPedido(req, res){
     else{
         console.log('Validacion JOI exitosa');
 
+        //validacion de cada seller/producto/paquete
+
         //validacion de existencia (userId, sellerId, buyerId, productos y paquetes)
-//         let errorMessage = ''; // cambiar esto por un array de mensajes para poder iterar
+        let errorMessage = ''; // cambiar esto por un array de mensajes para poder iterar
 
-//         let busquedaUser = await RoutesUsers.getUser(req.body.userId);
-//         // console.log(busquedaUser);
-//         if(!busquedaUser.user) errorMessage += '\n' + busquedaUser.message;
+        let busquedaUser = await getUser(req.body.userId);
+        console.log(busquedaUser);
+        if(!busquedaUser.user) errorMessage += '\n' + busquedaUser.message;
 
-//         // console.log(`Buscando compania vendedora con id: ${req.body.sellerId}`);
-//         // let busquedaSeller = await RoutesCompanies.getCompany(req.body.sellerId);
-//         // // console.log(busquedaSeller);
-//         // if(!busquedaSeller.company) errorMessage += '\n' + busquedaSeller.message;
+        // console.log(`Buscando compania vendedora con id: ${req.body.sellerId}`);
+        // let busquedaSeller = await RoutesCompanies.getCompany(req.body.sellerId);
+        // // console.log(busquedaSeller);
+        // if(!busquedaSeller.company) errorMessage += '\n' + busquedaSeller.message;
 
-//         console.log(`Buscando compania compradora con id: ${req.body.buyerId}`);
-//         let busquedaBuyer = await RoutesCompanies.getCompany(req.body.buyerId);
-//         // console.log(busquedaBuyer);
-//         if(!busquedaBuyer.company) errorMessage += '\n' + busquedaBuyer.message;
+        console.log(`Buscando compania compradora con id: ${req.body.buyerId}`);
+        let busquedaBuyer = await getCompany(req.body.buyerId);
+        console.log(busquedaBuyer);
+        if(!busquedaBuyer.company) errorMessage += '\n' + busquedaBuyer.message;
 
-//         //validar que la compania es la misma que la del usuario
+        //validar que la compania es la misma que la del usuario
 
-//         let busquedaProductos;
-//         let busquedaPaquetes;
+        if(busquedaBuyer.company.id !== busquedaUser.user.companyId)
+            errorMessage += '\n' + 'El usuario ingresado no corresponde con la empresa ingresada';
+
+
+        // console.log('errorMessage', errorMessage);
+
+        // let busquedaProductos;
+        // let busquedaPaquetes;
 
 // //probar todo esto nuevamente
 //         if(req.body.contenido && req.body.contenido.length > 0){
@@ -149,42 +157,160 @@ async function realizarPedido(req, res){
 //         }
         
 
-//         if(errorMessage){
-//             console.log('Errores encontrados en las validaciones de existencias: ', errorMessage);
-//             res.status(400).json({message: errorMessage});
-//         }
-//         else{
-//             res.status(200).json({message: 'OK'});
-//             console.log('Validaciones de existencias exitosas');
-//             //Preparacion de objectos knex a insertar
+        if(errorMessage){
+            console.log('Errores encontrados en las validaciones de existencias: ', errorMessage);
+            res.status(400).json({message: errorMessage});
+        }
+        else{
+            // res.status(200).json({message: 'OK'});
+            console.log('Validaciones de existencias exitosas');
+            //Preparacion de objectos knex a insertar
 
-//             errorMessage = '';
+            errorMessage = '';
 
-//             console.log('Creando objeto pedido para insercion');
-//             let pedido = {
-//                 userId: req.body.userId
-//             };
+            console.log('Creando objeto pedido para insercion');
+            let pedido = {
+                userId: req.body.userId
+            };
 
-//             console.log('Enviando Query INSERT para Pedido');
-//             // let pedidoId = await insertPedido(pedido);
+            console.log('Enviando Query INSERT para Pedido');
+            let pedidoRes = await insertPedido(pedido);
 
-//             // Armar transacciones, una por cada company seller
-//             let transacciones = armarTransactions(req.body.products, req.body.packages);
+            let transactionsIds = [];
+            let productsIds = [];
+            let packagesIds = [];
 
-//             //Armar logica para realizar los insert de cada transaccion con el listado de arriba
-//             //specialDiscount es por empresa, por lo tanto deberia haber uno por cada transaccion
-//             //Hacer que llegue un listado de transacciones ya armado en lugar de armarlo?
+            // Armar transacciones, una por cada company seller
+            // let transacciones = armarTransactions(req.body.products, req.body.packages);
+            if(pedidoRes.id){
+                let j = 0;
+                let transactionsOk = true;
+                let productsOk = true;
+                let packagesOk = true;
+                let seller = {};
 
-//             //Realizar logica para determinar el company id segun el type
-//             // let delivery = {
-//             //     type: req.body.deliveryType,
-//             //     transactionId,
-//             //     companyId: '',
-//             //     userId: req.body.userId,
-//             //     timestamp: new Date(),
-//             //     status: 'Pendiente'
-//             // }
-//         }
+                while(j < req.body.contenido.length && transactionsOk && productsOk && packagesOk){
+                    seller = req.body.contenido[j];
+                    j++;
+
+                    let transaction = {
+                        amount: req.body.amount,
+                        specialDiscount: req.body.specialDiscount,
+                        sellerId: seller.sellerId,
+                        buyerId: req.body.buyerId,
+                        timestamp: new Date()
+                    }
+
+                    let sellerRes = await insertarTransaccion(transaction);
+
+                    if(sellerRes.id){
+                        transactionsIds.push(sellerRes.id);
+
+                        let i = 0;
+                        while(i< seller.productos.length && productsOk){
+
+                            let prod = {
+                                transactionId: sellerRes.id,
+                                productId: seller.productos[i].id,
+                                quantity: seller.productos[i].quantity
+                            }
+
+                            let prodRes = await insertarTransactionProduct(prod);
+                            if(!prodRes.id){
+                                errorMessage += prodRes.message
+                                productsOk = false;
+                            }
+                            else{
+                                productsIds.push(prodRes.id);
+                                //hacer la funcion - controlar el resultado ya que el update puede fallar
+                                reducirStockProd(prod.id, prod.quantity);
+                            }
+                            i++;
+                        }
+
+                        let x = 0;
+                        while(x< seller.paquetes.length && packagesOk){
+
+                            let pack = {
+                                transactionId: sellerRes.id,
+                                packageId: seller.paquetes[x].id,
+                                quantity: seller.paquetes[x].quantity
+                            }
+
+                            let packRes = await insertarTransactionPackage(pack);
+                            if(!packRes.id){
+                                errorMessage += packRes.message
+                                packagesOk = false;
+                            }
+                            else{
+                                packagesIds.push(packRes.id);
+                                //hacer la funcion - controlar el resultado ya que el update puede fallar
+                                reducirStockPack(prod.id, prod.quantity);
+                            }
+                            x++;
+                        }
+
+                        if(!errorMessage && productsIds.length === seller.productos.length && packagesIds.length === seller.paquetes.length){
+                            
+                            let pedTran = {
+                                pedidoId: pedidoRes.id,
+                                transactionId: sellerRes.id
+                            }
+                            let pedidoTransactionRes = await insertPedidoTransaction(pedTran);
+                            // usar este id
+        
+                            if(pedidoTransactionRes.id){
+                                console.log('Pedido finalizado correctamente');
+                                res.status(201).json({message: `Pedido realizado correctamente: ${pedidoTransactionRes.id}`});
+                            }
+                            else{
+                                //Realizar rollback, crear funcion aparte para no repetir codigo
+                                //Falta hacer logica de tabla Delivery
+
+                                // let delivery = {
+                                //     type: req.body.deliveryType,
+                                //     transactionId,
+                                //     companyId: '',
+                                //     userId: req.body.userId,
+                                //     timestamp: new Date(),
+                                //     status: 'Pendiente'
+                                // }
+                            }
+                        }
+                    }
+                    else{
+                        transactionsOk = false;
+                        console.log(`Error en insert transaccion de seller ${seller.sellerId}, con error: ${sellerRes.message}`);
+                        res.status(500).json({message: sellerRes.message});
+                    }
+                }
+
+                if(errorMessage || productsIds.length !== seller.productos.length || packagesIds.length !== seller.paquetes.length){
+
+                    console.log('No se pudieron completas los inserts de transactions, realizando rollback');
+                    //Rollback
+                    //Ver de controllar que los rollbacks salgan bien
+                    let rollbackPedidoRes = await rollbackPedido(pedidoRes.id);
+
+                    for(let tranId in transactionsIds){
+                        let rollbackTransactionRes = await rollbackTransaction(tranId);
+                    }
+
+                    for(let tranProdId in productsIds){
+                        let rollbackTransactionRes = await rollbackTransactionProduct(tranProdId);
+                    }
+
+                    for(let tranPackId in packagesIds){
+                        let rollbackTransactionRes = await rollbackTransactionPackage(tranPackId);
+                    }
+                    res(500).json({message: 'Algo salio mal en los insert de pedido'});
+                }
+            }
+            else{
+                console.log(`Error en insert pedido, con error: ${pedidoRes.message}`)
+                res.status(500).json({message: `${pedidoRes.message}`});
+            }
+        }
     }
 }
 
@@ -215,7 +341,7 @@ async function insertarTransaccion(transaction){
                 })
                 .catch(err => {
                     console.log('Error en Query INSERT de Transaction: ', err);
-                    message+= `Error en Query INSERT de Transaction: ${err}`;
+                    message += `Error en Query INSERT de Transaction: ${err}`;
                 });
     return { id, message };
 }
@@ -231,7 +357,7 @@ async function insertarTransactionProduct(tranProd){
                     })
                     .catch(err => {
                         console.log('Error en Query INSERT de TransactionProduct: ', err);
-                        message+= `Error en Query INSERT de TransactionProduct: ${err}`;
+                        message += `Error en Query INSERT de TransactionProduct: ${err}`;
                     });
     return { id, message };
 }
@@ -247,9 +373,105 @@ async function insertarTransactionPackage(tranPack){
                     })
                     .catch(err => {
                         console.log('Error en Query INSERT de TransactionPackage: ', err);
-                        message+= `Error en Query INSERT de TransactionPackage: ${err}`;
+                        message += `Error en Query INSERT de TransactionPackage: ${err}`;
                     });
     return { id, message };
+}
+
+async function insertPedidoTransaction(pedidoTransaction){
+    let message = '';
+    let id = await queries
+            .pedidoTransaction
+            .insert(pedidoTransaction)
+            .then(data => {
+                console.log(`PedidoTransaction insertado correctamente, ID: ${data[0]}`);
+                return data[0];
+            })
+            .catch(err => {
+                console.log('Error en Query INSERT de PedidoTransaction: ', err);
+                message += `Error en Query INSERT de PedidoTransaction: ${err}`;
+            });
+    return { id, message};
+}
+
+async function rollbackPedido(id){
+    let message = '';
+    let res = await queries
+                    .pedidos
+                    .delete(id)
+                    .then(data => {
+                        console.log(`Rollback de Pedido ${id} realizado correctamente: ${data}`);
+                        return data;
+                    })
+                    .catch(err => {
+                        console.log('Error en Query DELETE de Pedido: ', err);
+                        message += `Error en Query DELETE de Pedido: ${err}`;
+                    });
+    return { res, message };
+}
+
+async function rollbackTransaction(id){
+    let message = '';
+    let res = await queries
+                    .transactions
+                    .delete(id)
+                    .then(data => {
+                        console.log(`Rollback de Transaction ${id} realizado correctamente: ${data}`);
+                        return data;
+                    })
+                    .catch(err => {
+                        console.log('Error en Query DELETE de Transaction: ', err);
+                        message += `Error en Query DELETE de Transaction: ${err}`;
+                    });
+    return { res, message };
+}
+
+async function rollbackTransactionProduct(id){
+    let message = '';
+    let res = await queries
+                    .transactionProducts
+                    .delete(id)
+                    .then(data => {
+                        console.log(`Rollback de TransactionProduct ${id} realizado correctamente: ${data}`);
+                        return data;
+                    })
+                    .catch(err => {
+                        console.log('Error en Query DELETE de TransactionProduct: ', err);
+                        message += `Error en Query DELETE de TransactionProduct: ${err}`;
+                    });
+    return { res, message };
+}
+
+async function rollbackTransactionPackage(id){
+    let message = '';
+    let res = await queries
+                    .transactionPackages
+                    .delete(id)
+                    .then(data => {
+                        console.log(`Rollback de TransactionPackage ${id} realizado correctamente: ${data}`);
+                        return data;
+                    })
+                    .catch(err => {
+                        console.log('Error en Query DELETE de TransactionPackage: ', err);
+                        message += `Error en Query DELETE de TransactionPackage: ${err}`;
+                    });
+    return { res, message };
+}
+
+async function rollbackPedidoTransaction(id){
+    let message = '';
+    let res = await queries
+                    .pedidoTransaction
+                    .delete(id)
+                    .then(data => {
+                        console.log(`Rollback de PedidoTransaction ${id} realizado correctamente: ${data}`);
+                        return data;
+                    })
+                    .catch(err => {
+                        console.log('Error en Query DELETE de PedidoTransaction: ', err);
+                        message += `Error en Query DELETE de PedidoTransaction: ${err}`;
+                    });
+    return { res, message };
 }
 
 function armarTransactions(productos, paquetes){
@@ -348,13 +570,31 @@ function armarTransactions(productos, paquetes){
 function validarPedido(body){
     const schema = {
         userId: Joi.number().required(),
+        buyerId: Joi.number().required(),
         amount: Joi.number().required(),
         specialDiscount: Joi.number().required(),
-        buyerId: Joi.number().required(),
-        contenido: Joi.array().allow(null),
-        deliveryType: Joi.string().required()
+        deliveryType: Joi.string().required(),
+        contenido: Joi.array().allow(null)
     };
     return Joi.validate(body, schema);
+}
+
+function validarSeller(seller){
+    const schema = {
+        sellerId: Joi.number().required(),
+        productos: Joi.array().allow(null).empty(),
+        paquetes: Joi.array().allow(null).empty()
+    };
+    return Joi.validate(seller, schema);
+}
+
+function validarProd(prod){
+    const schema = {
+        id: Joi.number().required(),
+        quantity: Joi.number().required(),
+        code: Joi.string().allow('').allow(null),
+    };
+    return Joi.validate(prod, schema);
 }
 
 module.exports = {

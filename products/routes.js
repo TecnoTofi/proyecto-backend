@@ -376,7 +376,7 @@ async function deleteCompanyProduct(req, res){
                 });
 };
 
-function reducirStock(id, cantidad){
+const reducirStock = (id, cantidad) => {
     console.log('reducir stock', id, cantidad);
 }
 

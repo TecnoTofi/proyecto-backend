@@ -13,6 +13,9 @@ module.exports = {
         },
         insert: function(pedido){
             return knex('Pedido').insert(pedido).returning('id');
+        },
+        delete: function(id){
+            return knex('Pedido').where('id', id).del();
         }
     },
     transactions: {
@@ -27,6 +30,9 @@ module.exports = {
         },
         insert: function(transaction){
             return knex('Transaction').insert(transaction).returning('id');
+        },
+        delete: function(id){
+            return knex('Transaction').where('id', id).del();
         }
     },
     transactionProducts: {
@@ -41,6 +47,9 @@ module.exports = {
         },
         insert: function(transactionProduct){
             return knex('TransactionProduct').insert(transactionProduct).returning('id');
+        },
+        delete: function(id){
+            return knex('TransactionProduct').where('id', id).del();
         }
     },
     transactionPackages: {
@@ -55,6 +64,17 @@ module.exports = {
         },
         insert: function(transactionPackage){
             return knex('TransactionPackage').insert(transactionPackage).returning('id');
+        },
+        delete: function(id){
+            return knex('TransactionPackage').where('id', id).del();
+        }
+    },
+    pedidoTransaction: {
+        insert: function(pedidoTransaction){
+            return knex('PedidoTransaction').insert(pedidoTransaction).returning('id');
+        },
+        delete: function(id){
+            return knex('PedidoTransaction').where('id', id).del();
         }
     },
     deliveries: {
@@ -69,6 +89,9 @@ module.exports = {
         },
         insert: function(delivery){
             return knex('Delivery').insert(delivery).returning('id');
+        },
+        delete: function(id){
+            return knex('Delivery').where('id', id).del();
         }
     }
 };

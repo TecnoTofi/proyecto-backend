@@ -349,6 +349,10 @@ async function getPackage(packageId){
     return { package, message };
 }
 
+function reducirStock(id, cantidad){
+    console.log('reducir stock', id, cantidad);
+}
+
 function validarRegistroPackage(body) {
     const schema = {
         price:Joi.number().required(),
@@ -380,5 +384,6 @@ module.exports = {
     updatePackageProduct,
     deletePackageProduct,
     insertPackagesCompleto,
+    reducirStock,
     getPackage
 };

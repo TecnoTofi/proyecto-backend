@@ -6,73 +6,184 @@ const { getCompany } = require('../companies/routes');
 // const companyQueries = require('../companies/dbQueries');
 // const userQueries = require('../users/dbQueries');
 // const productQueries = require('../products/dbQueries');
-const { reducirStock: reducirStockProd } = require('../products/routes');
-const { reducirStock: reducirStockPack } = require('../packages/routes');
+const { reducirStock: reducirStockProd, getProduct } = require('../products/routes');
+const { reducirStock: reducirStockPack, getPackage } = require('../packages/routes');
 
-function getPedidoById(req, res){
-    console.log(`Conexion GET entrante : /api/pedido/${req.params.id}`);
+// function getPedidoById(req, res){
+//     console.log(`Conexion GET entrante : /api/pedido/${req.params.id}`);
 
-    queries
-        .pedidos
-        .getOneById(req.params.id)
-        .then(data => {
-            if(data){
-                console.log('Informacion de pedido obtenida correctamente');
-                res.status(200).json(data);
-            }
-            else{
-                console.log(`No existe pedido para el ID: ${req.params.id}`);
-                res.status(400).json({message: `No existe pedido para el ID: ${req.params.id}`});
-            }
-        })
-        .catch(err => {
-            console.log('Error en Query SELECT de Pedido', err);
-            res.status(500).json({message: 'Hubo un error al ejecutar la consulta'});
-        });
-}
+//     queries
+//         .pedidos
+//         .getOneById(req.params.id)
+//         .then(data => {
+//             if(data){
+//                 console.log('Informacion de pedido obtenida correctamente');
+//                 res.status(200).json(data);
+//             }
+//             else{
+//                 console.log(`No existe pedido para el ID: ${req.params.id}`);
+//                 res.status(400).json({message: `No existe pedido para el ID: ${req.params.id}`});
+//             }
+//         })
+//         .catch(err => {
+//             console.log('Error en Query SELECT de Pedido', err);
+//             res.status(500).json({message: 'Hubo un error al ejecutar la consulta'});
+//         });
+// }
 
-function getPedidoByUser(req, res){
+async function getPedidos(req, res){
     console.log(`Conexion GET entrante : /api/pedido/user/${req.params.id}`);
 
-    queries
-        .pedidos
-        .getByUser(req.params.id)
-        .then(data => {
-            if(data && data.length > 0){
-                console.log('Informacion de pedidos obtenida correctamente');
-                res.status(200).json(data);
+    console.log(`Yendo a buscar pedidos del usuario ${req.params.id}`);
+    let pedidos = await getPedidosByUser(req.params.id);
+
+    if(!pedidos){
+        console.log(`No existe user con ID: ${req.params.id}`);
+        res.status(400).json({message: `No existe user con ID: ${req.params.id}`});
+    }
+    else if(pedidos.length > 0){
+        console.log(`Usuario tiene ${pedidos.length} pedidos`);
+        pedidos = await Promise.all(pedidos.map(async pedido => {
+            pedido.transactions = await getTransactionsByPedidoId(pedido.id);
+            if(pedido.transactions.length > 0){
+                pedido.transactions = await Promise.all(pedido.transactions.map(async transaccion => {
+                    transaccion.productos = await getProductsByTranId(transaccion.id);
+                    console.log('transaccion.productos', transaccion.productos);
+                    transaccion.paquetes = await getPackagesByTranId(transaccion.id);
+                    return transaccion;
+                }));
             }
             else{
-                console.log(`No existen pedidos para el user ID: ${req.params.id}`);
-                res.status(400).json({message: `No existe pedido para el user ID: ${req.params.id}`});
+                //error al buscar transacciones
             }
-        })
-        .catch(err => {
-            console.log('Error en Query SELECT de Pedido', err);
-            res.status(500).json({message: 'Hubo un error al ejecutar la consulta'});
-        });
+            return pedido;
+        }));
+        res.status(200).json(pedidos);
+    }
+    else{
+        console.log('El usuario no tiene pedidos');
+        res.status(200).json({message: 'El usuario no tiene pedidos'});
+    }
 }
 
-function getTransactionsByPedidoId(req, res){
-    console.log(`Conexion GET entrante : /api/pedido/${req.params.id}/transactions`);
+const getPedidosByUser = async (userId) => {
+    //agregar message para errores
+    let pedidos = await queries
+                    .pedidos
+                    .getByUser(userId)
+                    .then(data => {
+                        if(data && data.length > 0){
+                            console.log('Informacion de pedidos obtenida correctamente');
+                            // res.status(200).json(data);
+                            return data;
+                        }
+                        else{
+                            console.log(`No existen pedidos para el user ID: ${userId}`);
+                            // res.status(400).json({message: `No existe pedido para el user ID: ${userId}`});
+                        }
+                    })
+                    .catch(err => {
+                        console.log('Error en Query SELECT de Pedido', err);
+                        // res.status(500).json({message: 'Hubo un error al ejecutar la consulta'});
+                    });
+    return pedidos;
+}
 
-    queries
-        .transactions
-        .getByPedido(req.params.id)
-        .then(data => {
-            if(data && data.length > 0){
-                console.log('Informacion de transacciones obtenida correctamente');
-                res.status(200).json(data);
-            }
-            else{
-                console.log(`No existe pedido para el ID: ${req.params.id}`);
-                res.status(400).json({message: `No existe pedido para el ID: ${req.params.id}`});
-            }
-        })
-        .catch(err => {
-            console.log('Error en Query SELECT de Transaction', err);
-            res.status(500).json({message: 'Hubo un error al ejecutar la consulta'});
-        });
+// function getPedidosByUserComplete(req, res){
+//     console.log(`Conexion GET entrante : /api/pedido/user/${req.params.id}/complete`);
+// }
+
+const getTransactionsByPedidoId = async (pedidoId) => {
+    //agregar message para errores
+    let pedidoTransaction = await queries
+                            .transactions
+                            .getByPedido(pedidoId)
+                            .then(data => {
+                                if(data && data.length > 0){
+                                    console.log('Informacion de transacciones obtenida correctamente');
+                                    let res = data.map(tran => {
+                                        return {id: tran.transactionId}
+                                    })
+                                    return res;
+                                    // res.status(200).json(data);
+                                }
+                                else{
+                                    console.log(`No existe pedido para el ID: ${pedidoId}`);
+                                    // res.status(400).json({message: `No existe pedido para el ID: ${pedidoId}`});
+                                }
+                            })
+                            .catch(err => {
+                                console.log('Error en Query SELECT de Transaction', err);
+                                // res.status(500).json({message: 'Hubo un error al ejecutar la consulta'});
+                            });
+    return pedidoTransaction;
+}
+
+async function getProductsByTranId(transactionId){
+    //agregar message para errores
+    let productos = await queries
+                            .transactionProducts
+                            .getByTransaction(transactionId)
+                            .then(async data => {
+                                if(data && data.length > 0){
+                                    console.log(`Se encontraron ${data.length} productos para la transaccion ${transactionId}`);
+                                    let res = await Promise.all(data.map(async prod => {
+                                        // console.log('prod', prod);
+                                        let busquedaProd = await getProduct(prod.productId);
+                                        if(busquedaProd.product){
+                                            prod.product = busquedaProd.product
+                                            prod.product.quantity = prod.quantity;
+                                        }
+                                        else{
+                                            //error
+                                        }
+                                        // console.log('prod.product', prod.product);
+                                        // console.log('quantity', prod.product.quantity);
+                                        // return {id: prod.productId, quantity: prod.quantity}
+                                        return prod.product;
+                                    }));
+                                    return res;
+                                }
+                                else{
+                                    console.log(`No se encontraron productos para la transaccion ID: ${transactionId}`);
+                                }
+                            })
+                            .catch(err => {
+                                console.log('Error en Query SELECT de TransactionProduct', err);
+                            })
+    console.log('productos', productos);
+    return productos;
+}
+
+async function getPackagesByTranId(transactionId){
+    //agregar message para errores
+    let paquetes = await queries
+                            .transactionPackages
+                            .getByTransaction(transactionId)
+                            .then(async data => {
+                                if(data && data.length > 0){
+                                    console.log(`Se encontraron ${data.length} paquetes para la transaccion ${transactionId}`);
+                                    let res = await Promise.all(data.map(async pack => {
+                                        let busquedaPack = await getPackage(pack.packageId);
+                                        if(busquedaPack.package){
+                                            pack.package = busquedaPack.package;
+                                            pack.package.quantity = pack.quantity;
+                                        }
+                                        else{
+                                            //error
+                                        }
+                                        return pack.package;
+                                    }));
+                                    return res;
+                                }
+                                else{
+                                    console.log(`No se encontraron paquetes para la transaccion ID: ${transactionId}`);
+                                }
+                            })
+                            .catch(err => {
+                                console.log('Error en Query SELECT de TransactionPackage', err);
+                            })
+    return paquetes;
 }
 
 async function realizarPedido(req, res){
@@ -170,7 +281,8 @@ async function realizarPedido(req, res){
 
             console.log('Creando objeto pedido para insercion');
             let pedido = {
-                userId: req.body.userId
+                userId: req.body.userId,
+                timestamp: new Date()
             };
 
             console.log('Enviando Query INSERT para Pedido');
@@ -474,99 +586,6 @@ async function rollbackPedidoTransaction(id){
     return { res, message };
 }
 
-function armarTransactions(productos, paquetes){
-    console.log('Armando transacciones para insertar en DB...');
-
-    let transactionProducts = [];
-    if(productos && productos.length > 0){
-        for(let prod of productos){
-            let i = 0;
-            let inserteNuevo = false;
-            while((transactionProducts.length === 0 || i < transactionProducts.length) && !inserteNuevo){
-                if(transactionProducts.length === 0 || transactionProducts[i].sellerId !== prod.sellerId){
-                    let tranProd = {
-                        sellerId: prod.sellerId,
-                        productos: [
-                            {
-                                id: prod.id,
-                                quantity: prod.quantity
-                            }
-                        ]
-                    }
-                    inserteNuevo = true;
-                    transactionProducts.push(tranProd);
-                }
-                else{
-                    let sellerProd = { id: prod.id, quantity: prod.quantity };
-                    transactionProducts[i].productos.push(sellerProd);
-                }
-                i++;
-            }
-        }
-    }
-    // console.log('Vendedores unicos de productos', transactionProducts);
-
-    let transactionPackages = [];
-    if(paquetes && paquetes.length > 0){
-        for(let pack of paquetes){
-            let i = 0;
-            let inserteNuevo = false;
-            while((transactionPackages.length === 0 || i < transactionPackages.length) && !inserteNuevo){
-                if(transactionPackages.length === 0 || transactionPackages[i].sellerId !== pack.sellerId){
-                    let tranProd = {
-                        sellerId: pack.sellerId,
-                        paquetes: [
-                            {
-                                id: pack.id,
-                                quantity: pack.quantity
-                            }
-                        ]
-                    }
-                    inserteNuevo = true;
-                    transactionPackages.push(tranProd);
-                }
-                else{
-                    let sellerPack = { id: pack.id, quantity: pack.quantity };
-                    transactionPackages[i].productos.push(sellerPack);
-                }
-                i++;
-            }
-        }
-    }
-    // console.log('Vendedores unicos de paquetes', transactionPackages);
-
-    let transacciones  = [];
-    if(transactionPackages.length === 0 && transactionProducts.length > 0)
-        transacciones = transactionProducts;
-    else if(transactionProducts.length === 0 && transactionPackages.length > 0)
-        transacciones = transactionPackages;
-    else if (transactionProducts.length > 0 && transactionPackages.length > 0){
-        transacciones = transactionProducts;
-
-        for(let item of transactionPackages){
-            console.log('dentor del for')
-            let i = 0;
-            let inserte = false;
-            while(i < transactionProducts.length && !inserte){
-                console.log('entre al while')
-                if(transactionProducts[i].sellerId === item.sellerId){
-                    console.log('entre aca');
-                    console.log('tranprods', transactionProducts[i]);
-                    console.log('sellers', transacciones[i]);
-                    transacciones[i].paquetes = item.paquetes;
-                    inserte = true;
-                }
-                i++;
-            }
-            if(!inserte){
-                transacciones.push(item);
-            }
-        }
-    }
-    console.log('Transacciones armadas', transacciones);
-    return transacciones;
-}
-
 function validarPedido(body){
     const schema = {
         userId: Joi.number().required(),
@@ -599,7 +618,11 @@ function validarProd(prod){
 
 module.exports = {
     realizarPedido,
-    getPedidoById,
-    getPedidoByUser,
-    getTransactionsByPedidoId
+    getPedidos
+    // getPedidoById,
+    // getPedidosByUser,
+    // getPedidosByUserComplete,
+    // getTransactionsByPedidoId,
+    // getProductsByTranId,
+    // getPackagesByTranId
 }

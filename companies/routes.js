@@ -62,27 +62,42 @@ const getCompanies = (req, res) => {
     console.log('Informacion de Company enviada');
 };
 
-const getOneCompany = (req, res) => {
-    console.log('Conexion GET entrante : /api/company/id');
-    //console.log(req);
-    // req.params.id
+const getOneCompany = async (req, res) => {
+    console.log(`Conexion GET entrante : /api/company/${req.params.id}`);
+    
+    let { company, message } = await getCompany(req.params.id);
 
-    queries
-        .companies
-        .getOneById(47)
-        .then(company => {
-            console.log('Informacion de una Company obtenida');
-            /*let regex = /\\/g;
-            const company = companies.map(comp => {
-                comp.imagePath = comp.imagePath.replace(regex, '/');
-                return comp;*/
-                res.status(200).json(company);
-            })
-        .catch(err => {
-            console.log(`Error en Query SELECT de Company : ${err}`);
-            res.status(500).json({message: err});
-         });
-    console.log('Informacion de Company enviada');
+    if(!company){
+        console.log(message);
+        res.status(400).json(message);
+    }
+    else{
+        console.log('Compania encontrada');
+        res.status(200).json(company);
+        console.log('Informacion de Company enviada');
+    }
+
+    // queries
+    //     .companies
+    //     .getOneById(req.params.id)
+    //     .then(company => {
+    //         if(company){
+    //             console.log('Informacion de una Company obtenida');
+    //             /*let regex = /\\/g;
+    //             const company = companies.map(comp => {
+    //                 comp.imagePath = comp.imagePath.replace(regex, '/');
+    //                 return comp;*/
+    //             res.status(200).json(company);
+    //         }
+    //         else{
+    //             console.log(`No existe Company con ID: ${req.params.id}`);
+    //             res.status(400).json({message: `No existe Company con ID: ${req.params.id}`});
+    //         }
+    //     })
+    //     .catch(err => {
+    //         console.log(`Error en Query SELECT de Company : ${err}`);
+    //         res.status(500).json({message: err});
+    //      });
 };
 
 //POST Company

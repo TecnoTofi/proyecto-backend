@@ -421,6 +421,7 @@ async function getProduct(productId){
                                 console.log(`No existe producto con id: ${productId}`);
                                 message += `No existe un producto con id ${productId}`;
                             }
+                            else console.log(`Producto con ID: ${productId} encontrado`);
                             return data;
                         })
                         .catch(err => {

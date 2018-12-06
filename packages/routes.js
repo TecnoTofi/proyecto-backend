@@ -340,6 +340,7 @@ async function getPackage(packageId){
                                     console.log(`No existe paquete con id: ${packageId}`);
                                     message += `No existe un paquete con id ${packageId}`;
                                 }
+                                else console.log(`Paquete con ID: ${packageId} encontrado`);
                                 return data;
                             })
                             .catch(err => {

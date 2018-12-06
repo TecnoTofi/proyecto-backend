@@ -33,21 +33,38 @@ const forSignup = (req, res) => {
     console.log('Informacion de Roles enviada');
 };
 
-const getOneUser = (req, res) => {
-    console.log('Conexion GET entrante : /api/user');
-    //console.log(req.params.id)
-    queries
-        .users
-        .getOneById(26)
-        .then(user => {
-            console.log('Informacion de usuario obtenida');
-            res.status(200).json(user);
-        })
-        .catch(err => {
-            console.log(`Error en Query SELECT de Role : ${err}`);
-            res.status(500).json({message: err});
-         });
-    console.log('Informacion de usuario enviada');
+const getOneUser = async (req, res) => {
+    console.log(`Conexion GET entrante : /api/user/${req.params.id}`);
+
+    let { user, message } = await getUser(req.params.id);
+
+    if(!user){
+        console.log(message);
+        res.status(400).json(message);
+    }
+    else{
+        console.log('Usuario encontrado');
+        res.status(200).json(user);
+        console.log('Informacion de usuario enviada');
+    }
+    // queries
+    //     .users
+    //     .getOneById(req.params.id)
+    //     .then(user => {
+    //         if(user){
+    //             console.log('Informacion de usuario obtenida');
+    //             res.status(200).json(user);
+    //         }
+    //         else{
+    //             console.log(`No existe usuario con ID: ${req.params.id}`);
+    //             res.status(400).json({message: `No existe usuario con ID: ${req.params.id}`});
+    //         }
+    //     })
+    //     .catch(err => {
+    //         console.log(`Error en Query SELECT de Role : ${err}`);
+    //         res.status(500).json({message: err});
+    //      });
+    
 };
 
 async function insertUser(body, hash, companyId){

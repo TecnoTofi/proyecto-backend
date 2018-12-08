@@ -42,7 +42,7 @@ const upload = multer({
 //Obtener todos los paquetes
 router.get('/', PackagesRoutes.getAllPackages);
 //Obtener todos los paquetes de una compania
-router.get('/company/:idComp', PackagesRoutes.getAllPackagesByCompany);
+router.get('/company/:id', PackagesRoutes.getAllPackagesByCompany);
 //Insertar un paquete
 // router.post('/'/*, upload.single('image'), verifyToken*/, PackagesRoutes.insertPackages);
 //Agregar productos al paquete

@@ -2,14 +2,14 @@ const knex = require('../db/connection');
 
 module.exports = {
 
-    package: {
+    packages: {
         getAll: function(){
             return knex.select().table('Package');
         },
         getOneById: function(id){
             return knex.select().table('Package').where('id', id).first();
         },
-        getAllByCompanyId: function(id){
+        getByCompanyId: function(id){
             return knex.select().table('Package').where('companyId', id);
         },
         insert: function(package){

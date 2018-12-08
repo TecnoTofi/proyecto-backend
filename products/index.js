@@ -51,9 +51,15 @@ router.get('/company/:id', ProductRoutes.getProductByCompany);
 //Obtener todos los productos con datos para el listado generico
 router.get('/', ProductRoutes.getAllProductsGenericList);
 //modificar Producto
-//router.post('/update/company/:idProd/', upload.single('productImage'), ProductRoutes.updateCompanyProduct);
-router.post('/update/company/:idProd', ProductRoutes.updateCompanyProduct);
+router.post('/update/company/:id/', upload.single('productImage'), ProductRoutes.updateCompanyProduct);
+// router.post('/update/company/:id', ProductRoutes.updateCompanyProduct);
 //eliminar producto
-router.post('/delete/company/:idProd', ProductRoutes.deleteCompanyProduct);
+router.post('/delete/company/:id', ProductRoutes.deleteCompanyProduct);
+//insertar y asociar producto
+router.post('/company/asociacion/', upload.single('productImage'),verifyToken, ProductRoutes.insertProductYAssociacion);
+//Obtener todos los CompanyProduct de un mismo productId
+router.get('/companies/:id',ProductRoutes.getProductCompanyByCompanies);
+//Obtener un producto por Id
+router.get('/:id',ProductRoutes.getProductById);
 
 module.exports = router;

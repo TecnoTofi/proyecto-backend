@@ -95,6 +95,7 @@ module.exports ={
             return knex('CompanyProduct').insert(product).returning('id');
         },
         modify: function(id, product){
+            // return knex.raw(`update "CompanyProduct" set "companyId" = ${product.companyId}, "productId" = ${product.productId}, "name" = ${product.name}, description = ${product.description}, price = ${product.price}, stock = ${product.stock}, "imagePath" = ${product.imagePath}, "imageName" = ${product.imageName} where id = ${id};`);
             return knex('CompanyProduct').where('id', id).update(product);
         },
         delete: function(id){

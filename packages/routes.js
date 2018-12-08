@@ -21,13 +21,14 @@ const getAllPackages = (req, res) => {
 };
 
 const getAllPackagesByCompany = (req, res) => {
-    console.log('Conexion GET entrante : /api/packages');
-    let idCompany= req.params.idComp;
+    console.log(`Conexion GET entrante : /api/package/${req.params.id}`);
+    // let idCompany= req.params.idComp;
 
     queries
         .packages
-        .getAllByCompanyId(idCompany)
+        .getByCompanyId(req.params.id)
         .then(data => {
+            //agregar revision de undefined
             console.log('Informacion de Package de comapany obtenida');
             res.status(200).json(data);
             })

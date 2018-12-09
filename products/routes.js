@@ -42,53 +42,46 @@ const getAllProducts = (req, res) => {
 };
 
 async function getAllProductsGenericList(req, res){
-    //no me gusta como anda esto, ya que hace muchos recorridos innecesarios
+    console.log(`Conexion GET entrante : /api/product`);
+
+    console.log('Yendo a buscar productos');
     let productos = await queries
-                    .products
-                    .getAll()
-                    .then(data => {
-                        return data;
-                    })
-                    .catch(err => {
-                        console.log(`Error al obtener productos: ${err}`);
-                        res.status(500).json(`Error al obtener productos`);
-                    });
-    let prodCategories = await queries
-                            .prodCategory
-                            .getAll()
-                            .then(data => {
-                                return data;
-                            })
-                    .catch(err => {
-                        console.log(`Error al obtener prodCategories: ${err}`);
-                        res.status(500).json(`Error al obtener productos`);
-                    });
-    let categories = await queries
-                            .categories
-                            .getAll()
-                            .then(data => {
-                                return data;
-                            })
-                    .catch(err => {
-                        console.log(`Error al obtener categorias: ${err}`);
-                        res.status(500).json(`Error al obtener productos`);
-                    });
-    // console.log(categories);
-    let response = productos.map(prod => {
-        prod.categories = [];
-        //obtener un filter de prodCategories con id de prod
-        prodCategories.map(cat => {
-            if(cat.productId === prod.id){
-                let name = categories.filter(cate => {
-                    return cate.id === cat.categoryId
-                });
-                let category = {id: cat.categoryId, name: name[0].name};
-                prod.categories.push(category);
-            }
-        })
-        return prod;
-    });
-    res.status(200).json(response);
+                        .products
+                        .getAll()
+                        .then(data => {
+                            return data;
+                        })
+                        .catch(err => {
+                            console.log(`Error al obtener productos: ${err}`);
+                            res.status(500).json(`Error al obtener productos`);
+                        });
+
+    if(productos && productos.length > 0){
+        console.log('Se encontraron productos');
+        console.log('Procediendo a armar response');
+
+        let response = [];
+
+        for(let prod of productos){
+
+            prod.categories = await queries
+                                    .prodCategory
+                                    .getByProdIdName(prod.id)
+                                    .then(data => {
+                                        return data.rows;
+                                    })
+                                    .catch(err => {
+                                        console.log(`Error al buscar categorias de un producto: ${err}`);
+                                        //hacer un res.status.json
+                                    });
+            response.push(prod);
+        }
+        res.status(200).json(response);
+    }
+    else {
+        console.log('No hay productos registrados');
+        res.status(200).json({message: 'No hay productos registrados'});
+    }
 }
 
 async function getProductByCompany(req, res){
@@ -116,7 +109,7 @@ async function getProductByCompany(req, res){
 
         if(companyProducts && companyProducts.length > 0){
             console.log('La empresa tiene productos');
-            console.log('Procediendo a armar respose');
+            console.log('Procediendo a armar response');
 
             let response = [];
 

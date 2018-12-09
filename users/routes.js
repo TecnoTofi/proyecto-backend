@@ -170,7 +170,27 @@ async function getUser(userId){
                     console.log('Error en Query SELECT de User: ', err);
                     message += `Error en Query SELECT de User: ${err}`;
                 });
-    return {user, message};
+    return { user, message };
+}
+
+async function getRole(roleId){
+    console.log(`Buscando rol con id: ${roleId}`);
+    let message = '';
+    let rol = await queries
+                    .roles
+                    .getOneById(roleId)
+                    .then(data => {
+                        if(!data){
+                            console.log(`No existe rol con id: ${roleId}`);
+                            message += `No existe un rol con id ${roleId}`;
+                        }
+                        return data;
+                    })
+                    .catch(err => {
+                        console.log(`Error en Query SELECT de Role : ${err}`);
+                        message += `Error en Query SELECT de Role: ${err}`;
+                    });
+    return { rol, message };
 }
 
 function validarLogin(body){
@@ -205,5 +225,6 @@ module.exports = {
     forSignup,
     getOneUser,
     updateUser,
-    getUser
+    getUser,
+    getRole
 };

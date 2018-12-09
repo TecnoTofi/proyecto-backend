@@ -138,8 +138,8 @@ async function insertCompany(body){
                         retorno.errores = err;
                         retorno.id = 0;
                     });
-
-    if(await retorno.id == 0) console.log('Finalizando insercion fallida');
+    //saque un await, no deberia ser necesario, testear
+    if(retorno.id === 0) console.log('Finalizando insercion fallida');
     else console.log('Finalizando insercion correcta');
     
     return await retorno;

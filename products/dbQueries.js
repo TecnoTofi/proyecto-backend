@@ -54,6 +54,10 @@ module.exports ={
         getByProductId: function(id){
             return knex.select().table('ProdCategory').where('productId', id);
         },
+        getByProdIdName: function(id){
+            return knex.raw('select c.id, c.name from "ProdCategory" p, "ProductCategory" c where p."productId" = ? and p."categoryId" = c.id',
+            [id]);
+        },
         getByCategoryId: function(id){
             return knex.select().table('ProdCategory').where('categoryId', id);
         },
@@ -72,12 +76,12 @@ module.exports ={
             return knex.select().table('CompanyProduct').where('id', id).first();
         },
         getByCompany: function(companyId){
-            // return knex.select().table('CompanyProduct').where('companyId', companyId);
+            return knex.select().table('CompanyProduct').where('companyId', companyId);
             //'select p.id, p.code, cp."name", cp.description, cp.price, cp.stock, cp."imageName", cp."imagePath", pc."categoryId", c."name", cp."companyId" from "Product" p, "ProdCategory" pc, "ProductCategory" c, "CompanyProduct" cp where p.id = pc."productId" and pc."categoryId" = c.id order by p.id'
             // return knex.raw('select cp.id, p.code, cp."name", cp.price, cp.stock from "CompanyProduct" cp, "Product" p where cp."productId" = p.id and cp."companyId" = ? order by cp."name", p.code, cp.price, cp.stock',
             // [companyId]);
-            return knex.raw('select cp.id, p.code, cp."name", cp.description, cp.price, cp.stock, cp."imageName", cp."imagePath" from "CompanyProduct" cp, "Product" p where cp."productId" = p.id and cp."companyId" = ? order by cp."name", p.code, cp.price, cp.stock',
-            [companyId]);
+            // return knex.raw('select cp.id, p.code, cp."name", cp.description, cp.price, cp.stock, cp."imageName", cp."imagePath" from "CompanyProduct" cp, "Product" p where cp."productId" = p.id and cp."companyId" = ? order by cp."name", p.code, cp.price, cp.stock',
+            // [companyId]);
         },
         getByProduct: function(productId){
             return knex.select().table('CompanyProduct').where('productId', productId);

@@ -403,7 +403,7 @@ async function realizarPedido(req, res){
                     //Rollback
                     //Ver de controllar que los rollbacks salgan bien
                     let rollbackPedidoRes = await rollbackPedido(pedidoRes.id);
-
+                    //revisar esto porque creo que este for itera con indice, no con objeto
                     for(let tranId in transactionsIds){
                         let rollbackTransactionRes = await rollbackTransaction(tranId);
                     }

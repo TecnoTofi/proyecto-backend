@@ -351,8 +351,34 @@ async function getPackage(packageId){
     return { package, message };
 }
 
-function reducirStock(id, cantidad){
-    console.log('reducir stock', id, cantidad);
+async function reducirStock(id, cantidad){
+    console.log(`Comenzando reduccion de stock para paquete con ID: ${id}, cantidad a reducir: ${cantidad}`);
+
+    let busPack = await getPackage(id);
+
+    if(!busPack.package){
+        console.log('Error al obtener paquete para reducir');
+        return false;
+    }
+
+    console.log('Reduciendo cantidad');
+    busPack.paquete.stock = busPack.paquete.stock - cantidad;
+    let reducido = false;
+    console.log('Enviando Query UPDATE');
+    await queries
+        .packages
+        .modify(id, busPack.paquete)
+        .then(data => {
+            if(data){
+                reducido = true;
+                console.log('Query UPDATE exitosa');
+            }
+        })
+        .catch(err => {
+            console.log(`Error en Query UPDATE de Package: ${err}`);
+        });
+        
+    return reducido;
 }
 
 function validarRegistroPackage(body) {

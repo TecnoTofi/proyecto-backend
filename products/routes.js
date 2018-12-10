@@ -404,8 +404,34 @@ async function deleteCompanyProduct(req, res){
                 });
 };
 
-const reducirStock = (id, cantidad) => {
-    console.log('reducir stock', id, cantidad);
+const reducirStock = async (id, cantidad) => {
+    console.log(`Comenzando reduccion de stock para producto con ID: ${id}, cantidad a reducir: ${cantidad}`);
+
+    let busProd = await getProduct(id);
+
+    if(!busProd.product){
+        console.log('Error al obtener paquete para reducir');
+        return false;
+    }
+
+    console.log('Reduciendo cantidad');
+    busProd.product.stock = busProd.product.stock - cantidad;
+    let reducido = false;
+    console.log('Enviando Query UPDATE');
+    await queries
+        .companyProduct
+        .modify(id, busProd.product)
+        .then(data => {
+            if(data){
+                reducido = true;
+                console.log('Query UPDATE exitosa');
+            }
+        })
+        .catch(err => {
+            console.log(`Error en Query UPDATE de Product: ${err}`);
+        });
+        
+    return reducido;
 }
 
 function validarRegistroProducto(body) {

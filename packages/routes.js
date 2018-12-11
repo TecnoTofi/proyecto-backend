@@ -333,7 +333,7 @@ async function getPackage(packageId){
     console.log(`Buscando paquete con id: ${packageId}`);
     let message = '';
     let package = await queries
-                            .companyQueries
+                            .packages
                             .getOneById(packageId)
                             .then(data => {
                                 //undefined si no existe

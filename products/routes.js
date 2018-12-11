@@ -677,20 +677,22 @@ async function insertProductYAssociacion(req, res){
     
 };
 
-async function getProductCompanyByCompanies(req,res){
-    console.log('Conexion GET entrante : /api/product/companies');
+async function getProductCompanyByProduct(req,res){
+    console.log(`Conexion GET entrante : /api/product/${req.params.id}/companies`);
     console.log('id del producto', req.params.id);
 
-    queries
+    await queries
         .companyProduct
         .getByProduct(req.params.id)
-        .then(products => {
-            console.log('Informaicon de Products obtenida');
+        .then(async products => {
+            console.log('Informacion de Products obtenida');
             let regex = /\\/g;
-            const productos = products.map(prod => {
+            const productos = await Promise.all(products.map(async prod => {
+                let busComp = await getCompany(prod.companyId);
+                prod.companyName = busComp.company.name;
                 prod.imagePath = prod.imagePath.replace(regex, '/');
                 return prod;
-            });
+            }));
             // console.log(productos);
             res.status(200).json(productos);
         })
@@ -759,7 +761,7 @@ module.exports = {
     deleteCompanyProduct,
     getProduct,
     insertProductYAssociacion,
-    getProductCompanyByCompanies,
+    getProductCompanyByProduct,
     getProductById,
     getProductByCode
 };

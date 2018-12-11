@@ -58,7 +58,7 @@ router.post('/delete/company/:id', ProductRoutes.deleteCompanyProduct);
 //insertar y asociar producto
 router.post('/company/asociacion/', upload.single('productImage'),verifyToken, ProductRoutes.insertProductYAssociacion);
 //Obtener todos los CompanyProduct de un mismo productId
-router.get('/companies/:id',ProductRoutes.getProductCompanyByCompanies);
+router.get('/:id/companies',ProductRoutes.getProductCompanyByProduct);
 //Obtener un producto por Id
 router.get('/:id',ProductRoutes.getProductById);
 

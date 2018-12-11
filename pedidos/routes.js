@@ -34,35 +34,48 @@ const { reducirStock: reducirStockPack, getPackage } = require('../packages/rout
 async function getPedidos(req, res){
     console.log(`Conexion GET entrante : /api/pedido/user/${req.params.id}`);
 
-    console.log(`Yendo a buscar pedidos del usuario ${req.params.id}`);
-    let pedidos = await getPedidosByUser(req.params.id);
+    let busUser = await getUser(req.params.id);
 
-    if(!pedidos){
+    if(!busUser.user){
         console.log(`No existe user con ID: ${req.params.id}`);
         res.status(400).json({message: `No existe user con ID: ${req.params.id}`});
     }
-    else if(pedidos.length > 0){
-        console.log(`Usuario tiene ${pedidos.length} pedidos`);
-        pedidos = await Promise.all(pedidos.map(async pedido => {
-            pedido.transactions = await getTransactionsByPedidoId(pedido.id);
-            if(pedido.transactions.length > 0){
-                pedido.transactions = await Promise.all(pedido.transactions.map(async transaccion => {
-                    transaccion.productos = await getProductsByTranId(transaccion.id);
-                    console.log('transaccion.productos', transaccion.productos);
-                    transaccion.paquetes = await getPackagesByTranId(transaccion.id);
-                    return transaccion;
-                }));
-            }
-            else{
-                //error al buscar transacciones
-            }
-            return pedido;
-        }));
-        res.status(200).json(pedidos);
-    }
     else{
-        console.log('El usuario no tiene pedidos');
-        res.status(200).json({message: 'El usuario no tiene pedidos'});
+        console.log(`Yendo a buscar pedidos del usuario ${req.params.id}`);
+        let pedidos = await getPedidosByUser(req.params.id);
+
+        if(!pedidos){
+            //ver si devuelve array vacio
+            console.log(`No hay pedidos para el usuario ${req.params.id}`);
+            res.status(200).json({message: `No hay pedidos para el usuario ${req.params.id}`});
+        }
+        else if(pedidos.length > 0){
+            console.log(`Usuario tiene ${pedidos.length} pedidos`);
+
+            pedidos = await Promise.all(pedidos.map(async pedido => {
+
+                pedido.transactions = await getTransactionsByPedidoId(pedido.id);
+
+                if(pedido.transactions.length > 0){
+                    console.log(`Comenzando busquedas de productos y paquetes por transaccion.`);
+                    pedido.transactions = await Promise.all(pedido.transactions.map(async transaccion => {
+                        transaccion.productos = await getProductsByTranId(transaccion.id);
+                        // console.log('transaccion.productos', transaccion.productos);
+                        transaccion.paquetes = await getPackagesByTranId(transaccion.id);
+                        return transaccion;
+                    }));
+                }
+                else{
+                    //error al buscar transacciones
+                }
+                return pedido;
+            }));
+            res.status(200).json(pedidos);
+        }
+        else{
+            console.log('El usuario no tiene pedidos');
+            res.status(200).json({message: 'El usuario no tiene pedidos'});
+        }
     }
 }
 
@@ -74,6 +87,7 @@ const getPedidosByUser = async (userId) => {
                     .then(data => {
                         if(data && data.length > 0){
                             console.log('Informacion de pedidos obtenida correctamente');
+                            data.map(ped => console.log(ped))
                             // res.status(200).json(data);
                             return data;
                         }
@@ -100,8 +114,9 @@ const getTransactionsByPedidoId = async (pedidoId) => {
                             .getByPedido(pedidoId)
                             .then(data => {
                                 if(data && data.length > 0){
-                                    console.log('Informacion de transacciones obtenida correctamente');
+                                    console.log(`${data.length} transacciones encontradas para el pedido ${pedidoId}`);
                                     let res = data.map(tran => {
+                                        console.log(`Id transaccion: ${tran.transactionId}`);
                                         return {id: tran.transactionId}
                                     })
                                     return res;
@@ -120,6 +135,7 @@ const getTransactionsByPedidoId = async (pedidoId) => {
 }
 
 async function getProductsByTranId(transactionId){
+    console.log(`Buscando productos para transaccion ${transactionId}`);
     //agregar message para errores
     let productos = await queries
                             .transactionProducts
@@ -131,7 +147,8 @@ async function getProductsByTranId(transactionId){
                                         // console.log('prod', prod);
                                         let busquedaProd = await getProduct(prod.productId);
                                         if(busquedaProd.product){
-                                            prod.product = busquedaProd.product
+                                            prod.product = busquedaProd.product;
+                                            prod.product.price = prod.price;
                                             prod.product.quantity = prod.quantity;
                                         }
                                         else{
@@ -151,11 +168,12 @@ async function getProductsByTranId(transactionId){
                             .catch(err => {
                                 console.log('Error en Query SELECT de TransactionProduct', err);
                             })
-    console.log('productos', productos);
+    // console.log('productos', productos);
     return productos;
 }
 
 async function getPackagesByTranId(transactionId){
+    console.log(`Buscando paquetes para transaccion ${transactionId}`);
     //agregar message para errores
     let paquetes = await queries
                             .transactionPackages

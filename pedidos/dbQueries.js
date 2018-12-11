@@ -9,7 +9,7 @@ module.exports = {
             return knex.select().table('Pedido').where('id', id).first();
         },
         getByUser: function(userId){
-            return knex.select('id', 'timestamp').table('Pedido').where('userId', userId);
+            return knex.select().table('Pedido').where('userId', userId);
         },
         insert: function(pedido){
             return knex('Pedido').insert(pedido).returning('id');
@@ -43,7 +43,7 @@ module.exports = {
             return knex.select().table('TransactionProduct').where('id', id).first();
         },
         getByTransaction: function(transactionId){
-            return knex.select('productId', 'quantity').table('TransactionProduct').where('transactionId', transactionId);
+            return knex.select('productId', 'quantity', 'price').table('TransactionProduct').where('transactionId', transactionId);
         },
         insert: function(transactionProduct){
             return knex('TransactionProduct').insert(transactionProduct).returning('id');

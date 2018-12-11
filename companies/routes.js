@@ -17,7 +17,6 @@ const getCategories =  (req, res) => {
            console.log(`Error en Query SELECT de CompanyCategory : ${err}`);
            res.status(500).json({message: err});
         });
-    console.log('Informacion de Company Category enviada');
 };
 
 const getTypes =  (req, res) => {
@@ -34,7 +33,6 @@ const getTypes =  (req, res) => {
            console.log(`Error en Query SELECT de CompanyType : ${err}`);
            res.status(500).json({message: err});
         });
-    console.log('Informacion de Company Type enviada');
 };
 
 //GET Company
@@ -59,7 +57,6 @@ const getCompanies = (req, res) => {
             console.log(`Error en Query SELECT de Company : ${err}`);
             res.status(500).json({message: err});
          });
-    console.log('Informacion de Company enviada');
 };
 
 const getOneCompany = async (req, res) => {

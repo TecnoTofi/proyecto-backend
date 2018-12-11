@@ -333,7 +333,7 @@ async function getPackage(packageId){
     console.log(`Buscando paquete con id: ${packageId}`);
     let message = '';
     let package = await queries
-                            .companyQueries
+                            .packages
                             .getOneById(packageId)
                             .then(data => {
                                 //undefined si no existe
@@ -362,12 +362,12 @@ async function reducirStock(id, cantidad){
     }
 
     console.log('Reduciendo cantidad');
-    busPack.paquete.stock = busPack.paquete.stock - cantidad;
+    busPack.package.stock = busPack.package.stock - cantidad;
     let reducido = false;
     console.log('Enviando Query UPDATE');
     await queries
         .packages
-        .modify(id, busPack.paquete)
+        .modify(id, busPack.package)
         .then(data => {
             if(data){
                 reducido = true;

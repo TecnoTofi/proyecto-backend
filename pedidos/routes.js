@@ -236,7 +236,11 @@ async function realizarPedido(req, res){
                         for(let prod of seller.productos){
                             let busProd = await getProduct(prod.id);
                             if(!busProd.product) errorMessage.push(busProd.message);
-                            else if(Number(busProd.product.companyId) !== seller.sellerId){
+                            else if(busProd.product.companyId !== seller.sellerId){
+                                console.log('busProd.product.companyId', busProd.product.companyId);
+                                console.log('busProd.product.companyId', typeof busProd.product.companyId);
+                                console.log('seller.sellerId', seller.sellerId);
+                                console.log('seller.sellerId', typeof seller.sellerId);
                                 errorMessage.push(`Producto con ID: ${prod.id} no corresponde a empresa con ID: ${seller.sellerId}`);
                             }
                             else{
@@ -388,7 +392,7 @@ async function realizarPedido(req, res){
                                         rollback = true;
                                     }
                                     else{
-                                        console.log(`TransaccionProduct de seller ${seller.sellerId} insertada correctamente con ID: ${prodRes.id}`);
+                                        console.log(`TransaccionProduct de seller ${seller.sellerId} insertada correctamente con ID: ${packRes.id}`);
                                         sellerPackagesIds.push(packRes.id);
                                         packagesIds.push(packRes.id);
                                         let packReducido = await reducirStockPack(paquete.id, paquete.quantity);

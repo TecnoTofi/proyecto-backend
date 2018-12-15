@@ -105,5 +105,10 @@ module.exports ={
         delete: function(id){
             return knex('CompanyProduct').where('id', id).del();
         }
+    },
+    prices: {
+        insert: function(price){
+            return knex('ProductPrice').insert(price).returning('id');
+        }
     }
 };

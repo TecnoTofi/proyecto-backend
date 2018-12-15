@@ -16,8 +16,8 @@ router.post('/category', verifyToken, HelperRoutes.altaCategoria);
 router.get('/rubro', HelperRoutes.obtenerRubros);
 router.get('/rubro/:id', HelperRoutes.obtenerRubroById);
 router.post('/rubro', verifyToken, HelperRoutes.altaRubro);
-router.put('/rubro/:id', verifyToken, HelperRoutes.modificarRubro);
-router.delete('/rubro/:id', verifyToken, HelperRoutes.eliminarRubro);
+// router.put('/rubro/:id', verifyToken, HelperRoutes.modificarRubro);
+// router.delete('/rubro/:id', verifyToken, HelperRoutes.eliminarRubro);
 
 //Tipos
 router.get('/type', HelperRoutes.obtenerTypes);

@@ -596,7 +596,7 @@ async function insertProductYAssociacion(req, res){
                     productId: Number(productRes.productId),
                     productName: req.body.productName,
                     productDescription: req.body.productDescription,
-                    // productPrice: req.body.productPrice,
+                    productPrice: req.body.productPrice,
                     productStock: req.body.productStock,
                     //imageName: req.body.imageName,
                     //imagePath: req.body.imagePath
@@ -623,7 +623,7 @@ async function insertProductYAssociacion(req, res){
 
                 let product = await queries
                                 .products
-                                .getOneById(Number(productId[0]))
+                                .getOneById(Number(productRes.productId))
                                 .then(prod => {
                                     console.log('Informacion de Product obtenida');
                                     return prod;
@@ -640,23 +640,39 @@ async function insertProductYAssociacion(req, res){
                     productId: product.id,
                     name: req.body.productName,
                     description: req.body.productDescription,
-                    // price: req.body.productPrice,
                     stock: req.body.productStock,
                     imageName: req.file.filename,
                     imagePath: req.file.path
                 }
 
-                queries
-                    .companyProduct
-                    .insert(companyProduct)
-                    .then(productId => {
-                        console.log('CompanyProduct insertado correctamente');
-                        //res.status(201).json(productId);
-                    })
-                    .catch(err => {
-                    console.log(`Error en Query INSERT de CompanyProduct : ${err}`);
-                    res.status(500).json({message: err});
-                });
+                let productId = await queries
+                                    .companyProduct
+                                    .insert(companyProduct)
+                                    .then(productId => {
+                                        console.log('CompanyProduct insertado correctamente');
+                                        return productId;
+                                        //res.status(201).json(productId);
+                                    })
+                                    .catch(err => {
+                                        console.log(`Error en Query INSERT de CompanyProduct : ${err}`);
+                                        res.status(500).json({message: err});
+                                    });
+
+                let price = {
+                    productId: productRes.productId,
+                    price: req.body.productPrice,
+                    validDateFrom: new Date()
+                }
+
+                let priceId = await queries
+                                    .prices
+                                    .insert(price)
+                                    .then(id => {
+                                        return id;
+                                    })
+                                    .catch(err => {
+                                        console.log('error en insert de price', err);
+                                    })
                 }
                 else if(!company){
                     console.log(`No existe Company con id ${req.body.companyId}`);

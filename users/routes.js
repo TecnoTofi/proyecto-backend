@@ -1,7 +1,6 @@
 const Joi = require('joi');
 const queries = require('./dbQueries');
 
-
 const getOneUser = async (req, res) => {
     console.log(`Conexion GET entrante : /api/user/${req.params.id}`);
 

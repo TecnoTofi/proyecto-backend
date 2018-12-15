@@ -8,7 +8,7 @@ async function obtenerCategories(req, res){
     let { categories, message } = await getCategories();
 
     if(categories){
-        console.info(`${categories.lenght} categorias encontrados`);
+        console.info(`${categories.length} categorias encontrados`);
         console.info('Preparando response');
         res.status(200).json({categories});
     }
@@ -331,9 +331,8 @@ async function obtenerRubros(req, res){
     console.info('Conexion GET entrante : /api/helper/rubro');
 
     let { rubros, message } = await getRubros();
-
     if(rubros){
-        console.info(`${rubros.lenght} rubros encontrados`);
+        console.info(`${rubros.length} rubros encontrados`);
         console.info('Preparando response');
         res.status(200).json({rubros});
     }
@@ -660,7 +659,7 @@ async function obtenerTypes(req, res){
     let { types, message } = await getTypes();
 
     if(types){
-        console.info(`${types.lenght} tipos encontrados`);
+        console.info(`${types.length} tipos encontrados`);
         console.info('Preparando response');
         res.status(200).json({types});
     }

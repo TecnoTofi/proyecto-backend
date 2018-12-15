@@ -3,32 +3,40 @@ const knex = require('../db/connection');
 module.exports = {
     users: {
         getOneById: function(id){
+            console.log(`Enviando Query SELECT a User con id: ${id}`);
             return knex.select().table('User').where('id', id).first();
         },
         getOneByEmail: function(email){
             console.log(`Enviando Query SELECT a User con email: ${email}`);
             return knex.select().table('User').where('email', email).first();
         },
-        getOneByDocument: function(document){
-            console.log(`Enviando Query SELECT a User con document: ${document}`);
-            return knex.select().table('User').where('document', document).first();
+        getOneByDocument: function(documento){
+            console.log(`Enviando Query SELECT a User con documento: ${documento}`);
+            return knex.select().table('User').where('document', documento).first();
         },
         getByName: function(name){
+            console.log(`Enviando Query SELECT a User con nombre: ${name}`);
             return knex.select().table('User').where('name', name);
         },
         getByPhone: function(phone){
+            console.log(`Enviando Query SELECT a User con telefono: ${phone}`);
             return knex.select().table('User').where('phone', phone);
         },
-        getByRol: function(roleId){
-            return knex.select().table('User').where('roleId', roleId);
+        getByRol: function(typeId){
+            console.log(`Enviando Query SELECT a User con tipo: ${typeId}`);
+            return knex.select().table('User').where('typeId', typeId);
         },
         insert: function(user){
+            console.log(`Enviando Query INSERT a User`);
             return knex('User').insert(user).returning('id');
         },
         update: function(id, user){
+            console.log(`Enviando Query UPDATE a User`);
             return knex('User').where('id', id).update(user);
         },
         delete: function(id){
+            //pasar a borrado logico
+            console.log(`Enviando Query DELETE a User`);
             return knex('User').where('id', id).del();
         }
     },

@@ -10,6 +10,8 @@ const cors = require('cors');
 
 //Incluimos autenticacion
 const authRoutes = require('./auth/index');
+//Incluimos helpers
+const helpersRoutes = require('./helpers/index');
 //Incluimos ruteo de usuarios
 const usersRoutes = require('./users/index');
 //Incluimos ruteo de empresas
@@ -50,6 +52,7 @@ app.use('/uploads', express.static('uploads'));
 
 //Monstamos ruteos propios
 app.use('/api/auth', authRoutes);
+app.use('/api/helper', helpersRoutes);
 app.use('/api/user', usersRoutes);
 app.use('/api/company', companiesRoutes);
 app.use('/api/product', productsRoutes);

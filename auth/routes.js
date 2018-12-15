@@ -6,10 +6,6 @@ const Joi = require('joi');
 const jwt = require('jsonwebtoken');
 //Incluimos modulo Bcrypt de encriptacion de contraseñas
 const bcrypt = require('bcrypt');
-//Incluimos dbQueries de User
-const userQueries = require('../users/dbQueries');
-//Incluimos dbQueries de Company
-const companyQueries = require('../companies/dbQueries');
 //Incluimos funciones de Company
 const { getCompanyById,
         getCompanyByRut,
@@ -21,11 +17,11 @@ const { getCompanyById,
 //Incluimos funciones de User
 const { getUserByDocument,
         getUserByEmail,
-        rollbackInsertUser,
-        getTypeById,
         insertUser,
         validarDatos: validarDatosUser,
         updateUser } = require('../users/routes');
+//Incluimos funciones de helpers
+const { getTypeById, getRubroById } = require('../helpers/routes');
 
 //Declaramos el secreto para JWT
 const secreto = process.env.COOKIE_SECRET;
@@ -252,11 +248,15 @@ async function signup(req, res){
         let { user: userByDocument } = await getUserByDocument(valUser.document);
         let { company: companyByRut } = await getCompanyByRut(valCompany.rut);
         let { company: companyByName } = await getCompanyByName(valCompany.companyName);
+        let { type: typeById } = await getTypeById(valCompany.typeId);
+        let { rubro: rubroById } = await getRubroById(valCompany.rubroId);
 
         if(userByEmail) errorMessage.push(`Ya existe un usuario con email ${valUser.email}`);
         if(userByDocument) errorMessage.push(`Ya existe un usuario con documento ${valUser.document}`);
         if(companyByRut) errorMessage.push(`Ya existe una empresa con rut ${valCompany.rut}`);
         if(companyByName) errorMessage.push(`Ya existe una empresa con nombre ${valCompany.companyName}`);
+        if(!typeById) errorMessage.push(`No existe tipo con ID: ${valCompany.typeId}`);
+        if(!rubroById) errorMessage.push(`No existe rubro con ID: ${valCompany.rubroId}`);
 
         // const erroresexistencia = await ValidarExistenciaDatos(req.body);
 
@@ -464,76 +464,6 @@ async function actualizarPerfil(req, res){
             res.status(400).json({message: erroresexistencia});
         }*/
 };
-
-// //Validaciones de existencia de datos unicos en BD
-// async function ValidarExistenciaDatos(body){
-//     console.log('Iniciando validacion de existencia de datos');
-
-//     let errores = [];
-    
-//     //Me fijo que no exista ya el email
-//     // await userQueries
-//     //     .users
-//     //     .getOneByEmail(body.userEmail)
-//     //     .then(res => {
-//     //         if(res){
-//     //             console.log(`Email ya existe en la DB : ${body.userEmail}`);
-//     //             errores.push('Email ya esta en uso');
-//     //         }
-//     //     })
-//     //     .catch(err => {
-//     //         console.log(`Error en la Query SELECT de User para Email : ${err}`);
-//     //         res.status(500).json({message: err});
-//     //     });
-    
-//     //Me fijo que no exista ya el documento de identidad
-//     // await userQueries
-//     //     .users
-//     //     .getOneByDocument(body.userDocument)
-//     //     .then(res => {
-//     //         if(res){
-//     //             console.log(`Documento ya existe en la DB : ${body.userDocument}`);
-//     //             errores.push('Documento ya esta en uso');
-//     //         }
-//     //     })
-//     //     .catch(err => {
-//     //         console.log(`Error en la Query SELECT de User para Documento : ${err}`);
-//     //         res.status(500).json({message: err});
-//     //     });
-
-//     // Me fijo que no exista ya el nombre de la empresa
-//     // await companyQueries
-//     //     .companies
-//     //     .getOneByName(body.companyName)
-//     //     .then(res => {
-//     //         if(res){
-//     //             console.log(`Nombre de empresa ya existe en la DB : ${body.companyName}`);
-//     //             errores.push('Nombre de empresa ya esta en uso');
-//     //         }
-//     //     })
-//     //     .catch(err => {
-//     //         console.log(`Error en la Query SELECT de Company para Name : ${err}`);
-//     //         res.status(500).json({message: err});
-//     //     });
-
-//     //Me fijo que no exista ya el RUT
-//     // await companyQueries
-//     //     .companies
-//     //     .getOneByRut(body.companyRut)
-//     //     .then(res => {
-//     //         if(res){
-//     //             console.log(`RUT ya existe en la DB : ${body.companyRut}`);
-//     //             errores.push('RUT ya esta en uso');
-//     //         }
-//     //     })
-//     //     .catch(err => {
-//     //         console.log(`Error en la Query SELECT de Company para Rut : ${err}`);
-//     //         res.status(500).json({message: err});
-//         });
-//     //envio response
-//     await console.log(`Errores encontrados en validacion de existencias : ${errores}`);
-//     return errores;
-// };
 
 function validarLogin(body){
     const schema = Joi.object().keys({

@@ -2,38 +2,8 @@ const Joi = require('joi');
 const queries = require('./dbQueries');
 const fs = require('fs');
 
-//GET Categories
-const getRubros =  (req, res) => {
-    console.log('Conexion GET entrante : /api/company/rubros');
-
-    queries
-        .rubros
-        .getAll()
-        .then(categories => {
-            console.log('Informacion de Rubros obtenida');
-            res.status(200).json(categories);
-        })
-        .catch(err => {
-           console.log(`Error en Query SELECT de Rubro : ${err}`);
-           res.status(500).json({message: err});
-        });
-};
-
-const getTypes =  (req, res) => {
-    console.log('Conexion GET entrante : /api/company/types');
-
-    queries
-        .types
-        .getAll()
-        .then(types => {
-            console.log('Informacion de Types obtenida');
-            res.status(200).json(types);
-        })
-        .catch(err => {
-           console.log(`Error en Query SELECT de Type : ${err}`);
-           res.status(500).json({message: err});
-        });
-};
+//Incluimos funciones de helpers
+const { getRubros, getTypes } = require('../helpers/routes');
 
 //GET Company
 const getCompanies = (req, res) => {
@@ -314,8 +284,6 @@ module.exports = {
     getCompanyByRut,
     getCompanyByName,
     rollbackInsertCompany,
-    getRubros,
-    getTypes,
     getCompanies,
     insertCompany,
     validarDatos,

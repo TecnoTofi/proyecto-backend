@@ -1,35 +1,6 @@
 const Joi = require('joi');
 const queries = require('./dbQueries');
 
-const getAllTypes = (req, res) => {
-    console.log('Conexion GET entrante : /api/user/type');
-    queries
-        .types
-        .getAll()
-        .then(types => {
-            console.log('Informacion de Types obtenida');
-            res.status(200).json(types);
-        })
-        .catch(err => {
-            console.log(`Error en Query SELECT de Type : ${err}`);
-            res.status(500).json({message: err});
-         });
-};
-
-const forSignup = (req, res) => {
-    console.log('Conexion GET entrante : /api/user/type/signup');
-    queries
-        .types
-        .getForSignup()
-        .then(types => {
-            console.log('Informacion de tipos obtenida');
-            res.status(200).json(types);
-        })
-        .catch(err => {
-            console.log(`Error en Query SELECT de Type : ${err}`);
-            res.status(500).json({message: err});
-         });
-};
 
 const getOneUser = async (req, res) => {
     console.log(`Conexion GET entrante : /api/user/${req.params.id}`);
@@ -67,27 +38,6 @@ const getOneUser = async (req, res) => {
 
 async function insertUser(user){
     console.info('Comenzando insert de company');
-
-    // let retorno = {
-    //     id: 0,
-    //     errores: ''
-    // }
-
-    // console.log('Preparando datos para insercion');
-
-    // const user = {
-    //     email: body.userEmail,
-    //     password: hash,
-    //     name: body.userName,
-    //     typeId: body.type,
-    //     companyId: companyId,
-    //     firstStreet: body.userFirstStreet,
-    //     secondStreet: body.userSecondStreet,
-    //     doorNumber: body.userDoorNumber,
-    //     phone: body.userPhone,
-    //     document: body.userDocument,
-    //     created: new Date()
-    // };
     let message = '';
     let id = await queries
                     .users
@@ -239,26 +189,6 @@ async function getUserByEmail(email){
     return { user, message };
 }
 
-async function getTypeById(id){
-    console.log(`Buscando tipo con id: ${id}`);
-    let message = '';
-    let type = await queries
-                    .types
-                    .getOneById(id)
-                    .then(data => {
-                        if(!data){
-                            console.log(`No existe tipo con id: ${id}`);
-                            message += `No existe un tipo con id ${id}`;
-                        }
-                        return data;
-                    })
-                    .catch(err => {
-                        console.log(`Error en Query SELECT de Type : ${err}`);
-                        message += `Error en Query SELECT de Type: ${err}`;
-                    });
-    return { type, message };
-}
-
 function validarDatos(body){
     console.info('Comenzando validacion Joi de Usuario');
     const schema = Joi.object().keys({
@@ -282,11 +212,8 @@ module.exports = {
     getUserByDocument,
     getUserByEmail,
     rollbackInsertUser,
-    getAllTypes,
     insertUser,
     validarDatos,
-    forSignup,
     getOneUser,
-    updateUser,
-    getTypeById
+    updateUser
 };

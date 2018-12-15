@@ -1,36 +1,34 @@
 const Joi = require('joi');
 const queries = require('./dbQueries');
 
-const roles = (req, res) => {
-    console.log('Conexion GET entrante : /api/user/role');
+const getAllTypes = (req, res) => {
+    console.log('Conexion GET entrante : /api/user/type');
     queries
-        .roles
+        .types
         .getAll()
-        .then(roles => {
-            console.log('Informacion de Roles obtenida');
-            res.status(200).json(roles);
+        .then(types => {
+            console.log('Informacion de Types obtenida');
+            res.status(200).json(types);
         })
         .catch(err => {
-            console.log(`Error en Query SELECT de Role : ${err}`);
+            console.log(`Error en Query SELECT de Type : ${err}`);
             res.status(500).json({message: err});
          });
-    console.log('Informacion de Roles enviada');
 };
 
 const forSignup = (req, res) => {
-    console.log('Conexion GET entrante : /api/user/role/signup');
+    console.log('Conexion GET entrante : /api/user/type/signup');
     queries
-        .roles
+        .types
         .getForSignup()
-        .then(roles => {
-            console.log('Informacion de Roles obtenida');
-            res.status(200).json(roles);
+        .then(types => {
+            console.log('Informacion de tipos obtenida');
+            res.status(200).json(types);
         })
         .catch(err => {
-            console.log(`Error en Query SELECT de Role : ${err}`);
+            console.log(`Error en Query SELECT de Type : ${err}`);
             res.status(500).json({message: err});
          });
-    console.log('Informacion de Roles enviada');
 };
 
 const getOneUser = async (req, res) => {
@@ -61,7 +59,7 @@ const getOneUser = async (req, res) => {
     //         }
     //     })
     //     .catch(err => {
-    //         console.log(`Error en Query SELECT de Role : ${err}`);
+    //         console.log(`Error en Query SELECT de Type : ${err}`);
     //         res.status(500).json({message: err});
     //      });
     
@@ -81,13 +79,14 @@ async function insertUser(body, hash, companyId){
         email: body.userEmail,
         password: hash,
         name: body.userName,
-        roleId: body.role,
+        typeId: body.type,
         companyId: companyId,
         firstStreet: body.userFirstStreet,
         secondStreet: body.userSecondStreet,
         doorNumber: body.userDoorNumber,
         phone: body.userPhone,
-        document: body.userDocument
+        document: body.userDocument,
+        created: new Date()
     };
 
     retorno.id = queries
@@ -124,7 +123,7 @@ async function updateUser(body,id,hash){
         email: body.userEmail,
         password: hash,
         name: body.userName,
-        roleId: body.role,
+        typeId: body.type,
         firstStreet: body.userFirstStreet,
         secondStreet: body.userSecondStreet,
         doorNumber: body.userDoorNumber,
@@ -173,31 +172,30 @@ async function getUser(userId){
     return { user, message };
 }
 
-async function getRole(roleId){
-    console.log(`Buscando rol con id: ${roleId}`);
+async function getType(typeId){
+    console.log(`Buscando tipo con id: ${typeId}`);
     let message = '';
-    let rol = await queries
-                    .roles
-                    .getOneById(roleId)
+    let type = await queries
+                    .types
+                    .getOneById(typeId)
                     .then(data => {
                         if(!data){
-                            console.log(`No existe rol con id: ${roleId}`);
-                            message += `No existe un rol con id ${roleId}`;
+                            console.log(`No existe tipo con id: ${typeId}`);
+                            message += `No existe un tipo con id ${typeId}`;
                         }
                         return data;
                     })
                     .catch(err => {
-                        console.log(`Error en Query SELECT de Role : ${err}`);
-                        message += `Error en Query SELECT de Role: ${err}`;
+                        console.log(`Error en Query SELECT de Type : ${err}`);
+                        message += `Error en Query SELECT de Type: ${err}`;
                     });
-    return { rol, message };
+    return { type, message };
 }
 
 function validarLogin(body){
     const schema = {
         userEmail: Joi.string().min(6).max(50).email().required(),
-        userPassword: Joi.string().min(8).max(20).required(),
-        message: Joi.string().allow('').allow(null)
+        userPassword: Joi.string().min(8).max(20).required()
     };
     return Joi.validate(body, schema);
 };
@@ -212,13 +210,13 @@ function validarTipoDatosUser(body){
         userFirstStreet: Joi.string().min(3).max(30).allow('').allow(null),
         userSecondStreet: Joi.string().min(3).max(30).allow('').allow(null),
         userDoorNumber: Joi.string().max(6).allow('').allow(null),
-        role: Joi.number().required()
+        type: Joi.number().required()
     };
     return Joi.validate(body, schema);
 };
 
 module.exports = {
-    roles,
+    getAllTypes,
     insertUser,
     validarTipoDatosUser,
     validarLogin,
@@ -226,5 +224,5 @@ module.exports = {
     getOneUser,
     updateUser,
     getUser,
-    getRole
+    getType
 };

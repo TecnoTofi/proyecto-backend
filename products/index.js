@@ -43,7 +43,7 @@ router.get('/category', ProductRoutes.getCategories);
 //Obtener todos los productos
 // router.get('/', ProductRoutes.getAllProducts);
 //Insertar un producto
-router.post('/', upload.single('image'), verifyToken, ProductRoutes.insertProduct);
+// router.post('/', upload.single('image'), verifyToken, ProductRoutes.insertProduct);
 //Asociar un producto a una empresa
 router.post('/company', verifyToken, ProductRoutes.insertCompanyProduct);
 //Obtener los productos de una empresa por su ID
@@ -51,12 +51,12 @@ router.get('/company/:id', ProductRoutes.getProductByCompany);
 //Obtener todos los productos con datos para el listado generico
 router.get('/', ProductRoutes.getAllProductsGenericList);
 //modificar Producto
-router.post('/update/company/:id/', upload.single('productImage'), ProductRoutes.updateCompanyProduct);
+router.post('/update/company/:id', upload.single('productImage'), ProductRoutes.updateCompanyProduct);
 // router.post('/update/company/:id', ProductRoutes.updateCompanyProduct);
 //eliminar producto
 router.post('/delete/company/:id', ProductRoutes.deleteCompanyProduct);
 //insertar y asociar producto
-router.post('/company/asociacion/', upload.single('productImage'),verifyToken, ProductRoutes.insertProductYAssociacion);
+router.post('/', upload.single('productImage'), verifyToken, ProductRoutes.insertProductYAssociacion);
 //Obtener todos los CompanyProduct de un mismo productId
 router.get('/:id/companies',ProductRoutes.getProductCompanyByProduct);
 //Obtener un producto por Id

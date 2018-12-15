@@ -10,8 +10,8 @@ const userQueries = require('../users/dbQueries');
 const companyQueries = require('../companies/dbQueries');
 //Incluimos getCompany de Company
 const { getCompany } = require('../companies/routes');
-//Incluimos getRole de User
-const { getRole } = require('../users/routes');
+//Incluimos getType de User
+const { getType } = require('../users/routes');
 //Incluimos funciones de insert, validacion y updte para Company
 const { insertCompany, validarTipoDatosCompany, updateCompany } = require('../companies/routes');
 //Incluimos funciones de insert, validacion y update para User
@@ -99,8 +99,8 @@ async function login(req, res){
             //Si se creo correctamente el token, pasamos a buscar info extra
             if(token){
                 console.log('Token firmado correctamente');
-                //traemos el rol del usuario que esta iniciando sesion
-                let { rol } = await getRole(user.roleId);
+                //traemos el tipo del usuario que esta iniciando sesion
+                let { type } = await getType(user.typeId);
                 //traemos la compañia a la que pertenece el usuario que esta iniciando sesion
                 let { company } = await getCompany(user.companyId);
 
@@ -113,7 +113,7 @@ async function login(req, res){
                 });
                 //armamos el cuerpo de la respuesta
                 let data = {
-                    userType: rol.name,
+                    userType: type.name,
                     userName: user.name,
                     userEmail: user.email,
                     userId: user.id,
@@ -174,7 +174,7 @@ async function signup(req, res){
         userFirstStreet: req.body.userFirstStreet,
         userSecondStreet: req.body.userSecondStreet,
         userDoorNumber: req.body.userDoorNumber,
-        role: req.body.role
+        type: req.body.type
     }
 
     // armamos body para company
@@ -185,8 +185,8 @@ async function signup(req, res){
         companyFirstStreet: req.body.companyFirstStreet,
         companySecondStreet: req.body.companySecondStreet,
         companyDoorNumber: req.body.companyDoorNumber,
-        typeId: req.body.companyType,
-        categoryId: req.body.companyCategory,
+        type: req.body.type,
+        rubro: req.body.rubro,
         companyDescription: req.body.companyDescription,
         imageName: req.file.filename,
         imagePath: req.file.path
@@ -306,7 +306,7 @@ async function actualizarPerfil(req, res){
         userFirstStreet: req.body.userFirstStreet,
         userSecondStreet: req.body.userSecondStreet,
         userDoorNumber: req.body.userDoorNumber,
-        role: req.body.role
+        type: req.body.type
     }
 
     // armamos body para company
@@ -318,7 +318,7 @@ async function actualizarPerfil(req, res){
         companySecondStreet: req.body.companySecondStreet,
         companyDoorNumber: req.body.companyDoorNumber,
         typeId: req.body.companyType,
-        categoryId: req.body.companyCategory,
+        rubroId: req.body.rubro,
         companyDescription: req.body.companyDescription,
         imageName: req.file.filename,
         imagePath: req.fil  

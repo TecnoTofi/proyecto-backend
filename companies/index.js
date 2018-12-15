@@ -8,7 +8,7 @@ const CompanyRoutes = require('./routes');
 //Todas las rutas empiezan con /api/company
 
 //Obtener todos los rubros de empresas
-router.get('/category', CompanyRoutes.getCategories);
+router.get('/rubros', CompanyRoutes.getRubros);
 //Obtener todos los tipos de empresas
 router.get('/type', CompanyRoutes.getTypes);
 //Obtener todas las empresas

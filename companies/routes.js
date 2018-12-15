@@ -3,34 +3,34 @@ const queries = require('./dbQueries');
 const fs = require('fs');
 
 //GET Categories
-const getCategories =  (req, res) => {
-    console.log('Conexion GET entrante : /api/company/category');
+const getRubros =  (req, res) => {
+    console.log('Conexion GET entrante : /api/company/rubros');
 
     queries
-        .categories
+        .rubros
         .getAll()
         .then(categories => {
-            console.log('Informacion de Company Category obtenida');
+            console.log('Informacion de Rubros obtenida');
             res.status(200).json(categories);
         })
         .catch(err => {
-           console.log(`Error en Query SELECT de CompanyCategory : ${err}`);
+           console.log(`Error en Query SELECT de Rubro : ${err}`);
            res.status(500).json({message: err});
         });
 };
 
 const getTypes =  (req, res) => {
-    console.log('Conexion GET entrante : /api/company/type');
+    console.log('Conexion GET entrante : /api/company/types');
 
     queries
         .types
         .getAll()
         .then(types => {
-            console.log('Informacion de Company Types obtenida');
+            console.log('Informacion de Types obtenida');
             res.status(200).json(types);
         })
         .catch(err => {
-           console.log(`Error en Query SELECT de CompanyType : ${err}`);
+           console.log(`Error en Query SELECT de Type : ${err}`);
            res.status(500).json({message: err});
         });
 };
@@ -114,11 +114,12 @@ async function insertCompany(body){
         secondStreet: body.companySecondStreet,
         doorNumber: body.companyDoorNumber,
         phone: body.companyPhone,
-        typeId: body.typeId,
-        categoryId: body.categoryId,
+        typeId: body.type,
+        rubroId: body.rubro,
         description: body.companyDescription,
         imageName: body.imageName,
-        imagePath: body.imagePath
+        imagePath: body.imagePath,
+        created: new Date()
     }
     console.log('Datos para insercion listos');
     console.log('Enviando Querie INSERT de Company');
@@ -226,8 +227,8 @@ function validarTipoDatosCompany(body){
         companyFirstStreet: Joi.string().max(30).required(),
         companySecondStreet: Joi.string().max(30).required(),
         companyDoorNumber: Joi.string().max(15).required(),
-        typeId: Joi.number().required(),
-        categoryId: Joi.number().required(),
+        type: Joi.number().required(),
+        rubro: Joi.number().required(),
         companyDescription: Joi.string().min(5).max(100).required(),
         imageName: Joi.allow('').allow(null),
         imagePath: Joi.allow('').allow(null)
@@ -236,7 +237,7 @@ function validarTipoDatosCompany(body){
 };
 
 module.exports = {
-    getCategories,
+    getRubros,
     getTypes,
     getCompanies,
     insertCompany,

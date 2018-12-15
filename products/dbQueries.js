@@ -3,22 +3,22 @@ const knex = require('../db/connection');
 module.exports ={
     categories: {
         getAll: function(){
-            return knex.select().table('ProductCategory');
+            return knex.select().table('Category');
         },
         getOneById: function(id){
-            return knex.select().table('ProductCategory').where('id', id).first();
+            return knex.select().table('Category').where('id', id).first();
         },
         getOneByName: function(name){
-            return knex.select().table('ProductCategory').where('name', name).first();
+            return knex.select().table('Category').where('name', name).first();
         },
         insert: function(category){
-            return knex('ProductCategory').insert(category).returnning('id');
+            return knex('Category').insert(category).returnning('id');
         },
         modify: function(id, name){
-            return knex('ProductCategory').where('id', id).update('name', name);
+            return knex('Category').where('id', id).update('name', name);
         },
         delete: function(id){
-            return knex('ProductCategory').where('id', id).del();
+            return knex('Category').where('id', id).del();
         }
     },
     products: {
@@ -49,23 +49,23 @@ module.exports ={
     },
     prodCategory: {
         getAll: function(){
-            return knex.select().table('ProdCategory');
+            return knex.select().table('ProductCategory');
         },
         getByProductId: function(id){
-            return knex.select().table('ProdCategory').where('productId', id);
+            return knex.select().table('ProductCategory').where('productId', id);
         },
         getByProdIdName: function(id){
-            return knex.raw('select c.id, c.name from "ProdCategory" p, "ProductCategory" c where p."productId" = ? and p."categoryId" = c.id',
+            return knex.raw('select c.id, c.name from "ProductCategory" p, "Category" c where p."productId" = ? and p."categoryId" = c.id',
             [id]);
         },
         getByCategoryId: function(id){
-            return knex.select().table('ProdCategory').where('categoryId', id);
+            return knex.select().table('ProductCategory').where('categoryId', id);
         },
         insert: function(prodCategory){
-            return knex('ProdCategory').insert(prodCategory).returning('id');
+            return knex('ProductCategory').insert(prodCategory).returning('id');
         },
         delete: function(id){
-            return knex('ProdCategory').where('id', id).del();
+            return knex('ProductCategory').where('id', id).del();
         }
     },
     companyProduct: {

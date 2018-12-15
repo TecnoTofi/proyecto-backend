@@ -32,27 +32,27 @@ module.exports = {
             return knex('User').where('id', id).del();
         }
     },
-    roles: {
+    types: {
         getAll: function() {
-            return knex.select().table('Role');
+            return knex.select().table('Type');
         },
         getOneById: function(id){
-            return knex.select().table('Role').where('id', id).first();
+            return knex.select().table('Type').where('id', id).first();
         },
         getOneByName: function(name){
-            return knex.select().table('Role').where('name', name).first();
+            return knex.select().table('Type').where('name', name).first();
         },
         getForSignup: function(){
-            return knex.select().table('Role').whereIn('name', ['Minorista', 'Mayorista']);
+            return knex.select().table('Type').whereIn('name', ['Minorista', 'Mayorista']);
         },
         insert: function(rol){
-            return knex('Role').insert(rol).returning('id');
+            return knex('Type').insert(rol).returning('id');
         },
         update: function(id, name){
-            return knex('Role').where('id', id).update('name', name);
+            return knex('Type').where('id', id).update('name', name);
         },
         delete: function(id){
-            return knex('Role').where('id', id).del();
+            return knex('Type').where('id', id).del();
         }
     }
 };

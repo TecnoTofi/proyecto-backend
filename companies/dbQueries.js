@@ -40,44 +40,44 @@ module.exports = {
             return knex('Company').where('id', id).del();
         }
     },
-    categories: {
+    rubros: {
         getAll: function(){
-            return knex.select().table('CompanyCategory');
+            return knex.select().table('Rubro');
         },
         getOneById: function(id){
-            return knex.select().table('CompanyCategory').where('id', id).first();
+            return knex.select().table('Rubro').where('id', id).first();
         },
         getOneByName: function(name){
-            return knex.select().table('CompanyCategory').where('name', name).first();
+            return knex.select().table('Rubro').where('name', name).first();
         },
         insert: function(category){
-            return knex('CompanyCategory').insert(category).returning('id');
+            return knex('Rubro').insert(category).returning('id');
         },
         modify: function(id, name){
-            return knex('CompanyCategory').where('id', id).update('name', name);
+            return knex('Rubro').where('id', id).update('name', name);
         },
         delete: function(id){
-            return knex('CompanyCategory').where('id', id).del();
+            return knex('Rubro').where('id', id).del();
         }
     },
     types: {
         getAll: function(){
-            return knex.select().table('CompanyType');
+            return knex.select().table('Type');
         },
         getOneById: function(id){
-            return knex.select().table('CompanyType').where('id', id).first();
+            return knex.select().table('Type').where('id', id).first();
         },
         getOneByName: function(name){
-            return knex.select().table('CompanyType').where('name', name).first();
+            return knex.select().table('Type').where('name', name).first();
         },
         insert: function(category){
-            return knex('CompanyType').insert(category).returning('id');
+            return knex('Type').insert(category).returning('id');
         },
         modify: function(id, name){
-            return knex('CompanyType').where('id', id).update('name', name);
+            return knex('Type').where('id', id).update('name', name);
         },
         delete: function(id){
-            return knex('CompanyType').where('id', id).del();
+            return knex('Type').where('id', id).del();
         }
     }
 };

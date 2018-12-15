@@ -207,7 +207,7 @@ async function getPackagesByTranId(transactionId){
 async function realizarPedido(req, res){
     console.log('Conexion POST entrante : /api/pedido');
 
-    console.log('Request', req.body);
+    // console.log('Request', req.body);
 
     // validacion de tipos
     console.log('Comenzando validacion JOI de request');
@@ -767,24 +767,6 @@ function validarPedido(body){
         contenido: Joi.array().required()
     };
     return Joi.validate(body, schema);
-}
-
-function validarSeller(seller){
-    const schema = {
-        sellerId: Joi.number().required(),
-        productos: Joi.array().allow(null).empty(),
-        paquetes: Joi.array().allow(null).empty()
-    };
-    return Joi.validate(seller, schema);
-}
-
-function validarProd(prod){
-    const schema = {
-        id: Joi.number().required(),
-        quantity: Joi.number().required(),
-        code: Joi.string().allow('').allow(null),
-    };
-    return Joi.validate(prod, schema);
 }
 
 module.exports = {

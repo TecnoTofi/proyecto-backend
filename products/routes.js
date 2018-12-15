@@ -4,17 +4,17 @@ const companyQueries = require('../companies/dbQueries');
 const { getCompany } = require('../companies/routes');
 
 const getCategories = (req, res) => {
-    console.log('Conexion GET entrante : /api/product');
+    console.log('Conexion GET entrante : /api/product/category');
 
     queries
         .categories
         .getAll()
         .then(categories => {
-            console.log('Informacion de ProductCategory obtenida');
+            console.log('Informacion de categories obtenida');
             res.status(200).json(categories);
         })
         .catch(err => {
-            console.log(`Error en Query SELECT a ProductCategory : ${err}`);
+            console.log(`Error en Query SELECT a Category : ${err}`);
             res.status(500).json({message: err});
         });
 };
@@ -268,6 +268,7 @@ async function insertCompanyProduct(req, res){
         productDescription: req.body.productDescription,
         productPrice: req.body.productPrice,
         productStock: req.body.productStock,
+        //cambiar esto, debe recibir una imagen O los strings si no se cambio
         imageName: req.body.imageName,
         imagePath: req.body.imagePath
     }
@@ -278,40 +279,43 @@ async function insertCompanyProduct(req, res){
 
     if(!error){
 
-        let company = await companyQueries
-                            .companies
-                            .getOneById(req.body.companyId)
-                            .then(comp => {
-                                console.log('Informacion de Company obtenida');
-                                return comp;
-                            })
-                            .catch(err => {
-                                console.log(`Error en Query SELECT de Company : ${err}`);
-                                res.status(500).json()
-                            });
+        let busComp = await getCompany(req.body.companyId);
+        // await companyQueries
+        //                     .companies
+        //                     .getOneById(req.body.companyId)
+        //                     .then(comp => {
+        //                         console.log('Informacion de Company obtenida');
+        //                         return comp;
+        //                     })
+        //                     .catch(err => {
+        //                         console.log(`Error en Query SELECT de Company : ${err}`);
+        //                         res.status(500).json()
+        //                     });
 
-        let product = await queries
-                            .products
-                            .getOneById(req.body.productId)
-                            .then(prod => {
-                                console.log('Informacion de Product obtenida');
-                                return prod;
-                            })
-                            .catch(err => {
-                                console.log(`Error en Query SELECT de Product : ${err}`);
-                                res.status(500).json()
-                            });
-        if(company && product){
+        let busProd = await getProduct2(req.body.productId);
+                        // queries
+                        //     .products
+                        //     .getOneById(req.body.productId)
+                        //     .then(prod => {
+                        //         console.log('Informacion de Product obtenida');
+                        //         return prod;
+                        //     })
+                        //     .catch(err => {
+                        //         console.log(`Error en Query SELECT de Product : ${err}`);
+                        //         res.status(500).json()
+                        //     });
+        if(busComp.company && busProd.product){
 
             let companyProduct = {
-                companyId: company.id,
-                productId: product.id,
+                companyId: busComp.company.id,
+                productId: busProd.product.id,
                 name: req.body.productName,
                 description: req.body.productDescription,
-                price: req.body.productPrice,
+                // price: req.body.productPrice,
                 stock: req.body.productStock,
                 imageName: req.body.imageName,
-                imagePath: req.body.imagePath
+                imagePath: req.body.imagePath,
+                created: new Date()
             }
 
             queries
@@ -326,11 +330,13 @@ async function insertCompanyProduct(req, res){
                     res.status(500).json({message: err});
                 });
         }
-        else if(!company){
+        else if(!busComp.company){
+            console.log(busComp.message);
             console.log(`No existe Company con id ${req.body.companyId}`);
             res.status(400).json({message: `No existe Company con id ${req.body.companyId}`});
         }
-        else if(!product){
+        else if(!busProd.product){
+            console.log(busProd.message);
             console.log(`No existe Product con id ${req.body.productId}`);
             res.status(400).json({message: `No existe Product con id ${req.body.productId}`});
         }
@@ -436,8 +442,8 @@ const reducirStock = async (id, cantidad) => {
 
 function validarRegistroProducto(body) {
     const schema = {
-        name: Joi.string().min(3).max(30).required(),
-        code: Joi.string().required(),
+        productName: Joi.string().min(3).max(30).required(),
+        productCode: Joi.string().required(),
         categories: Joi.array().required()
     };
     return Joi.validate(body, schema);
@@ -447,28 +453,31 @@ async function validarCategorias(categorias){
     console.log('Iniciando validacion de categorias');
     
     let message = '';
-    let error = false;
+    let categories = [];
 
     for(let cat in categorias){
-        let error = await queries
+        let category = await queries
                         .categories
                         .getOneById(categorias[cat])
                         .then(res => {
                             if(!res){
                                 console.log(`Categoria no encontrada con ID: ${categorias[cat]}`);
                                 message += `Categoria no encontrada con ID: ${categorias[cat]}`;
-                                return true;
+                                return null;
                             }
                             else{
                                 console.log(`Categoria encontrada con ID: ${categorias[cat]}`);
+                                return res;
                             }
                         })
                         .catch(err => {
                             console.log(`Error en la Query SELECT de Category : ${err}`);
+                            message += `Error en la Query SELECT de Category : ${err}`;
                             // res.status(500).json({message: err});
                         });
+        categories.push(category);
     };
-    return { error, message };
+    return { categories, message };
 }
 
 async function getProduct(productId){
@@ -516,23 +525,26 @@ async function getProductByCode(code){
 }
 
 async function insertProductYAssociacion(req, res){
+    console.log('Conexion POST entrante : /api/product/');
+    console.log('request', req.body);
 
-    console.log('Conexion POST entrante : /api/product/company/associate');
+    console.log('nombre imagen', req.file.filename);
+    console.log('path imagen', req.file.path);
+
+
+    let categories = JSON.parse('[' + req.body.categories + ']');
 
     let valProduct = {
         productName: req.body.productName,
-        productCode: req.body.productCode
-    }
-    console.log(valProduct);
-
-
-    //no validar una categoria, sino un array
-    let categories = JSON.parse('[' + req.body.categories + ']');
+        productCode: req.body.productCode,
+        categories: categories
+    };
 
     let {error} = await validarRegistroProducto(valProduct);
     let valCategories = await validarCategorias(categories);
-
-    if(!error && !valCategories){
+    console.log('valCategories', valCategories);
+    
+    if(!error && !valCategories.message){
 
             let product = {
                 name: req.body.productName,
@@ -543,25 +555,26 @@ async function insertProductYAssociacion(req, res){
                 imagePath: req.file.path
             };
         
-            productId = await queries
-                            .products
-                            .insert(product)
-                            .then(id => {
-                                console.log('Producto insertado correctamente');
-                                return id;
-                                // res.status(201).json(productId);
-                            })
-                            .catch(err => {
-                                console.log(`Error en Query INSERT de Product : ${err}`);
-                                res.status(500).json({message: err});
-                            });
+            productRes = await insertarProducto(product);
+                        // queries
+                        //     .products
+                        //     .insert(product)
+                        //     .then(id => {
+                        //         console.log('Producto insertado correctamente');
+                        //         return id;
+                        //         // res.status(201).json(productId);
+                        //     })
+                        //     .catch(err => {
+                        //         console.log(`Error en Query INSERT de Product : ${err}`);
+                        //         res.status(500).json({message: err});
+                        //     });
 
 
-            for(let cat in categories){
+            for(let cat of categories){
 
                 let prodCategory = {
-                    productId: productId[0],
-                    categoryId: categories[cat]
+                    productId: productRes.productId,
+                    categoryId: cat
                 }
 
                 await queries
@@ -577,13 +590,13 @@ async function insertProductYAssociacion(req, res){
                         });
             }
 
-            if(productId){
+            if(productRes.productId){
                 let valProductCompany = {
                     companyId: req.body.companyId,
-                    productId: Number(productId[0]),
+                    productId: Number(productRes.productId),
                     productName: req.body.productName,
                     productDescription: req.body.productDescription,
-                    productPrice: req.body.productPrice,
+                    // productPrice: req.body.productPrice,
                     productStock: req.body.productStock,
                     //imageName: req.body.imageName,
                     //imagePath: req.body.imagePath
@@ -627,10 +640,10 @@ async function insertProductYAssociacion(req, res){
                     productId: product.id,
                     name: req.body.productName,
                     description: req.body.productDescription,
-                    price: req.body.productPrice,
+                    // price: req.body.productPrice,
                     stock: req.body.productStock,
-                    imageName: req.body.imageName,
-                    imagePath: req.body.imagePath
+                    imageName: req.file.filename,
+                    imagePath: req.file.path
                 }
 
                 queries
@@ -704,22 +717,36 @@ async function getProductCompanyByProduct(req,res){
 
 async function getProductById(req,res){
     console.log('Conexion GET entrante : /api/product/id');
-    console.log('id del producto', req.params.id);
 
-    queries
-        .products
-        .getOneById(req.params.id)
-        .then(products => {
-            console.log('Informaicon de Products obtenida');
-            /*let regex = /\\/g;
-            const productos = products.imagePath.replace(regex,'/');*/
-            // console.log(productos);
-            res.status(200).json(products);
-        })
-        .catch(err =>{
-            console.log(`Error en Query SELECT a Product : ${err}`);
-            res.status(500).json({message: err});
-        });
+    let busProd = await getProduct2(req.params.id);
+
+    console.log('Enviando respuesta');
+    if(busProd.product) res.status(200).json(busProd.product);
+    else res.status(404).json(busProd.message);
+}
+
+//arreglar estos nombres
+async function getProduct2(id){
+    let message = '';
+    let product = await queries
+                        .products
+                        .getOneById(id)
+                        .then(product => {
+                            if(product){
+                                console.log(`Producto con ID: ${id} encontrado`);
+                                return product
+                            }
+                            else return null
+                            /*let regex = /\\/g;
+                            const productos = products.imagePath.replace(regex,'/');*/
+                            // console.log(productos);
+                            // res.status(200).json(products);
+                        })
+                        .catch(err =>{
+                            console.log(`Error en Query SELECT a Product : ${err}`);
+                            message = err;
+                        });
+    return {product, message}
 }
 
 function validarRegistroEmpresaProducto(body) {
@@ -727,7 +754,7 @@ function validarRegistroEmpresaProducto(body) {
         companyId:Joi.number().required(),
         productId:Joi.number().required(),
         productName: Joi.string().min(3).max(30).required(),
-        productDescription:Joi.string().min(5).max(50).required(),
+        productDescription:Joi.string().min(5).max(50).allow(''),
         productPrice:Joi.number().required(),
         productStock:Joi.number().required(),
         imageName: Joi.string().min(3).max(150).required().allow('').allow(null),

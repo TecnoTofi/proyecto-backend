@@ -208,168 +208,175 @@ async function signup(req, res){
     console.info('Conexion POST entrante : /api/auth/signup');
     //Array para almacenar errores
     let errorMessage = [];
-    
-    //armamos body para user
-    console.info('Armando objeto user');
-    let valUser = {
-        typeId: req.body.type,
-        userName: req.body.userName,
-        document: req.body.userDocument,
-        email: req.body.userEmail,
-        password: req.body.userPassword,
-        userPhone: req.body.userPhone,
-        userFirstStreet: req.body.userFirstStreet,
-        userSecondStreet: req.body.userSecondStreet,
-        userDoorNumber: req.body.userDoorNumber,
-    };
 
-    // armamos body para company
-    console.info('Armando objeto company')
-    let valCompany = {
-        typeId: req.body.type,
-        rubroId: req.body.rubro,
-        rut: req.body.companyRut,
-        companyName: req.body.companyName,
-        description: req.body.companyDescription,
-        companyPhone: req.body.companyPhone,
-        companyFirstStreet: req.body.companyFirstStreet,
-        companySecondStreet: req.body.companySecondStreet,
-        companyDoorNumber: req.body.companyDoorNumber,
-        imageName: req.file.filename,
-        imagePath: req.file.path
-    };
-
-    //envio bodies para validar tipos de datos
-    console.info('Iniciando validacion de tipos de datos de User');
-    const { error: errorUser} = validarDatosUser(valUser);
-    console.info('Iniciando validacion de tipos de datos de Company');
-    const { error: errorCompany } = validarDatosCompany(valCompany);
-
-    console.info('Checkeando por errores');
-    //Si hay errores, lo agregamos al array
-    if(errorUser) {
-        console.info('Errores encontrados en la validacion de usuario');
-        errorUser.details.map(e => {
-            console.info(e.message);
-            errorMessage.push(e.message);
-            return;
-        });
-    }
-    if(errorCompany){
-        console.info('Errores encontrados en la validacion de company');
-        errorCompany.details.map(e => {
-            console.info(e.message);
-            errorMessage.push(e.message);
-            return;
-        });
-    }
-
-    if(errorMessage.length > 0){
-        console.info(`Se encontraron ${errorMessage.length} errores de tipo en la request`);
-        errorMessage.map(err => console.log(err));
-        console.info('Enviando response');
-        res.status(400).json({message: errorMessage});
+    if(!req.file){
+        console.info('No se envio imagen con la request');
+        console.info('Preparando response');
+        res.status(400).json({message: 'No se envio imagen con la request'});
     }
     else{
-        console.info('Validacion de tipo de datos exitosa');
+        //armamos body para user
+        console.info('Armando objeto user');
+        let valUser = {
+            typeId: req.body.type,
+            userName: req.body.userName,
+            document: req.body.userDocument,
+            email: req.body.userEmail,
+            password: req.body.userPassword,
+            userPhone: req.body.userPhone,
+            userFirstStreet: req.body.userFirstStreet,
+            userSecondStreet: req.body.userSecondStreet,
+            userDoorNumber: req.body.userDoorNumber,
+        };
 
-        // Validaciones de existencia
-        console.info('Comenzando validaciones de existencia');
+        // armamos body para company
+        console.info('Armando objeto company')
+        let valCompany = {
+            typeId: req.body.type,
+            rubroId: req.body.rubro,
+            rut: req.body.companyRut,
+            companyName: req.body.companyName,
+            description: req.body.companyDescription,
+            companyPhone: req.body.companyPhone,
+            companyFirstStreet: req.body.companyFirstStreet,
+            companySecondStreet: req.body.companySecondStreet,
+            companyDoorNumber: req.body.companyDoorNumber,
+            imageName: req.file.filename,
+            imagePath: req.file.path
+        };
 
-        let { user: userByEmail } = await getUserByEmail(valUser.email);
-        let { user: userByDocument } = await getUserByDocument(valUser.document);
-        let { company: companyByRut } = await getCompanyByRut(valCompany.rut);
-        let { company: companyByName } = await getCompanyByName(valCompany.companyName);
-        let { type: typeById, message: typeMessage } = await getTypeById(valCompany.typeId);
-        let { rubro: rubroById, message: rubroMessage } = await getRubroById(valCompany.rubroId);
+        //envio bodies para validar tipos de datos
+        console.info('Iniciando validacion de tipos de datos de User');
+        const { error: errorUser} = validarDatosUser(valUser);
+        console.info('Iniciando validacion de tipos de datos de Company');
+        const { error: errorCompany } = validarDatosCompany(valCompany);
 
-        if(userByEmail) errorMessage.push(`Ya existe un usuario con email ${valUser.email}`);
-        if(userByDocument) errorMessage.push(`Ya existe un usuario con documento ${valUser.document}`);
-        if(companyByRut) errorMessage.push(`Ya existe una empresa con rut ${valCompany.rut}`);
-        if(companyByName) errorMessage.push(`Ya existe una empresa con nombre ${valCompany.companyName}`);
-        if(!typeById) errorMessage.push(typeMessage);
-        if(!rubroById) errorMessage.push(rubroMessage);
+        console.info('Checkeando por errores');
+        //Si hay errores, lo agregamos al array
+        if(errorUser) {
+            console.info('Errores encontrados en la validacion de usuario');
+            errorUser.details.map(e => {
+                console.info(e.message);
+                errorMessage.push(e.message);
+                return;
+            });
+        }
+        if(errorCompany){
+            console.info('Errores encontrados en la validacion de company');
+            errorCompany.details.map(e => {
+                console.info(e.message);
+                errorMessage.push(e.message);
+                return;
+            });
+        }
 
-        //Si no estan repetidos los datos, seguimos con el ecriptado de la contraseña
         if(errorMessage.length > 0){
-            console.info(`Se encontraron ${errorMessage.length} errores de existencia en la request`);
+            console.info(`Se encontraron ${errorMessage.length} errores de tipo en la request`);
             errorMessage.map(err => console.log(err));
-            console.info('Enviando response')
+            console.info('Enviando response');
             res.status(400).json({message: errorMessage});
         }
         else{
-            console.info('Validaciones de existencia exitosas');
+            console.info('Validacion de tipo de datos exitosa');
 
-            //Encriptamos la contraseña
-            console.info('Comenzado encryptacion de contraseña');
-            const hash = await bcrypt.hash(valUser.password, 10);
-            
-            //Si la encriptacion salio bien, pasamos al insert de company
-            if(!hash){
-                console.error(`Error al crear hash : ${err}`);
-                res.status(500).json({message: 'Error al registrarse'});
+            // Validaciones de existencia
+            console.info('Comenzando validaciones de existencia');
+
+            let { user: userByEmail } = await getUserByEmail(valUser.email);
+            let { user: userByDocument } = await getUserByDocument(valUser.document);
+            let { company: companyByRut } = await getCompanyByRut(valCompany.rut);
+            let { company: companyByName } = await getCompanyByName(valCompany.companyName);
+            let { type: typeById, message: typeMessage } = await getTypeById(valCompany.typeId);
+            let { rubro: rubroById, message: rubroMessage } = await getRubroById(valCompany.rubroId);
+
+            if(userByEmail) errorMessage.push(`Ya existe un usuario con email ${valUser.email}`);
+            if(userByDocument) errorMessage.push(`Ya existe un usuario con documento ${valUser.document}`);
+            if(companyByRut) errorMessage.push(`Ya existe una empresa con rut ${valCompany.rut}`);
+            if(companyByName) errorMessage.push(`Ya existe una empresa con nombre ${valCompany.companyName}`);
+            if(!typeById) errorMessage.push(typeMessage);
+            if(!rubroById) errorMessage.push(rubroMessage);
+
+            //Si no estan repetidos los datos, seguimos con el ecriptado de la contraseña
+            if(errorMessage.length > 0){
+                console.info(`Se encontraron ${errorMessage.length} errores de existencia en la request`);
+                errorMessage.map(err => console.log(err));
+                console.info('Enviando response')
+                res.status(400).json({message: errorMessage});
             }
             else{
-                console.info('Encryptacion de contraseña, correcta');
+                console.info('Validaciones de existencia exitosas');
 
-                console.info('Preparando objeto para insert de Company');
-                let company = {
-                    name: valCompany.companyName,
-                    rut: valCompany.rut,
-                    firstStreet: valCompany.companyFirstStreet,
-                    secondStreet: valCompany.companySecondStreet,
-                    doorNumber: valCompany.companyDoorNumber,
-                    phone: valCompany.companyPhone,
-                    typeId: valCompany.typeId,
-                    rubroId: valCompany.rubroId,
-                    description: valCompany.description,
-                    imageName: valCompany.imageName,
-                    imagePath: valCompany.imagePath,
-                    created: new Date()
-                };
-
-                //Enviamos insert a company
-                let { id: companyId } = await insertCompany(company);
+                //Encriptamos la contraseña
+                console.info('Comenzado encryptacion de contraseña');
+                const hash = await bcrypt.hash(valUser.password, 10);
                 
-                //Si el insert de company salio bien, paso a insert de usuario
-                if(companyId !== 0){
-                    console.info(`Insert de Company terminado correctamente, con ID: ${companyId}`);
+                //Si la encriptacion salio bien, pasamos al insert de company
+                if(!hash){
+                    console.error(`Error al crear hash : ${err}`);
+                    res.status(500).json({message: 'Error al registrarse'});
+                }
+                else{
+                    console.info('Encryptacion de contraseña, correcta');
 
-                    console.info('Preparando objeto para insert de User');
-                    let user = {
-                        typeId: valUser.typeId,
-                        companyId: companyId,
-                        name: valUser.userName,
-                        document: valUser.document,
-                        email: valUser.email,
-                        password: hash,
-                        phone: valUser.userPhone,
-                        firstStreet: valUser.userFirstStreet,
-                        secondStreet: valUser.userSecondStreet,
-                        doorNumber: valUser.userDoorNumber,
+                    console.info('Preparando objeto para insert de Company');
+                    let company = {
+                        name: valCompany.companyName,
+                        rut: valCompany.rut,
+                        firstStreet: valCompany.companyFirstStreet,
+                        secondStreet: valCompany.companySecondStreet,
+                        doorNumber: valCompany.companyDoorNumber,
+                        phone: valCompany.companyPhone,
+                        typeId: valCompany.typeId,
+                        rubroId: valCompany.rubroId,
+                        description: valCompany.description,
+                        imageName: valCompany.imageName,
+                        imagePath: valCompany.imagePath,
                         created: new Date()
                     };
 
-                    //envio insert de user
-                    let { id: userId } = await insertUser(user);
+                    //Enviamos insert a company
+                    let { id: companyId, message: companyMessage } = await insertCompany(company);
+                    
+                    //Si el insert de company salio bien, paso a insert de usuario
+                    if(companyId !== 0){
+                        console.info(`Insert de Company terminado correctamente, con ID: ${companyId}`);
 
-                    if(userId){
-                        console.info(`Insert de User terminado correctamente, con ID: ${userId}`);
-                        console.info('Preparando response');
-                        res.status(201).json({message: 'Registro existoso'});
+                        console.info('Preparando objeto para insert de User');
+                        let user = {
+                            typeId: valUser.typeId,
+                            companyId: companyId,
+                            name: valUser.userName,
+                            document: valUser.document,
+                            email: valUser.email,
+                            password: hash,
+                            phone: valUser.userPhone,
+                            firstStreet: valUser.userFirstStreet,
+                            secondStreet: valUser.userSecondStreet,
+                            doorNumber: valUser.userDoorNumber,
+                            created: new Date()
+                        };
+
+                        //envio insert de user
+                        let { id: userId, message: userMessage } = await insertUser(user);
+
+                        if(userId){
+                            console.info(`Insert de User terminado correctamente, con ID: ${userId}`);
+                            console.info('Preparando response');
+                            res.status(201).json({message: 'Registro existoso'});
+                        }
+                        else{
+                            console.info('Hubo un problema al insertar el usuario, realizando rollback');
+                            let rollbackCompany = await rollbackInsertCompany(companyId);
+                            if(rollbackCompany.res) console.info(`Rollback de Company ${companyId} realizado correctamente`);
+                            else console.info(`Ocurrio un error en rollback de Company ${companyId}`);
+                            console.info('Preparando response');
+                            res.status(500).json({message: userMessage});
+                        }
                     }
                     else{
-                        console.info('Hubo un problema al insertar el usuario, realizando rollback');
-                        let rollbackCompany = await rollbackInsertCompany(companyId);
-                        if(rollbackCompany.res) console.info(`Rollback de Company ${companyId} realizado correctamente`);
-                        else console.info(`Ocurrio un error en rollback de Company ${companyId}`);
                         console.info('Preparando response');
-                        res.status(500).json({message: 'Error al registrarse'});
+                        res.status(500).json({message: companyMessage});
                     }
-                }
-                else{
-                    console.info('Preparando response');
-                    res.status(500).json({message: 'Error al registrarse'});
                 }
             }
         }

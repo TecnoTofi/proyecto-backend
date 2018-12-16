@@ -12,12 +12,13 @@ const storage = multer.diskStorage({
     },
     filename: function(req, file, cb){
         //indicamos como se formara el nombre del archivo
-        cb(null, new Date().toISOString().replace(/:/g,'-') + file.originalname);
+        if(file) cb(null, new Date().toISOString().replace(/:/g,'-') + file.originalname);
+        else cb(null);
     }
 });
 //Creamos filtros para guardar unicamente jpg, jpeg y png
 const fileFilter = (req, file, cb) => {
-    if(file.mimetype === 'image/jpeg' || file.mimetype === 'image/png' || file.mimetype === 'image/jpg'){
+    if(file && file.mimetype === 'image/jpeg' || file.mimetype === 'image/png' || file.mimetype === 'image/jpg'){
         cb(null, true);
     }
     else{

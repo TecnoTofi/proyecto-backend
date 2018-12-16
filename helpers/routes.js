@@ -98,57 +98,67 @@ async function altaCategory(req, res){
 async function modificarCategory(req, res){
     console.info(`Conexion PUT entrante : /api/helper/category/${req.params.id}`);
 
-    if(!req.body.name){
-        console.info('No se encontro nombre en la request');
+    console.info(`Comenzando validacion de tipos`);
+    let { error } = validarId(req.params.id);
+
+    if(error){
+        console.info(`Error en la validacion de tipos: ${error.details[0].message}`);
         console.info('Preparando response');
-        res.status(400).json({message: 'Debe enviar "name"'});
+        res.status(400).json({message: error.details[0].message});
     }
     else{
-        console.info('Enviando a validar tipos de datos en request');
-        let { error } = validarRequest(req.body.name);
-
-        if(error){
-            console.info('Erorres encontrados en la request');
-            console.info(error);
+        if(!req.body.name){
+            console.info('No se encontro nombre en la request');
             console.info('Preparando response');
-            res.status(400).json({error: error.details[0].message});
+            res.status(400).json({message: 'Debe enviar "name"'});
         }
         else{
-            console.info('Validaciones de tipo de datos exitosa');
-            console.info('Comenzando validaciones de existencia');
-
-            let { category: existeId, message: existeIdMessage } = await getCategoryById(req.params.id);
-            let { category: existeName, message: existeNameMessage } = await getCategoryByName(req.body.name);
-
-            if(!existeId){
-                console.info(`No existe categoria con ID: ${req.params.id}`);
+            console.info('Enviando a validar tipos de datos en request');
+            let { error } = validarRequest(req.body.name);
+    
+            if(error){
+                console.info('Erorres encontrados en la request');
+                console.info(error);
                 console.info('Preparando response');
-                res.status(400).json({existeIdMessage});
+                res.status(400).json({error: error.details[0].message});
             }
-            else if(existeName && existeName.id === req.params.id){
-                console.info(`Categoria con ID: ${req.params.id} ya tiene nombre ${req.body.name}`);
-                console.info('Preparando response');
-                res.status(400).json({message: `Categoria con ID: ${req.params.id} ya tiene nombre ${req.body.name}`});
-            }
-            else if(existeName){
-                console.info(`Ya existe categoria con nombre ${req.body.name}`);
-                console.info('Preparando response');
-                res.status(400).json({message: existeNameMessage});
-            }
-            else if(existeId){
-                console.info('Enviando request para update');
-                
-                let { result, message } = await updateCategory(req.params.id, req.body.name);
-                
-                if(result){
-                    console.info(`Categoria con ID: ${req.params.id} actualizado correctamente`);
+            else{
+                console.info('Validaciones de tipo de datos exitosa');
+                console.info('Comenzando validaciones de existencia');
+    
+                let { category: existeId, message: existeIdMessage } = await getCategoryById(req.params.id);
+                let { category: existeName, message: existeNameMessage } = await getCategoryByName(req.body.name);
+    
+                if(!existeId){
+                    console.info(`No existe categoria con ID: ${req.params.id}`);
                     console.info('Preparando response');
-                    res.status(201).json({message: 'Modificacion exitosa'});
+                    res.status(400).json({existeIdMessage});
                 }
-                else{
-                    console.info('No se pudo modificar categoria');
+                else if(existeName && existeName.id === req.params.id){
+                    console.info(`Categoria con ID: ${req.params.id} ya tiene nombre ${req.body.name}`);
                     console.info('Preparando response');
-                    res.status(500).json({message: message});
+                    res.status(400).json({message: `Categoria con ID: ${req.params.id} ya tiene nombre ${req.body.name}`});
+                }
+                else if(existeName){
+                    console.info(`Ya existe categoria con nombre ${req.body.name}`);
+                    console.info('Preparando response');
+                    res.status(400).json({message: existeNameMessage});
+                }
+                else if(existeId){
+                    console.info('Enviando request para update');
+                    
+                    let { result, message } = await updateCategory(req.params.id, req.body.name);
+                    
+                    if(result){
+                        console.info(`Categoria con ID: ${req.params.id} actualizado correctamente`);
+                        console.info('Preparando response');
+                        res.status(200).json({message: 'Modificacion exitosa'});
+                    }
+                    else{
+                        console.info('No se pudo modificar categoria');
+                        console.info('Preparando response');
+                        res.status(500).json({message: message});
+                    }
                 }
             }
         }
@@ -158,28 +168,38 @@ async function modificarCategory(req, res){
 async function eliminarCategory(req, res){
     console.info(`Conexion DELETE entrante : /api/helper/category/${req.params.id}`);
 
-    console.info('Comenzando validaciones de existencia');
+    console.info(`Comenzando validacion de tipos`);
+    let { error } = validarId(req.params.id);
 
-    let { category: existe, message: existeMessage } = await getCategoryById(req.params.id);
-
-    if(!existe){
-        console.info(`No existe categoria con ID: ${req.params.id}`);
+    if(error){
+        console.info(`Error en la validacion de tipos: ${error.details[0].message}`);
         console.info('Preparando response');
-        res.status(400).json({message: existeMessage});
+        res.status(400).json({message: error.details[0].message});
     }
     else{
-        console.info('Enviando request para eliminacion');
-        let { result, message } = await deleteCategory(req.params.id);
-        
-        if(result){
-            console.info(`Categoria eliminada correctamente con ID: ${req.params.id}`);
+        console.info('Comenzando validaciones de existencia');
+
+        let { category: existe, message: existeMessage } = await getCategoryById(req.params.id);
+
+        if(!existe){
+            console.info(`No existe categoria con ID: ${req.params.id}`);
             console.info('Preparando response');
-            res.status(201).json({message});
+            res.status(400).json({message: existeMessage});
         }
         else{
-            console.info('No se pudo eliminar Tipo');
-            console.info('Preparando response');
-            res.status(500).json({message: message});
+            console.info('Enviando request para eliminacion');
+            let { result, message } = await deleteCategory(req.params.id);
+            
+            if(result){
+                console.info(`Categoria eliminada correctamente con ID: ${req.params.id}`);
+                console.info('Preparando response');
+                res.status(201).json({message});
+            }
+            else{
+                console.info('No se pudo eliminar Tipo');
+                console.info('Preparando response');
+                res.status(500).json({message: message});
+            }
         }
     }
 }
@@ -432,57 +452,67 @@ async function altaRubro(req, res){
 async function modificarRubro(req, res){
     console.info(`Conexion PUT entrante : /api/helper/rubro/${req.params.id}`);
 
-    if(!req.body.name){
-        console.info('No se encontro nombre en la request');
+    console.info(`Comenzando validacion de tipos`);
+    let { error } = validarId(req.params.id);
+
+    if(error){
+        console.info(`Error en la validacion de tipos: ${error.details[0].message}`);
         console.info('Preparando response');
-        res.status(400).json({message: 'Debe enviar "name"'});
+        res.status(400).json({message: error.details[0].message});
     }
     else{
-        console.info('Enviando a validar tipos de datos en request');
-        let { error } = validarRequest(req.body.name);
-
-        if(error){
-            console.info('Erorres encontrados en la request');
-            console.info(error);
+        if(!req.body.name){
+            console.info('No se encontro nombre en la request');
             console.info('Preparando response');
-            res.status(400).json({error: error.details[0].message});
+            res.status(400).json({message: 'Debe enviar "name"'});
         }
         else{
-            console.info('Validaciones de tipo de datos exitosa');
-            console.info('Comenzando validaciones de existencia');
-
-            let { rubro: existeId, message: existeIdMessage } = await getRubroById(req.params.id);
-            let { rubro: existeName, message: existeNameMessage } = await getRubroByName(req.body.name);
-
-            if(!existeId){
-                console.info(`No existe rubro con ID: ${req.params.id}`);
+            console.info('Enviando a validar tipos de datos en request');
+            let { error } = validarRequest(req.body.name);
+    
+            if(error){
+                console.info('Erorres encontrados en la request');
+                console.info(error);
                 console.info('Preparando response');
-                res.status(400).json({existeIdMessage});
+                res.status(400).json({error: error.details[0].message});
             }
-            else if(existeName && existeName.id === req.params.id){
-                console.info(`Rubro con ID: ${req.params.id} ya tiene nombre ${req.body.name}`);
-                console.info('Preparando response');
-                res.status(400).json({message: `Rubro con ID: ${req.params.id} ya tiene nombre ${req.body.name}`});
-            }
-            else if(existeName){
-                console.info(`Ya existe rubro con nombre ${req.body.name}`);
-                console.info('Preparando response');
-                res.status(400).json({message: existeNameMessage});
-            }
-            else if(existeId){
-                console.info('Enviando request para update');
-                
-                let { result, message } = await updateRubro(req.params.id, req.body.name);
-                
-                if(result){
-                    console.info(`Rubro con ID: ${req.params.id} actualizado correctamente`);
+            else{
+                console.info('Validaciones de tipo de datos exitosa');
+                console.info('Comenzando validaciones de existencia');
+    
+                let { rubro: existeId, message: existeIdMessage } = await getRubroById(req.params.id);
+                let { rubro: existeName, message: existeNameMessage } = await getRubroByName(req.body.name);
+    
+                if(!existeId){
+                    console.info(`No existe rubro con ID: ${req.params.id}`);
                     console.info('Preparando response');
-                    res.status(201).json({message});
+                    res.status(400).json({existeIdMessage});
                 }
-                else{
-                    console.info('No se pudo modificar rubro');
+                else if(existeName && existeName.id === req.params.id){
+                    console.info(`Rubro con ID: ${req.params.id} ya tiene nombre ${req.body.name}`);
                     console.info('Preparando response');
-                    res.status(500).json({message: message});
+                    res.status(400).json({message: `Rubro con ID: ${req.params.id} ya tiene nombre ${req.body.name}`});
+                }
+                else if(existeName){
+                    console.info(`Ya existe rubro con nombre ${req.body.name}`);
+                    console.info('Preparando response');
+                    res.status(400).json({message: existeNameMessage});
+                }
+                else if(existeId){
+                    console.info('Enviando request para update');
+                    
+                    let { result, message } = await updateRubro(req.params.id, req.body.name);
+                    
+                    if(result){
+                        console.info(`Rubro con ID: ${req.params.id} actualizado correctamente`);
+                        console.info('Preparando response');
+                        res.status(200).json({message});
+                    }
+                    else{
+                        console.info('No se pudo modificar rubro');
+                        console.info('Preparando response');
+                        res.status(500).json({message: message});
+                    }
                 }
             }
         }
@@ -492,28 +522,38 @@ async function modificarRubro(req, res){
 async function eliminarRubro(req, res){
     console.info(`Conexion DELETE entrante : /api/helper/rubro/${req.params.id}`);
 
-    console.info('Comenzando validaciones de existencia');
+    console.info(`Comenzando validacion de tipos`);
+    let { error } = validarId(req.params.id);
 
-    let { rubro: existe, message: existeMessage } = await getRubroById(req.params.id);
-
-    if(!existe){
-        console.info(`No existe rubro con ID: ${req.params.id}`);
+    if(error){
+        console.info(`Error en la validacion de tipos: ${error.details[0].message}`);
         console.info('Preparando response');
-        res.status(400).json({message: existeMessage});
+        res.status(400).json({message: error.details[0].message});
     }
     else{
-        console.info('Enviando request para eliminacion');
-        let { result, message } = await deleteRubro(req.params.id);
-        
-        if(result){
-            console.info(`Rubro eliminado correctamente con ID: ${req.params.id}`);
+        console.info('Comenzando validaciones de existencia');
+
+        let { rubro: existe, message: existeMessage } = await getRubroById(req.params.id);
+
+        if(!existe){
+            console.info(`No existe rubro con ID: ${req.params.id}`);
             console.info('Preparando response');
-            res.status(201).json({message});
+            res.status(400).json({message: existeMessage});
         }
         else{
-            console.info('No se pudo eliminar rubro');
-            console.info('Preparando response');
-            res.status(500).json({message: message});
+            console.info('Enviando request para eliminacion');
+            let { result, message } = await deleteRubro(req.params.id);
+            
+            if(result){
+                console.info(`Rubro eliminado correctamente con ID: ${req.params.id}`);
+                console.info('Preparando response');
+                res.status(201).json({message});
+            }
+            else{
+                console.info('No se pudo eliminar rubro');
+                console.info('Preparando response');
+                res.status(500).json({message: message});
+            }
         }
     }
 }
@@ -787,57 +827,67 @@ async function altaType(req, res){
 async function modificarType(req, res){
     console.info(`Conexion PUT entrante : /api/helper/type/${req.params.id}`);
 
-    if(!req.body.name){
-        console.info('No se encontro nombre en la request');
+    console.info(`Comenzando validacion de tipos`);
+    let { error } = validarId(req.params.id);
+
+    if(error){
+        console.info(`Error en la validacion de tipos: ${error.details[0].message}`);
         console.info('Preparando response');
-        res.status(400).json({message: 'Debe enviar "name"'});
+        res.status(400).json({message: error.details[0].message});
     }
     else{
-        console.info('Enviando a validar tipos de datos en request');
-        let { error } = validarRequest(req.body.name);
-
-        if(error){
-            console.info('Erorres encontrados en la request');
-            console.info(error);
+        if(!req.body.name){
+            console.info('No se encontro nombre en la request');
             console.info('Preparando response');
-            res.status(400).json({error: error.details[0].message});
+            res.status(400).json({message: 'Debe enviar "name"'});
         }
         else{
-            console.info('Validaciones de tipo de datos exitosa');
-            console.info('Comenzando validaciones de existencia');
-
-            let { type: existeId, message: existeIdMessage } = await getTypeById(req.params.id);
-            let { type: existeName, message: existeNameMessage } = await getTypeByName(req.body.name);
-
-            if(!existeId){
-                console.info(`No existe tipo con ID: ${req.params.id}`);
+            console.info('Enviando a validar tipos de datos en request');
+            let { error } = validarRequest(req.body.name);
+    
+            if(error){
+                console.info('Erorres encontrados en la request');
+                console.info(error);
                 console.info('Preparando response');
-                res.status(400).json({message: existeIdMessage});
+                res.status(400).json({error: error.details[0].message});
             }
-            else if(existeName && existeName.id === req.params.id){
-                console.info(`Tipo con ID: ${req.params.id} ya tiene nombre ${req.body.name}`);
-                console.info('Preparando response');
-                res.status(400).json({message: `Tipo con ID: ${req.params.id} ya tiene nombre ${req.body.name}`});
-            }
-            else if(existeName){
-                console.info(`Ya existe tipo con nombre ${req.body.name}`);
-                console.info('Preparando response');
-                res.status(400).json({message: existeNameMessage});
-            }
-            else if(existeId){
-                console.info('Enviando request para update');
-                
-                let { result, message } = await updateType(req.params.id, req.body.name);
-                
-                if(result){
-                    console.info(`Tipo con ID: ${req.params.id} actualizado correctamente`);
+            else{
+                console.info('Validaciones de tipo de datos exitosa');
+                console.info('Comenzando validaciones de existencia');
+    
+                let { type: existeId, message: existeIdMessage } = await getTypeById(req.params.id);
+                let { type: existeName, message: existeNameMessage } = await getTypeByName(req.body.name);
+    
+                if(!existeId){
+                    console.info(`No existe tipo con ID: ${req.params.id}`);
                     console.info('Preparando response');
-                    res.status(201).json({message});
+                    res.status(400).json({message: existeIdMessage});
                 }
-                else{
-                    console.info('No se pudo modificar tipo');
+                else if(existeName && existeName.id === req.params.id){
+                    console.info(`Tipo con ID: ${req.params.id} ya tiene nombre ${req.body.name}`);
                     console.info('Preparando response');
-                    res.status(500).json({message: message});
+                    res.status(400).json({message: `Tipo con ID: ${req.params.id} ya tiene nombre ${req.body.name}`});
+                }
+                else if(existeName){
+                    console.info(`Ya existe tipo con nombre ${req.body.name}`);
+                    console.info('Preparando response');
+                    res.status(400).json({message: existeNameMessage});
+                }
+                else if(existeId){
+                    console.info('Enviando request para update');
+                    
+                    let { result, message } = await updateType(req.params.id, req.body.name);
+                    
+                    if(result){
+                        console.info(`Tipo con ID: ${req.params.id} actualizado correctamente`);
+                        console.info('Preparando response');
+                        res.status(200).json({message});
+                    }
+                    else{
+                        console.info('No se pudo modificar tipo');
+                        console.info('Preparando response');
+                        res.status(500).json({message: message});
+                    }
                 }
             }
         }
@@ -847,28 +897,38 @@ async function modificarType(req, res){
 async function eliminarType(req, res){
     console.info(`Conexion DELETE entrante : /api/helper/type/${req.params.id}`);
 
-    console.info('Comenzando validaciones de existencia');
+    console.info(`Comenzando validacion de tipos`);
+    let { error } = validarId(req.params.id);
 
-    let { type: existe, message: existeMessage } = await getTypeById(req.params.id);
-
-    if(!existe){
-        console.info(`No existe tipo con ID: ${req.params.id}`);
+    if(error){
+        console.info(`Error en la validacion de tipos: ${error.details[0].message}`);
         console.info('Preparando response');
-        res.status(400).json({message: existeMessage});
+        res.status(400).json({message: error.details[0].message});
     }
     else{
-        console.info('Enviando request para eliminacion');
-        let { result, message } = await deleteType(req.params.id);
-        
-        if(result){
-            console.info(`Tipo eliminado correctamente con ID: ${req.params.id}`);
+        console.info('Comenzando validaciones de existencia');
+
+        let { type: existe, message: existeMessage } = await getTypeById(req.params.id);
+
+        if(!existe){
+            console.info(`No existe tipo con ID: ${req.params.id}`);
             console.info('Preparando response');
-            res.status(201).json({message});
+            res.status(400).json({message: existeMessage});
         }
         else{
-            console.info('No se pudo eliminar tipo');
-            console.info('Preparando response');
-            res.status(500).json({message: message});
+            console.info('Enviando request para eliminacion');
+            let { result, message } = await deleteType(req.params.id);
+            
+            if(result){
+                console.info(`Tipo eliminado correctamente con ID: ${req.params.id}`);
+                console.info('Preparando response');
+                res.status(201).json({message});
+            }
+            else{
+                console.info('No se pudo eliminar tipo');
+                console.info('Preparando response');
+                res.status(500).json({message: message});
+            }
         }
     }
 }
@@ -1074,4 +1134,5 @@ module.exports = {
     insertType,
     updateType,
     deleteType,
+    validarId,
 };

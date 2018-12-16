@@ -12,7 +12,7 @@ async function obtenerUsers(req, res){
     if(users){
         console.info(`${users.length} usuarios encontrados`);
         console.info('Preparando response');
-        res.status(200).json({users});
+        res.status(200).json(users);
     }
     else{
         console.info('No se encontraron usuarios');
@@ -29,7 +29,7 @@ async function obtenerAllUsers(req, res){
     if(users){
         console.info(`${users.length} usuarios encontrados`);
         console.info('Preparando response');
-        res.status(200).json({users});
+        res.status(200).json(users);
     }
     else{
         console.info('No se encontraron usuarios');
@@ -46,7 +46,7 @@ async function obtenerDeletedUsers(req, res){
     if(users){
         console.info(`${users.length} usuarios encontrados`);
         console.info('Preparando response');
-        res.status(200).json({users});
+        res.status(200).json(users);
     }
     else{
         console.info('No se encontraron usuarios');
@@ -82,7 +82,7 @@ async function obtenerUsersByType(req, res){
             if(users){
                 console.info(`${users.length} usuarios encontrados`);
                 console.info('Preparando response');
-                res.status(200).json({users});
+                res.status(200).json(users);
             }
             else{
                 console.info('No se encontraron usuarios');
@@ -149,7 +149,7 @@ async function obtenerUserByCompanyId(req, res){
 
             if(user){
                 console.info('Preparando response');
-                res.status(200).json({user});
+                res.status(200).json(user);
             }
             else{
                 console.info('No se encontro usuario');
@@ -179,7 +179,7 @@ async function obtenerUserByDocument(req, res){
         if(user){
             console.info('User encontrado');
             console.info('Preparando response');
-            res.status(200).json({user});
+            res.status(200).json(user);
         }
         else{
             console.info('No se encontro usuario');
@@ -209,7 +209,7 @@ async function obtenerUserByEmail(req, res){
             console.info('User encontrado');
             console.info('Preparando response');
             user.password = '';
-            res.status(200).json({user});
+            res.status(200).json(user);
         }
         else{
             console.info('No se encontro usuario');

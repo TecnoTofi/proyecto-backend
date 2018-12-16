@@ -27,7 +27,7 @@ async function obtenerAllCompanies(req, res){
     if(companies){
         console.info(`${companies.length} companias encontradas`);
         console.info('Preparando response');
-        res.status(200).json({companies});
+        res.status(200).json(companies);
     }
     else{
         console.info('No se encontraron companias');
@@ -44,7 +44,7 @@ async function obtenerDeletedCompanies(req, res){
     if(companies){
         console.info(`${companies.length} companias encontradas`);
         console.info('Preparando response');
-        res.status(200).json({companies});
+        res.status(200).json(companies);
     }
     else{
         console.info('No se encontraron companias');
@@ -80,7 +80,7 @@ async function obtenerCompaniesByType(req, res){
             if(companies){
                 console.info(`${companies.length} companies encontrados`);
                 console.info('Preparando response');
-                res.status(200).json({companies});
+                res.status(200).json(companies);
             }
             else{
                 console.info('No se encontraron companies');
@@ -118,7 +118,7 @@ async function obtenerCompaniesByRubro(req, res){
             if(companies){
                 console.info(`${companies.length} companies encontrados`);
                 console.info('Preparando response');
-                res.status(200).json({companies});
+                res.status(200).json(companies);
             }
             else{
                 console.info('No se encontraron companies');

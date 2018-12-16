@@ -2,6 +2,21 @@ const knex = require('../db/connection');
 
 module.exports = {
     users: {
+        getUsers: function(){
+            return knex.select().table('User').where('deleted', null);
+        },
+        getAll: function(){
+            return knex.select().table('User');
+        },
+        getDeleted: function(){
+            return knex.select().table('User').whereNot('deleted', null);
+        },
+        getByType: function(id){
+            return knex.select().table('User').where('typeId', id);
+        },
+        getByCompany: function(id){
+            return knex.select().table('User').where('companyId', id).first();
+        },
         getOneById: function(id){
             console.log(`Enviando Query SELECT a User con id: ${id}`);
             return knex.select().table('User').where('id', id).first();
@@ -34,10 +49,9 @@ module.exports = {
             console.log(`Enviando Query UPDATE a User`);
             return knex('User').where('id', id).update(user);
         },
-        delete: function(id){
-            //pasar a borrado logico
+        delete: function(id, date){
             console.log(`Enviando Query DELETE a User`);
-            return knex('User').where('id', id).del();
+            return knex('User').where('id', id).update('deleted', date);
         }
     },
     types: {

@@ -327,6 +327,7 @@ async function modificarUser(req, res){
         res.status(400).json({message: error.details[0].message});
     }
     else{
+        console.info('Enviando a validar tipos de datos en request');
         let valUser = {
             typeId: req.body.typeId,
             userName: req.body.userName,
@@ -343,21 +344,11 @@ async function modificarUser(req, res){
         let errorMessage = [];
     
         console.info(`Comenzando validacion de tipos`);
-        let { error: errorId } = validarId(req.params.id);
         let { error: errorUser} = validarUser(valUser);
     
         if(errorUser) {
             console.info('Errores encontrados en la validacion de tipos de usuario');
             errorUser.details.map(e => {
-                console.info(e.message);
-                errorMessage.push(e.message);
-                return;
-            });
-        }
-    
-        if(errorId) {
-            console.info('Errores encontrados en la validacion de tipo de ID');
-            errorId.details.map(e => {
                 console.info(e.message);
                 errorMessage.push(e.message);
                 return;
@@ -372,7 +363,7 @@ async function modificarUser(req, res){
         }
         else{
             console.info('Validacion de tipos exitosa');
-            console.info('Comenzando validaciones de existencia')
+            console.info('Comenzando validaciones de existencia');
     
             //Vuelvo a colocar companyId
             valUser.companyId = req.body.companyId;

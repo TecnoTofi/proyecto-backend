@@ -112,7 +112,8 @@ async function obtenerUserById(req, res){
         if(user){
             console.info('User encontrado');
             console.info('Preparando response');
-            res.status(200).json({user});
+            user.password = '';
+            res.status(200).json(user);
         }
         else{
             console.info('No se encontro usuario');
@@ -207,6 +208,7 @@ async function obtenerUserByEmail(req, res){
         if(user){
             console.info('User encontrado');
             console.info('Preparando response');
+            user.password = '';
             res.status(200).json({user});
         }
         else{

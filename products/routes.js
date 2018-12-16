@@ -1,7 +1,7 @@
 const Joi = require('joi');
 const queries = require('./dbQueries');
 const companyQueries = require('../companies/dbQueries');
-const { getCompany } = require('../companies/routes');
+const { getCompanyById } = require('../companies/routes');
 
 const getCategories = (req, res) => {
     console.log('Conexion GET entrante : /api/product/category');
@@ -88,7 +88,7 @@ async function getProductByCompany(req, res){
     console.log(`Conexion GET entrante : /api/product/company/${req.params.id}`);
 
     console.log('Yendo a buscar empresa');
-    let busquedaCompany = await getCompany(req.params.id);
+    let busquedaCompany = await getCompanyById(req.params.id);
 
     if(!busquedaCompany.company){
         console.log('Retornando error');
@@ -279,7 +279,7 @@ async function insertCompanyProduct(req, res){
 
     if(!error){
 
-        let busComp = await getCompany(req.body.companyId);
+        let busComp = await getCompanyById(req.body.companyId);
         // await companyQueries
         //                     .companies
         //                     .getOneById(req.body.companyId)
@@ -717,7 +717,7 @@ async function getProductCompanyByProduct(req,res){
             console.log('Informacion de Products obtenida');
             let regex = /\\/g;
             const productos = await Promise.all(products.map(async prod => {
-                let busComp = await getCompany(prod.companyId);
+                let busComp = await getCompanyById(prod.companyId);
                 prod.companyName = busComp.company.name;
                 prod.imagePath = prod.imagePath.replace(regex, '/');
                 return prod;

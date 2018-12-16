@@ -22,21 +22,31 @@ async function obtenerCategories(req, res){
 async function obtenerCategoryById(req, res){
     console.log(`Conexion GET entrante : /api/helper/category/${req.params.id}`);
 
-    let { category, message } = await getCategoryById(req.params.id);
+    console.info(`Comenzando validacion de tipos`);
+    let { error } = validarId(req.params.id);
 
-    if(category){
-        console.info('Tipo encontrado');
+    if(error){
+        console.info(`Error en la validacion de tipos: ${error.details[0].message}`);
         console.info('Preparando response');
-        res.status(200).json({category});
+        res.status(400).json({message: error.details[0].message});
     }
     else{
-        console.info('No se encontro tipo');
-        console.info('Preparando response');
-        res.status(200).json({message});
+        let { category, message } = await getCategoryById(req.params.id);
+
+        if(category){
+            console.info('Categoria encontrado');
+            console.info('Preparando response');
+            res.status(200).json({category});
+        }
+        else{
+            console.info('No se encontro tipo');
+            console.info('Preparando response');
+            res.status(200).json({message});
+        }
     }
 }
 
-async function altaCategoria(req, res){
+async function altaCategory(req, res){
     console.info('Conexion POST entrante : /api/helper/category');
 
     if(!req.body.name){
@@ -85,7 +95,7 @@ async function altaCategoria(req, res){
     }
 }
 
-async function modificarCategoria(req, res){
+async function modificarCategory(req, res){
     console.info(`Conexion PUT entrante : /api/helper/category/${req.params.id}`);
 
     if(!req.body.name){
@@ -145,7 +155,7 @@ async function modificarCategoria(req, res){
     }
 }
 
-async function eliminarCategoria(req, res){
+async function eliminarCategory(req, res){
     console.info(`Conexion DELETE entrante : /api/helper/category/${req.params.id}`);
 
     console.info('Comenzando validaciones de existencia');
@@ -200,7 +210,7 @@ async function getCategories(){
 }
 
 async function getCategoryById(id){
-    console.info(`Buscando category con id: ${id}`);
+    console.info(`Buscando category con ID: ${id}`);
     let message = '';
     let category = await queries
                     .categories
@@ -211,8 +221,8 @@ async function getCategoryById(id){
                             return data;
                         }
                         else{
-                            console.info(`No existe category con id: ${id}`);
-                            message = `No existe un category con id ${id}`;
+                            console.info(`No existe category con ID: ${id}`);
+                            message = `No existe un category con ID ${id}`;
                             return null;
                         }
                     })
@@ -346,17 +356,27 @@ async function obtenerRubros(req, res){
 async function obtenerRubroById(req, res){
     console.log(`Conexion GET entrante : /api/helper/rubro/${req.params.id}`);
 
-    let { rubro, message } = await getRubroById(req.params.id);
+    console.info(`Comenzando validacion de tipos`);
+    let { error } = validarId(req.params.id);
 
-    if(rubro){
-        console.info('Rubro encontrado');
+    if(error){
+        console.info(`Error en la validacion de tipos: ${error.details[0].message}`);
         console.info('Preparando response');
-        res.status(200).json({rubro});
+        res.status(400).json({message: error.details[0].message});
     }
     else{
-        console.info('No se encontro rubro');
-        console.info('Preparando response');
-        res.status(200).json({message});
+        let { rubro, message } = await getRubroById(req.params.id);
+
+        if(rubro){
+            console.info('Rubro encontrado');
+            console.info('Preparando response');
+            res.status(200).json({rubro});
+        }
+        else{
+            console.info('No se encontro rubro');
+            console.info('Preparando response');
+            res.status(200).json({message});
+        }
     }
 }
 
@@ -524,7 +544,7 @@ async function getRubros(){
 }
 
 async function getRubroById(id){
-    console.info(`Buscando rubro con id: ${id}`);
+    console.info(`Buscando rubro con ID: ${id}`);
     let message = '';
     let rubro = await queries
                     .rubros
@@ -535,8 +555,8 @@ async function getRubroById(id){
                             return data;
                         }
                         else{
-                            console.info(`No existe rubro con id: ${id}`);
-                            message = `No existe un rubro con id ${id}`;
+                            console.info(`No existe rubro con ID: ${id}`);
+                            message = `No existe un rubro con ID ${id}`;
                             return null;
                         }
                     })
@@ -691,17 +711,27 @@ async function obtenerTypesSignUp(req, res){
 async function obtenerTypeById(req, res){
     console.log(`Conexion GET entrante : /api/helper/type/${req.params.id}`);
 
-    let { type, message } = await getTypeById(req.params.id);
+    console.info(`Comenzando validacion de tipos`);
+    let { error } = validarId(req.params.id);
 
-    if(type){
-        console.info('Tipo encontrado');
+    if(error){
+        console.info(`Error en la validacion de tipos: ${error.details[0].message}`);
         console.info('Preparando response');
-        res.status(200).json({type});
+        res.status(400).json({message: error.details[0].message});
     }
     else{
-        console.info('No se encontro tipo');
-        console.info('Preparando response');
-        res.status(200).json({message});
+        let { type, message } = await getTypeById(req.params.id);
+
+        if(type){
+            console.info('Tipo encontrado');
+            console.info('Preparando response');
+            res.status(200).json({type});
+        }
+        else{
+            console.info('No se encontro tipo');
+            console.info('Preparando response');
+            res.status(200).json({message});
+        }
     }
 }
 
@@ -869,7 +899,7 @@ async function getTypes(){
 }
 
 async function getTypeById(id){
-    console.info(`Buscando tipo con id: ${id}`);
+    console.info(`Buscando tipo con ID: ${id}`);
     let message = '';
     let type = await queries
                     .types
@@ -880,8 +910,8 @@ async function getTypeById(id){
                             return data;
                         }
                         else{
-                            console.info(`No existe tipo con id: ${id}`);
-                            message = `No existe un tipo con id ${id}`;
+                            console.info(`No existe tipo con ID: ${id}`);
+                            message = `No existe un tipo con ID ${id}`;
                             return null;
                         }
                     })
@@ -997,18 +1027,24 @@ async function deleteType(id){
     return { result, message };
 }
 
-function validarRequest(type){
+function validarRequest(name){
     const schema = Joi.string().required();
 
-    return Joi.validate(type, schema);
+    return Joi.validate(name, schema);
+}
+
+function validarId(id){
+    const schema = Joi.number().required();
+
+    return Joi.validate(id, schema);
 }
 
 module.exports = {
     obtenerCategories,
     obtenerCategoryById,
-    altaCategoria,
-    modificarCategoria,
-    eliminarCategoria,
+    altaCategory,
+    modificarCategory,
+    eliminarCategory,
     getCategories,
     getCategoryById,
     getCategoryByName,
@@ -1037,5 +1073,5 @@ module.exports = {
     getTypeByName,
     insertType,
     updateType,
-    deleteType
+    deleteType,
 };

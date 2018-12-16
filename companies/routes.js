@@ -10,7 +10,7 @@ async function obtenerCompanies(req, res){
     if(companies){
         console.info(`${companies.length} companias encontradas`);
         console.info('Preparando response');
-        res.status(200).json({companies});
+        res.status(200).json(companies);
     }
     else{
         console.info('No se encontraron companias');

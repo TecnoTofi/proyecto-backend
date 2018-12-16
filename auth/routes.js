@@ -12,7 +12,7 @@ const { getCompanyById,
         getCompanyByName,
         rollbackInsertCompany,
         insertCompany,
-        validarDatos: validarDatosCompany,
+        validarCompany: validarDatosCompany,
         updateCompany } = require('../companies/routes');
 //Incluimos funciones de User
 const { getUserByDocument,

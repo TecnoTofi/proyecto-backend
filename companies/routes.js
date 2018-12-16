@@ -198,16 +198,19 @@ async function getCompanyById(id){
                         //undefined si no existe
                         if(!data) {
                             console.info(`No existe company con id: ${id}`);
-                            message += `No existe una company con id ${id}`;
+                            message = `No existe una company con id ${id}`;
+                            return null;
                         }
                         else{
                             console.info(`Company encontrada con id: ${id}`)
+                            data.id = Number(data.id);
                             return data;
                         }
                     })
                     .catch(err => {
                         console.error('Error en Query SELECT de Company: ', err);
-                        message += `Error en Query SELECT de Company: ${err}`;
+                        message = `Error en Query SELECT de Company: ${err}`;
+                        return null
                     });
     return { company, message };
 }

@@ -18,7 +18,7 @@ const { getCompanyById,
 const { getUserByDocument,
         getUserByEmail,
         insertUser,
-        validarDatos: validarDatosUser,
+        validarUser: validarDatosUser,
         updateUser } = require('../users/routes');
 //Incluimos funciones de helpers
 const { getTypeById, getRubroById } = require('../helpers/routes');
@@ -73,8 +73,12 @@ async function login(req, res){
     let {error} = validarLogin({userEmail, userPassword});
     //Si hay error devolvemos y no continuamos
     if(error){
-        console.info(`Error en la validacion de tipos de datos : ${error.details[0].message}`);
-        res.status(400).json({message: error.details[0].message});
+        console.info(`Errores en la validacion de tipos de datos`);
+        let errores = error.details.map(e => {
+            console.info(e.message);
+            return e.message;
+        });
+        res.status(400).json({message: errores});
     }
     else{
         console.info('Validacion de tipo de datos exitosa');
@@ -82,85 +86,99 @@ async function login(req, res){
         let { user } = await getUserByEmail(userEmail);
 
         if(user){
-            //Si el usuario existe, procedemos a comparar la contraseña encriptada
+            //Si el usuario existe
             console.info('Usuario encontrado');
 
-            console.info('Comenzando comparacion de contraseña encriptada');
-            const comparacionPass = await bcrypt.compare(userPassword, user.password)
-                                                .then(result => result)
-                                                .catch(err => {
-                                                    console.error(`Error en la comparacion de contraseña: ${err}`);
-                                                    res.status(500).json('Error en el inicio de sesion.');
-                                                });
-            //Si la contraseña esta bien, avanzamos a firmar el token
-            if(comparacionPass){
-                console.info('Comparacion correcta');
+            //Checkeamos si el usuario fue eliminado
+            console.info('Revisando estado del usuario');
+            if(user.deleted){
+                console.log(`Usuario con email ${userEmail} esta bloqueado`);
+                res.status(400).json({message: 'Usuario bloqueado'});
+            }
+            else{
+                console.info('Usuario no se encuentra bloqueado');
+                //Procedemos a comparar la contraseña encriptada
+                console.info('Comenzando comparacion de contraseña encriptada');
+                console.log('userPassword', userPassword);
+                console.log('userPassword', typeof userPassword);
+                console.log('user.password', user.password);
+                console.log('user.password', typeof user.password);
+                const comparacionPass = await bcrypt.compare(userPassword, user.password)
+                                                    .then(result => result)
+                                                    .catch(err => {
+                                                        console.error(`Error en la comparacion de contraseña: ${err}`);
+                                                        res.status(500).json('Error en el inicio de sesion.');
+                                                    });
+                //Si la contraseña esta bien, avanzamos a firmar el token
+                if(comparacionPass){
+                    console.info('Comparacion correcta');
 
-                //Firmamos el token con la info necesaria
-                console.log('Firmando token');
-                const token = jwt.sign({userEmail, userPassword}, secreto, {expiresIn: '1h'});
+                    //Firmamos el token con la info necesaria
+                    console.log('Firmando token');
+                    const token = jwt.sign({userEmail, userPassword}, secreto, {expiresIn: '1h'});
 
-                //Si se creo correctamente el token, pasamos a buscar info extra
-                if(token){
-                    console.log('Token firmado correctamente');
-                    //traemos el tipo del usuario que esta iniciando sesion
-                    let { type } = await getTypeById(user.typeId);
+                    //Si se creo correctamente el token, pasamos a buscar info extra
+                    if(token){
+                        console.log('Token firmado correctamente');
+                        //traemos el tipo del usuario que esta iniciando sesion
+                        let { type } = await getTypeById(user.typeId);
 
-                    if(type){
-                        console.info('Tipo encontrado correctamente');
-                        //traemos la compañia a la que pertenece el usuario que esta iniciando sesion
-                        let { company } = await getCompanyById(user.companyId);
+                        if(type){
+                            console.info('Tipo encontrado correctamente');
+                            //traemos la compañia a la que pertenece el usuario que esta iniciando sesion
+                            let { company } = await getCompanyById(user.companyId);
 
-                        if(company){
-                            console.info('Compania encontrada correctamente');
+                            if(company){
+                                console.info('Compania encontrada correctamente');
 
-                            //creamos el cookie
-                            console.info('Creando token');
-                            res.cookie('access_token', token, {
-                                maxAge: new Date(Date.now() + 3600),
-                                httpOnly: false
-                            });
-                            console.info('Token creado');
-                            
-                            //armamos el cuerpo de la respuesta
-                            console.info('Preparando datos de la response');
-                            let data = {
-                                userType: type.name,
-                                userTypeId: type.id,
-                                userName: user.name,
-                                userEmail: user.email,
-                                userId: user.id,
-                                userCompanyName: company.name,
-                                userCompanyId: company.id
-                            };
+                                //creamos el cookie
+                                console.info('Creando token');
+                                res.cookie('access_token', token, {
+                                    maxAge: new Date(Date.now() + 3600),
+                                    httpOnly: false
+                                });
+                                console.info('Token creado');
+                                
+                                //armamos el cuerpo de la respuesta
+                                console.info('Preparando datos de la response');
+                                let data = {
+                                    userType: type.name,
+                                    userTypeId: type.id,
+                                    userName: user.name,
+                                    userEmail: user.email,
+                                    userId: user.id,
+                                    userCompanyName: company.name,
+                                    userCompanyId: company.id
+                                };
 
-                            //enviamos la respuesta con el token y el cuerpo
-                            console.info('Enviando response');
-                            res.status(200).json({
-                                message: 'Loggeado correctamente',
-                                token: token,
-                                userData: data
-                            });
+                                //enviamos la respuesta con el token y el cuerpo
+                                console.info('Enviando response');
+                                res.status(200).json({
+                                    message: 'Loggeado correctamente',
+                                    token: token,
+                                    userData: data
+                                });
+                            }
+                            else{
+                                console.info('Hubo problemas al obtener la compania');
+                                res.status(500).json('Error en el inicio de sesion.');
+                            }
                         }
                         else{
-                            console.info('Hubo problemas al obtener la compania');
+                            console.info('Hubo problemas al obtener el tipo');
                             res.status(500).json('Error en el inicio de sesion.');
                         }
                     }
                     else{
-                        console.info('Hubo problemas al obtener el tipo');
-                        res.status(500).json('Error en el inicio de sesion.');
+                        console.log(`Error al firmar el token : ${error}`);
+                        res.status(500).json({message: 'Error en el inicio de sesion.'});
                     }
+                        
                 }
                 else{
-                    console.log(`Error al firmar el token : ${error}`);
-                    res.status(500).json({message: 'Error en el inicio de sesion.'});
-                }
-                    
-            }
-            else{
-                console.log('Contraseña incorrecta');
-                res.status(400).json({message: 'Usuario o contraseña incorrectos.'});
+                    console.log('Contraseña incorrecta');
+                    res.status(400).json({message: 'Usuario o contraseña incorrectos.'});
+                }   
             }
         }
         else{
@@ -229,14 +247,28 @@ async function signup(req, res){
 
     console.info('Checkeando por errores');
     //Si hay errores, lo agregamos al array
-    if(errorUser) errorMessage.push(errorUser.details[0].message);
-    if(errorCompany) errorMessage.push(errorCompany.details[0].message);
+    if(errorUser) {
+        console.info('Errores encontrados en la validacion de usuario');
+        errorUser.details.map(e => {
+            console.info(e.message);
+            errorMessage.push(e.message);
+            return;
+        });
+    }
+    if(errorCompany){
+        console.info('Errores encontrados en la validacion de company');
+        errorCompany.details.map(e => {
+            console.info(e.message);
+            errorMessage.push(e.message);
+            return;
+        });
+    }
 
     if(errorMessage.length > 0){
         console.info(`Se encontraron ${errorMessage.length} errores de tipo en la request`);
         errorMessage.map(err => console.log(err));
         console.info('Enviando response');
-        res.status(400).json({errorMessage});
+        res.status(400).json({message: errorMessage});
     }
     else{
         console.info('Validacion de tipo de datos exitosa');
@@ -248,24 +280,22 @@ async function signup(req, res){
         let { user: userByDocument } = await getUserByDocument(valUser.document);
         let { company: companyByRut } = await getCompanyByRut(valCompany.rut);
         let { company: companyByName } = await getCompanyByName(valCompany.companyName);
-        let { type: typeById } = await getTypeById(valCompany.typeId);
-        let { rubro: rubroById } = await getRubroById(valCompany.rubroId);
+        let { type: typeById, message: typeMessage } = await getTypeById(valCompany.typeId);
+        let { rubro: rubroById, message: rubroMessage } = await getRubroById(valCompany.rubroId);
 
         if(userByEmail) errorMessage.push(`Ya existe un usuario con email ${valUser.email}`);
         if(userByDocument) errorMessage.push(`Ya existe un usuario con documento ${valUser.document}`);
         if(companyByRut) errorMessage.push(`Ya existe una empresa con rut ${valCompany.rut}`);
         if(companyByName) errorMessage.push(`Ya existe una empresa con nombre ${valCompany.companyName}`);
-        if(!typeById) errorMessage.push(`No existe tipo con ID: ${valCompany.typeId}`);
-        if(!rubroById) errorMessage.push(`No existe rubro con ID: ${valCompany.rubroId}`);
-
-        // const erroresexistencia = await ValidarExistenciaDatos(req.body);
+        if(!typeById) errorMessage.push(typeMessage);
+        if(!rubroById) errorMessage.push(rubroMessage);
 
         //Si no estan repetidos los datos, seguimos con el ecriptado de la contraseña
         if(errorMessage.length > 0){
             console.info(`Se encontraron ${errorMessage.length} errores de existencia en la request`);
             errorMessage.map(err => console.log(err));
             console.info('Enviando response')
-            res.status(400).json({errorMessage});
+            res.status(400).json({message: errorMessage});
         }
         else{
             console.info('Validaciones de existencia exitosas');
@@ -317,6 +347,7 @@ async function signup(req, res){
                         firstStreet: valUser.userFirstStreet,
                         secondStreet: valUser.userSecondStreet,
                         doorNumber: valUser.userDoorNumber,
+                        created: new Date()
                     };
 
                     //envio insert de user

@@ -2,9 +2,25 @@ const knex = require('../db/connection');
 
 module.exports = {
     companies: {
+        getCompanies: function(){
+            console.log(`Enviando Query SELECT a Company`);
+            return knex.select().table('Company').where('deleted', null);
+        },
         getAll: function(){
             console.log(`Enviando Query SELECT a Company`);
             return knex.select().table('Company');
+        },
+        getDeleted: function(){
+            console.log(`Enviando Query SELECT a Company`);
+            return knex.select().table('Company').whereNot('deleted', null);
+        },
+        getByType: function(id){
+            console.log(`Enviando Query SELECT a Company`);
+            return knex.select().table('Company').where('typeId', id);
+        },
+        getByRubro: function(id){
+            console.log(`Enviando Query SELECT a Company`);
+            return knex.select().table('Company').where('rubroId', id);
         },
         getOneById: function(id){
             console.log(`Enviando Query SELECT a Company con id ${id}`);
@@ -42,14 +58,13 @@ module.exports = {
             console.log(`Enviando Query INSERT a Company`);
             return knex('Company').insert(company).returning('id');
         },
-        modify: function(id, company){
+        update: function(id, company){
             console.log(`Enviando Query UPDATE a Company`);
             return knex('Company').where('id', id).update(company);
         },
-        delete: function(id){
-            //pasar a borrado logico
-            console.log(`Enviando Query DELETE a Company`);
-            return knex('Company').where('id', id).del();
+        delete: function(id, date){
+            console.log(`Enviando Query DELETE a User`);
+            return knex('Company').where('id', id).update('deleted', date);
         }
     },
     rubros: {

@@ -367,7 +367,7 @@ async function signup(req, res){
                         else{
                             console.info('Hubo un problema al insertar el usuario, realizando rollback');
                             let rollbackCompany = await rollbackInsertCompany(companyId);
-                            if(rollbackCompany.res) console.info(`Rollback de Company ${companyId} realizado correctamente`);
+                            if(rollbackCompany.result) console.info(`Rollback de Company ${companyId} realizado correctamente`);
                             else console.info(`Ocurrio un error en rollback de Company ${companyId}`);
                             console.info('Preparando response');
                             res.status(500).json({message: userMessage});

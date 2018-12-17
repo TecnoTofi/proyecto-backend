@@ -30,7 +30,7 @@ const secreto = process.env.COOKIE_SECRET;
 //Ruteo para validacion de tokens
 function verifyToken (req, res, next) {
     console.info('Conexion POST entrante : /api/auth/');
-    console.log('cookies', req.cookies.access_token);
+    // console.log('cookies', req.cookies.access_token);
 
     //Verificamos que el token haya sido enviado en el header de la request
     if(!req.headers.token){

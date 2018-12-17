@@ -1,20 +1,94 @@
 const Joi = require('joi');
 const queries = require('./dbQueries');
+const { validarId } = require('../helpers/routes');
 const { getUserById } = require('../users/routes');
 const { getCompanyById } = require('../companies/routes');
 const { reducirStock: reducirStockProd, getProduct } = require('../products/routes');
 const { reducirStock: reducirStockPack, getPackage } = require('../packages/routes');
 
 async function obtenerPedidos(req, res){
+    console.info('Conexion GET entrante : /api/pedido');
 
+    let { pedidos, message } = await getPedidos();
+
+    if(pedidos){
+        console.info(`${pedidos.length} pedidos encontrados`);
+        console.info('Preparando response');
+        res.status(200).json(pedidos);
+    }
+    else{
+        console.info('No se encontraron pedidos');
+        console.info('Preparando response');
+        res.status(200).json({message});
+    }
 }
 
 async function obtenerPedidoById(req, res){
-    
+    console.log(`Conexion GET entrante : /api/pedido/${req.params.id}`);
+
+    console.info(`Comenzando validacion de tipos`);
+    let { error } = validarId(req.params.id);
+
+    if(error){
+        console.info(`Error en la validacion de tipos: ${error.details[0].message}`);
+        console.info('Preparando response');
+        res.status(400).json({message: error.details[0].message});
+    }
+    else{
+        console.info('Validacion de tipos exitosa');
+        console.info(`Yendo a buscar pedido con ID: ${req.params.id}`);
+        let { pedido, message } = await getPedidoById(req.params.id);
+
+        if(pedido){
+            console.info('Pedido encontrado');
+            console.info('Preparando response');
+            pedido.password = '';
+            res.status(200).json(pedido);
+        }
+        else{
+            console.info('No se encontro pedido');
+            console.info('Preparando response');
+            res.status(200).json({message});
+        }
+    }
 }
 
 async function obtenerPedidosByUser(req, res){
+    console.info(`Conexion GET entrante : /api/pedido/user/${req.params.id}`);
     
+    console.info(`Comenzando validacion de tipos`);
+    let { error } = validarId(req.params.id);
+
+    if(error){
+        console.info(`Error en la validacion de tipos: ${error.details[0].message}`);
+        console.info('Preparando response');
+        res.status(400).json({message: error.details[0].message});
+    }
+    else{
+        console.info(`Comprobando existencia de tipo ${req.params.id}`);
+        let { user, message: userMessage } = await getUserById(req.params.id);
+
+        if(!user){
+            console.info(`No existe ususario con ID: ${req.params.id}`);
+            console.info('Preparando response');
+            res.status(400).json({message: userMessage});
+        }
+        else{
+            console.info(`Obteniendo pedidos de usuario ${user.name}`);
+            let { pedidos, message } = await getPedidosByUser(req.params.id);
+
+            if(pedidos){
+                console.info(`${pedidos.length} pedidos encontrados`);
+                console.info('Preparando response');
+                res.status(200).json(pedidos);
+            }
+            else{
+                console.info('No se encontraron pedidos');
+                console.info('Preparando response');
+                res.status(200).json({message});
+            }
+        }
+    } 
 }
 
 async function obtenerPedidosByDate(req, res){
@@ -57,201 +131,8 @@ async function obtenerDeliveryByPedido(req, res){
     
 }
 
-// function getPedidoById(req, res){
-//     console.log(`Conexion GET entrante : /api/pedido/${req.params.id}`);
-
-//     queries
-//         .pedidos
-//         .getOneById(req.params.id)
-//         .then(data => {
-//             if(data){
-//                 console.log('Informacion de pedido obtenida correctamente');
-//                 res.status(200).json(data);
-//             }
-//             else{
-//                 console.log(`No existe pedido para el ID: ${req.params.id}`);
-//                 res.status(400).json({message: `No existe pedido para el ID: ${req.params.id}`});
-//             }
-//         })
-//         .catch(err => {
-//             console.log('Error en Query SELECT de Pedido', err);
-//             res.status(500).json({message: 'Hubo un error al ejecutar la consulta'});
-//         });
-// }
-
-// async function getPedidos(req, res){
-//     console.log(`Conexion GET entrante : /api/pedido/user/${req.params.id}`);
-
-//     let busUser = await getUser(req.params.id);
-
-//     if(!busUser.user){
-//         console.log(`No existe user con ID: ${req.params.id}`);
-//         res.status(400).json({message: `No existe user con ID: ${req.params.id}`});
-//     }
-//     else{
-//         console.log(`Yendo a buscar pedidos del usuario ${req.params.id}`);
-//         let pedidos = await getPedidosByUser(req.params.id);
-
-//         if(!pedidos){
-//             //ver si devuelve array vacio
-//             console.log(`No hay pedidos para el usuario ${req.params.id}`);
-//             res.status(200).json({message: `No hay pedidos para el usuario ${req.params.id}`});
-//         }
-//         else if(pedidos.length > 0){
-//             console.log(`Usuario tiene ${pedidos.length} pedidos`);
-
-//             pedidos = await Promise.all(pedidos.map(async pedido => {
-
-//                 pedido.transactions = await getTransactionsByPedidoId(pedido.id);
-
-//                 if(pedido.transactions.length > 0){
-//                     console.log(`Comenzando busquedas de productos y paquetes por transaccion.`);
-//                     pedido.transactions = await Promise.all(pedido.transactions.map(async transaccion => {
-//                         transaccion.productos = await getProductsByTranId(transaccion.id);
-//                         // console.log('transaccion.productos', transaccion.productos);
-//                         transaccion.paquetes = await getPackagesByTranId(transaccion.id);
-//                         return transaccion;
-//                     }));
-//                 }
-//                 else{
-//                     //error al buscar transacciones
-//                 }
-//                 return pedido;
-//             }));
-//             res.status(200).json(pedidos);
-//         }
-//         else{
-//             console.log('El usuario no tiene pedidos');
-//             res.status(200).json({message: 'El usuario no tiene pedidos'});
-//         }
-//     }
-// }
-
-// const getPedidosByUser = async (userId) => {
-//     //agregar message para errores
-//     let pedidos = await queries
-//                     .pedidos
-//                     .getByUser(userId)
-//                     .then(data => {
-//                         if(data && data.length > 0){
-//                             console.log('Informacion de pedidos obtenida correctamente');
-//                             data.map(ped => console.log(ped))
-//                             // res.status(200).json(data);
-//                             return data;
-//                         }
-//                         else{
-//                             console.log(`No existen pedidos para el user ID: ${userId}`);
-//                             // res.status(400).json({message: `No existe pedido para el user ID: ${userId}`});
-//                         }
-//                     })
-//                     .catch(err => {
-//                         console.log('Error en Query SELECT de Pedido', err);
-//                         // res.status(500).json({message: 'Hubo un error al ejecutar la consulta'});
-//                     });
-//     return pedidos;
-// }
-
-// const getTransactionsByPedidoId = async (pedidoId) => {
-//     //agregar message para errores
-//     let pedidoTransaction = await queries
-//                             .transactions
-//                             .getByPedido(pedidoId)
-//                             .then(data => {
-//                                 if(data && data.length > 0){
-//                                     console.log(`${data.length} transacciones encontradas para el pedido ${pedidoId}`);
-//                                     let res = data.map(tran => {
-//                                         console.log(`Id transaccion: ${tran.transactionId}`);
-//                                         return {id: tran.transactionId}
-//                                     })
-//                                     return res;
-//                                     // res.status(200).json(data);
-//                                 }
-//                                 else{
-//                                     console.log(`No existe pedido para el ID: ${pedidoId}`);
-//                                     // res.status(400).json({message: `No existe pedido para el ID: ${pedidoId}`});
-//                                 }
-//                             })
-//                             .catch(err => {
-//                                 console.log('Error en Query SELECT de Transaction', err);
-//                                 // res.status(500).json({message: 'Hubo un error al ejecutar la consulta'});
-//                             });
-//     return pedidoTransaction;
-// }
-
-// async function getProductsByTranId(transactionId){
-//     console.log(`Buscando productos para transaccion ${transactionId}`);
-//     //agregar message para errores
-//     let productos = await queries
-//                             .transactionProducts
-//                             .getByTransaction(transactionId)
-//                             .then(async data => {
-//                                 if(data && data.length > 0){
-//                                     console.log(`Se encontraron ${data.length} productos para la transaccion ${transactionId}`);
-//                                     let res = await Promise.all(data.map(async prod => {
-//                                         // console.log('prod', prod);
-//                                         let busquedaProd = await getProduct(prod.productId);
-//                                         if(busquedaProd.product){
-//                                             prod.product = busquedaProd.product;
-//                                             prod.product.price = prod.price;
-//                                             prod.product.quantity = prod.quantity;
-//                                         }
-//                                         else{
-//                                             //error
-//                                         }
-//                                         // console.log('prod.product', prod.product);
-//                                         // console.log('quantity', prod.product.quantity);
-//                                         // return {id: prod.productId, quantity: prod.quantity}
-//                                         return prod.product;
-//                                     }));
-//                                     return res;
-//                                 }
-//                                 else{
-//                                     console.log(`No se encontraron productos para la transaccion ID: ${transactionId}`);
-//                                 }
-//                             })
-//                             .catch(err => {
-//                                 console.log('Error en Query SELECT de TransactionProduct', err);
-//                             })
-//     // console.log('productos', productos);
-//     return productos;
-// }
-
-// async function getPackagesByTranId(transactionId){
-//     console.log(`Buscando paquetes para transaccion ${transactionId}`);
-//     //agregar message para errores
-//     let paquetes = await queries
-//                             .transactionPackages
-//                             .getByTransaction(transactionId)
-//                             .then(async data => {
-//                                 if(data && data.length > 0){
-//                                     console.log(`Se encontraron ${data.length} paquetes para la transaccion ${transactionId}`);
-//                                     let res = await Promise.all(data.map(async pack => {
-//                                         let busquedaPack = await getPackage(pack.packageId);
-//                                         if(busquedaPack.package){
-//                                             pack.package = busquedaPack.package;
-//                                             pack.package.quantity = pack.quantity;
-//                                         }
-//                                         else{
-//                                             //error
-//                                         }
-//                                         return pack.package;
-//                                     }));
-//                                     return res;
-//                                 }
-//                                 else{
-//                                     console.log(`No se encontraron paquetes para la transaccion ID: ${transactionId}`);
-//                                 }
-//                             })
-//                             .catch(err => {
-//                                 console.log('Error en Query SELECT de TransactionPackage', err);
-//                             })
-//     return paquetes;
-// }
-
 async function realizarPedido(req, res){
     console.log('Conexion POST entrante : /api/pedido');
-
-    // console.log('Request', req.body);
 
     // validacion de tipos
     console.log('Comenzando validacion JOI de request');
@@ -610,67 +491,526 @@ async function realizarPedido(req, res){
 }
 
 async function armarPedido(pedido){
-    //utilizar getTransactionsByPedido y getDeliveryByPedido
+    console.info(`Comenzando armado de pedido ${pedido.id}`);
+
+    console.info('Obteniendo transacciones');
+    let { transactions: transactionIds } = await getTransactionsByPedido(pedido.id);
+
+    let flag = true;
+    if(transactionIds){
+        let transactions = await Promise.all(transactionIds.map(async id => {
+            let { transaction: tran } = await getTransactionById(id);
+
+            if(tran){
+                let transaction =  await armarTransaction(tran);
+
+                if(!transaction){
+                    flag = false;
+                    return null;
+                }
+                else return transaction;
+            }
+            else{
+                flag = false;
+                return null;
+            }
+        }));
+
+        if(flag){
+            pedido.transactions = transactions;
+
+            let { delivery } = await getDeliveryByPedido(pedido.id);
+
+            if(delivery){
+                pedido.delivery = delivery;
+                return pedido;
+            }
+            else{
+                console.info(`Ocurrio un error buscando el delivery para el pedido ${pedido.id}`);
+                return null;
+            }
+
+        }
+        else{
+            console.info('Ocurrio un error armando las transacciones');
+            return null
+        }
+    }
+    else{
+        console.info(`Ocurrio un error buscando las transacciones para el pedido ${pedido.id}`);
+        return null;
+    }
 }
 
 async function armarTransaction(transaction){
-    //utilizar getTransactionProductsByTransaction y getTransactionPackagesByTransaction
+    console.info(`Comenzando armado de transaccion ${transaction.id}`);
+
+    console.info('Obteniendo productos');
+    let { productos } = await getTransactionProductsByTransaction(transaction.id);
+
+    console.info('Obteniendo paquetes');
+    let { paquetes } = await getTransactionPackagesByTransaction(transaction.id);
+
+    if(!productos && !paquetes){
+        console.info(`Ocurrio un error buscando los productos y paquetes de la transaccion ${transaction.id}`);
+        return null;
+    }
+    else{
+        if(productos){
+            transaction.products = productos;
+        }
+
+        if(paquetes){
+            transaction.packages = paquetes;
+        }
+        return transaction;
+    }
 }
 
 async function getPedidos(){
-
+    console.info(`Buscando todos los pedidos`);
+    let message = '';
+    let pedidos = await queries
+                        .pedidos
+                        .getAll()
+                        .then(async data => {
+                            if(data){
+                                let flag = true;
+                                console.info('Informacion de pedidos obtenida');
+                                let res = await Promise.all(data.map(async p => {
+                                    let pedido = await armarPedido(p);
+                                    if(pedido){
+                                        return pedido;
+                                    }
+                                    else{
+                                        flag = false;
+                                        return null;
+                                    }
+                                }));
+                                if(flag) return res;
+                                else return null;
+                            }
+                            else{
+                                console.info(`No existen pedidos registrados en la BD`);
+                                message = `No existen pedidos registrados en la BD`;
+                                return null;
+                            }
+                        })
+                        .catch(err => {
+                            console.error(`Error en Query SELECT de Pedido : ${err}`);
+                            message = 'Ocurrio un error al obtener los pedidos';
+                            return null;
+                        });
+    return { pedidos, message };
 }
 
 async function getPedidoById(id){
-
+    console.info(`Buscando pedido con ID: ${id}`);
+    let message = '';
+    let pedido = await queries
+                    .pedidos
+                    .getOneById(id)
+                    .then(async data => {
+                        if(data){
+                            console.info(`Pedido con ID: ${id} encontrado`);
+                            let res = await armarPedido(data);
+                            if(res) return res;
+                            else return null;
+                        }
+                        else{
+                            console.info(`No existe pedido con ID: ${id}`);
+                            message = `No existe un pedido con ID ${id}`;
+                            return null;
+                        }
+                    })
+                    .catch(err => {
+                        console.error(`Error en Query SELECT de Pedido : ${err}`);
+                        message = 'Ocurrio un error al obtener el pedido';
+                        return null;
+                    });
+    return { pedido, message };
 }
 
-async function getPedidosByUser(id, user){
-
-}
-
-async function getPedidos(){
-
+async function getPedidosByUser(id){
+    console.info(`Buscando todos los pedido del usuario ${id}`);
+    let message = '';
+    let pedidos = await queries
+                        .pedidos
+                        .getByUser(id)
+                        .then(async data => {
+                            if(data){
+                                let flag = true;
+                                console.info('Informacion de pedidos obtenida');
+                                let res = await Promise.all(data.map(async p => {
+                                    let pedido = await armarPedido(p);
+                                    if(pedido){
+                                        return pedido;
+                                    }
+                                    else{
+                                        flag = false;
+                                        return null;
+                                    }
+                                }));
+                                if(flag) return res;
+                                else return null;
+                            }
+                            else{
+                                console.info(`No existen pedidos registrados en la BD para el usuario ${id}`);
+                                message = `No existen pedidos registrados en la BD para el usuario ${id}`;
+                                return null;
+                            }
+                        })
+                        .catch(err => {
+                            console.error(`Error en Query SELECT de Pedido : ${err}`);
+                            message = 'Ocurrio un error al obtener los pedidos';
+                            return null;
+                        });
+    return { pedidos, message };
 }
 
 async function getPedidosByDate(dateFrom, dateTo){
-
+    //ver tema fechas
+    console.info(`Buscando todos los pedido del usuario ${id}`);
+    let message = '';
+    let pedidos = await queries
+                        .pedidos
+                        .getByUser(id)
+                        .then(async data => {
+                            if(data){
+                                let flag = true;
+                                console.info('Informacion de pedidos obtenida');
+                                let res = await Promise.all(data.map(async p => {
+                                    let pedido = await armarPedido(p);
+                                    if(pedido){
+                                        return pedido;
+                                    }
+                                    else{
+                                        flag = false;
+                                        return null;
+                                    }
+                                }));
+                                if(flag) return res;
+                                else return null;
+                            }
+                            else{
+                                console.info(`No existen pedidos registrados en la BD para el usuario ${id}`);
+                                message = `No existen pedidos registrados en la BD para el usuario ${id}`;
+                                return null;
+                            }
+                        })
+                        .catch(err => {
+                            console.error(`Error en Query SELECT de Pedido : ${err}`);
+                            message = 'Ocurrio un error al obtener los pedidos';
+                            return null;
+                        });
+    return { pedidos, message };
 }
 
 async function getPedidosByDateByUser(id, user, dateFrom, dateTo){
-
+    //ver tema fechas y user
+    console.info(`Buscando todos los pedido del usuario ${id}`);
+    let message = '';
+    let pedidos = await queries
+                        .pedidos
+                        .getByUser(id)
+                        .then(async data => {
+                            if(data){
+                                let flag = true;
+                                console.info('Informacion de pedidos obtenida');
+                                let res = await Promise.all(data.map(async p => {
+                                    let pedido = await armarPedido(p);
+                                    if(pedido){
+                                        return pedido;
+                                    }
+                                    else{
+                                        flag = false;
+                                        return null;
+                                    }
+                                }));
+                                if(flag) return res;
+                                else return null;
+                            }
+                            else{
+                                console.info(`No existen pedidos registrados en la BD para el usuario ${id}`);
+                                message = `No existen pedidos registrados en la BD para el usuario ${id}`;
+                                return null;
+                            }
+                        })
+                        .catch(err => {
+                            console.error(`Error en Query SELECT de Pedido : ${err}`);
+                            message = 'Ocurrio un error al obtener los pedidos';
+                            return null;
+                        });
+    return { pedidos, message };
 }
 
 async function getTransactionsByPedido(id){
-
+    console.info(`Buscando todas las transacciones del pedido ${id}`);
+    let message = '';
+    let transactions = await queries
+                        .transactions
+                        .getByPedido(id)
+                        .then(data => {
+                            if(data){
+                                console.info('Informacion de transacciones obtenida');
+                                return data;
+                            }
+                            else{
+                                console.info(`No existen transacciones registrados en la BD para el pedido ${id}`);
+                                message = `No existen transacciones registrados en la BD para el pedido ${id}`;
+                                return null;
+                            }
+                        })
+                        .catch(err => {
+                            console.error(`Error en Query SELECT de Pedido : ${err}`);
+                            message = 'Ocurrio un error al obtener las transacciones';
+                            return null;
+                        });
+    return { transactions, message };
 }
 
-async function getTransactionsById(id){
-
+async function getTransactionById(id){
+    console.info(`Buscando transaccion con ID: ${id}`);
+    let message = '';
+    let transaction = await queries
+                    .transactions
+                    .getOneById(id)
+                    .then(data => {
+                        if(data){
+                            console.info(`Transaccion con ID: ${id} encontrada`);
+                            return data;
+                        }
+                        else{
+                            console.info(`No existe transaccion con ID: ${id}`);
+                            message = `No existe un transaccion con ID ${id}`;
+                            return null;
+                        }
+                    })
+                    .catch(err => {
+                        console.error(`Error en Query SELECT de Transaction : ${err}`);
+                        message = 'Ocurrio un error al obtener la transaccion';
+                        return null;
+                    });
+    return { transaction, message };
 }
 
 async function getTransactionsByDate(dateFrom, dateTo){
-
+    //ver
+    console.info(`Buscando todos los pedido del usuario ${id}`);
+    let message = '';
+    let pedidos = await queries
+                        .pedidos
+                        .getByUser(id)
+                        .then(async data => {
+                            if(data){
+                                let flag = true;
+                                console.info('Informacion de pedidos obtenida');
+                                let res = await Promise.all(data.map(async p => {
+                                    let pedido = await armarPedido(p);
+                                    if(pedido){
+                                        return pedido;
+                                    }
+                                    else{
+                                        flag = false;
+                                        return null;
+                                    }
+                                }));
+                                if(flag) return res;
+                                else return null;
+                            }
+                            else{
+                                console.info(`No existen pedidos registrados en la BD para el usuario ${id}`);
+                                message = `No existen pedidos registrados en la BD para el usuario ${id}`;
+                                return null;
+                            }
+                        })
+                        .catch(err => {
+                            console.error(`Error en Query SELECT de Pedido : ${err}`);
+                            message = 'Ocurrio un error al obtener los pedidos';
+                            return null;
+                        });
+    return { pedidos, message };
 }
 
 async function getTransactionsByCompany(id, company){
-
+    //ver
+    console.info(`Buscando todos los pedido del usuario ${id}`);
+    let message = '';
+    let pedidos = await queries
+                        .pedidos
+                        .getByUser(id)
+                        .then(async data => {
+                            if(data){
+                                let flag = true;
+                                console.info('Informacion de pedidos obtenida');
+                                let res = await Promise.all(data.map(async p => {
+                                    let pedido = await armarPedido(p);
+                                    if(pedido){
+                                        return pedido;
+                                    }
+                                    else{
+                                        flag = false;
+                                        return null;
+                                    }
+                                }));
+                                if(flag) return res;
+                                else return null;
+                            }
+                            else{
+                                console.info(`No existen pedidos registrados en la BD para el usuario ${id}`);
+                                message = `No existen pedidos registrados en la BD para el usuario ${id}`;
+                                return null;
+                            }
+                        })
+                        .catch(err => {
+                            console.error(`Error en Query SELECT de Pedido : ${err}`);
+                            message = 'Ocurrio un error al obtener los pedidos';
+                            return null;
+                        });
+    return { pedidos, message };
 }
 
 async function getTransactionsByDateByCompany(id, company, dateFrom, dateTo){
-
+    //ver
+    console.info(`Buscando todos los pedido del usuario ${id}`);
+    let message = '';
+    let pedidos = await queries
+                        .pedidos
+                        .getByUser(id)
+                        .then(async data => {
+                            if(data){
+                                let flag = true;
+                                console.info('Informacion de pedidos obtenida');
+                                let res = await Promise.all(data.map(async p => {
+                                    let pedido = await armarPedido(p);
+                                    if(pedido){
+                                        return pedido;
+                                    }
+                                    else{
+                                        flag = false;
+                                        return null;
+                                    }
+                                }));
+                                if(flag) return res;
+                                else return null;
+                            }
+                            else{
+                                console.info(`No existen pedidos registrados en la BD para el usuario ${id}`);
+                                message = `No existen pedidos registrados en la BD para el usuario ${id}`;
+                                return null;
+                            }
+                        })
+                        .catch(err => {
+                            console.error(`Error en Query SELECT de Pedido : ${err}`);
+                            message = 'Ocurrio un error al obtener los pedidos';
+                            return null;
+                        });
+    return { pedidos, message };
 }
 
 async function getTransactionProductsByTransaction(id){
-
+    console.log(`Buscando productos para transaccion ${id}`);
+    let message = '';
+    let productos = await queries
+                        .transactionProducts
+                        .getByTransaction(id)
+                        .then(async data => {
+                            if(data){
+                                console.info(`Se encontraron ${data.length} productos para la transaccion ${id}`);
+                                let flag = true;
+                                let res = await Promise.all(data.map(async prod => {
+                                    let { product } = await getProduct(prod.productId);
+                                    if(product){
+                                        product.priceId = prod.priceId;
+                                        product.quantity = prod.quantity;
+                                        return product;
+                                    }
+                                    else{
+                                        console.info(`Ocurrio un error al obtener el producto con ID: ${prod.productId}`);
+                                        flag = false;
+                                        return null;
+                                    }
+                                }));
+                                if(flag) return res;
+                                else return null;
+                            }
+                            else{
+                                console.info(`No existen productos registrados en la BD para la transaccion ${id}`);
+                                message = `No existen productos registrados en la BD para la transaccion ${id}`;
+                                return null;
+                            }
+                        })
+                        .catch(err => {
+                            console.error(`Error en Query SELECT de TransactionProduct : ${err}`);
+                            message = 'Ocurrio un error al obtener los productos';
+                            return null;
+                        });
+    return { productos, message };
 }
 
-async function getTransactionPackagesByTransaction(id){
-
+async function getTransactionPackagesByTransaction(transactionId){
+    console.log(`Buscando paquetes para transaccion ${id}`);
+    let message = '';
+    let paquetes = await queries
+                        .transactionPackages
+                        .getByTransaction(id)
+                        .then(async data => {
+                            if(data){
+                                console.info(`Se encontraron ${data.length} paquetes para la transaccion ${id}`);
+                                let flag = true;
+                                let res = await Promise.all(data.map(async pack => {
+                                    let { package } = await getPackage(pack.packageId);
+                                    if(package){
+                                        package.priceId = pack.priceId;
+                                        package.quantity = pack.quantity;
+                                        return package;
+                                    }
+                                    else{
+                                        console.info(`Ocurrio un error al obtener el paquete con ID: ${pack.packageId}`);
+                                        flag = false;
+                                        return null;
+                                    }
+                                }));
+                                if(flag) return res;
+                                else return null;
+                            }
+                            else{
+                                console.info(`No existen paquetes registrados en la BD para la transaccion ${id}`);
+                                message = `No existen paquetes registrados en la BD para la transaccion ${id}`;
+                                return null;
+                            }
+                        })
+                        .catch(err => {
+                            console.error(`Error en Query SELECT de TransactionProduct : ${err}`);
+                            message = 'Ocurrio un error al obtener los paquetes';
+                            return null;
+                        });
+    return { paquetes, message };
 }
 
 async function getDeliveryByPedido(id){
-
+console.info(`Buscando el delivery del pedido ${id}`);
+    let message = '';
+    let delivery = await queries
+                        .deliveries
+                        .getByPedido(id)
+                        .then(data => {
+                            if(data){
+                                console.info('Informacion de delivery obtenida');
+                                return data;
+                            }
+                            else{
+                                console.info(`No existe delivery registrados en la BD para el pedido ${id}`);
+                                message = `No existe delivery registrados en la BD para el pedido ${id}`;
+                                return null;
+                            }
+                        })
+                        .catch(err => {
+                            console.error(`Error en Query SELECT de Delivery : ${err}`);
+                            message = 'Ocurrio un error al obtener el delivery';
+                            return null;
+                        });
+    return { delivery, message };
 }
 
 async function insertPedido(pedido){
@@ -940,9 +1280,6 @@ function validarPedido(body){
 }
 
 module.exports = {
-    // realizarPedido,
-    // getPedidos,
-
     obtenerPedidos,
     obtenerPedidoById,
     obtenerPedidosByUser,

@@ -1,13 +1,61 @@
 const Joi = require('joi');
 const queries = require('./dbQueries');
-const { getUser } = require('../users/routes');
-const { getCompany } = require('../companies/routes');
-// const RoutesPackages = require('../packages/routes');
-// const companyQueries = require('../companies/dbQueries');
-// const userQueries = require('../users/dbQueries');
-// const productQueries = require('../products/dbQueries');
+const { getUserById } = require('../users/routes');
+const { getCompanyById } = require('../companies/routes');
 const { reducirStock: reducirStockProd, getProduct } = require('../products/routes');
 const { reducirStock: reducirStockPack, getPackage } = require('../packages/routes');
+
+async function obtenerPedidos(req, res){
+
+}
+
+async function obtenerPedidoById(req, res){
+    
+}
+
+async function obtenerPedidosByUser(req, res){
+    
+}
+
+async function obtenerPedidosByDate(req, res){
+    
+}
+
+async function obtenerPedidosByDateByUser(req, res){
+    
+}
+
+async function obtenerTransactionsByPedido(req, res){
+    
+}
+
+async function obtenerTransactionById(req, res){
+    
+}
+
+async function obtenerTransactionsByDate(req, res){
+    
+}
+
+async function obtenerTransactionsByCompany(req, res){
+    
+}
+
+async function obtenerTransactionsByDateByCompany(req, res){
+    
+}
+
+async function obtenerTransactionProductsByTransaction(req, res){
+    
+}
+
+async function obtenerTransactionPackagesByTransaction(req, res){
+    
+}
+
+async function obtenerDeliveryByPedido(req, res){
+    
+}
 
 // function getPedidoById(req, res){
 //     console.log(`Conexion GET entrante : /api/pedido/${req.params.id}`);
@@ -31,178 +79,174 @@ const { reducirStock: reducirStockPack, getPackage } = require('../packages/rout
 //         });
 // }
 
-async function getPedidos(req, res){
-    console.log(`Conexion GET entrante : /api/pedido/user/${req.params.id}`);
+// async function getPedidos(req, res){
+//     console.log(`Conexion GET entrante : /api/pedido/user/${req.params.id}`);
 
-    let busUser = await getUser(req.params.id);
+//     let busUser = await getUser(req.params.id);
 
-    if(!busUser.user){
-        console.log(`No existe user con ID: ${req.params.id}`);
-        res.status(400).json({message: `No existe user con ID: ${req.params.id}`});
-    }
-    else{
-        console.log(`Yendo a buscar pedidos del usuario ${req.params.id}`);
-        let pedidos = await getPedidosByUser(req.params.id);
+//     if(!busUser.user){
+//         console.log(`No existe user con ID: ${req.params.id}`);
+//         res.status(400).json({message: `No existe user con ID: ${req.params.id}`});
+//     }
+//     else{
+//         console.log(`Yendo a buscar pedidos del usuario ${req.params.id}`);
+//         let pedidos = await getPedidosByUser(req.params.id);
 
-        if(!pedidos){
-            //ver si devuelve array vacio
-            console.log(`No hay pedidos para el usuario ${req.params.id}`);
-            res.status(200).json({message: `No hay pedidos para el usuario ${req.params.id}`});
-        }
-        else if(pedidos.length > 0){
-            console.log(`Usuario tiene ${pedidos.length} pedidos`);
+//         if(!pedidos){
+//             //ver si devuelve array vacio
+//             console.log(`No hay pedidos para el usuario ${req.params.id}`);
+//             res.status(200).json({message: `No hay pedidos para el usuario ${req.params.id}`});
+//         }
+//         else if(pedidos.length > 0){
+//             console.log(`Usuario tiene ${pedidos.length} pedidos`);
 
-            pedidos = await Promise.all(pedidos.map(async pedido => {
+//             pedidos = await Promise.all(pedidos.map(async pedido => {
 
-                pedido.transactions = await getTransactionsByPedidoId(pedido.id);
+//                 pedido.transactions = await getTransactionsByPedidoId(pedido.id);
 
-                if(pedido.transactions.length > 0){
-                    console.log(`Comenzando busquedas de productos y paquetes por transaccion.`);
-                    pedido.transactions = await Promise.all(pedido.transactions.map(async transaccion => {
-                        transaccion.productos = await getProductsByTranId(transaccion.id);
-                        // console.log('transaccion.productos', transaccion.productos);
-                        transaccion.paquetes = await getPackagesByTranId(transaccion.id);
-                        return transaccion;
-                    }));
-                }
-                else{
-                    //error al buscar transacciones
-                }
-                return pedido;
-            }));
-            res.status(200).json(pedidos);
-        }
-        else{
-            console.log('El usuario no tiene pedidos');
-            res.status(200).json({message: 'El usuario no tiene pedidos'});
-        }
-    }
-}
-
-const getPedidosByUser = async (userId) => {
-    //agregar message para errores
-    let pedidos = await queries
-                    .pedidos
-                    .getByUser(userId)
-                    .then(data => {
-                        if(data && data.length > 0){
-                            console.log('Informacion de pedidos obtenida correctamente');
-                            data.map(ped => console.log(ped))
-                            // res.status(200).json(data);
-                            return data;
-                        }
-                        else{
-                            console.log(`No existen pedidos para el user ID: ${userId}`);
-                            // res.status(400).json({message: `No existe pedido para el user ID: ${userId}`});
-                        }
-                    })
-                    .catch(err => {
-                        console.log('Error en Query SELECT de Pedido', err);
-                        // res.status(500).json({message: 'Hubo un error al ejecutar la consulta'});
-                    });
-    return pedidos;
-}
-
-// function getPedidosByUserComplete(req, res){
-//     console.log(`Conexion GET entrante : /api/pedido/user/${req.params.id}/complete`);
+//                 if(pedido.transactions.length > 0){
+//                     console.log(`Comenzando busquedas de productos y paquetes por transaccion.`);
+//                     pedido.transactions = await Promise.all(pedido.transactions.map(async transaccion => {
+//                         transaccion.productos = await getProductsByTranId(transaccion.id);
+//                         // console.log('transaccion.productos', transaccion.productos);
+//                         transaccion.paquetes = await getPackagesByTranId(transaccion.id);
+//                         return transaccion;
+//                     }));
+//                 }
+//                 else{
+//                     //error al buscar transacciones
+//                 }
+//                 return pedido;
+//             }));
+//             res.status(200).json(pedidos);
+//         }
+//         else{
+//             console.log('El usuario no tiene pedidos');
+//             res.status(200).json({message: 'El usuario no tiene pedidos'});
+//         }
+//     }
 // }
 
-const getTransactionsByPedidoId = async (pedidoId) => {
-    //agregar message para errores
-    let pedidoTransaction = await queries
-                            .transactions
-                            .getByPedido(pedidoId)
-                            .then(data => {
-                                if(data && data.length > 0){
-                                    console.log(`${data.length} transacciones encontradas para el pedido ${pedidoId}`);
-                                    let res = data.map(tran => {
-                                        console.log(`Id transaccion: ${tran.transactionId}`);
-                                        return {id: tran.transactionId}
-                                    })
-                                    return res;
-                                    // res.status(200).json(data);
-                                }
-                                else{
-                                    console.log(`No existe pedido para el ID: ${pedidoId}`);
-                                    // res.status(400).json({message: `No existe pedido para el ID: ${pedidoId}`});
-                                }
-                            })
-                            .catch(err => {
-                                console.log('Error en Query SELECT de Transaction', err);
-                                // res.status(500).json({message: 'Hubo un error al ejecutar la consulta'});
-                            });
-    return pedidoTransaction;
-}
+// const getPedidosByUser = async (userId) => {
+//     //agregar message para errores
+//     let pedidos = await queries
+//                     .pedidos
+//                     .getByUser(userId)
+//                     .then(data => {
+//                         if(data && data.length > 0){
+//                             console.log('Informacion de pedidos obtenida correctamente');
+//                             data.map(ped => console.log(ped))
+//                             // res.status(200).json(data);
+//                             return data;
+//                         }
+//                         else{
+//                             console.log(`No existen pedidos para el user ID: ${userId}`);
+//                             // res.status(400).json({message: `No existe pedido para el user ID: ${userId}`});
+//                         }
+//                     })
+//                     .catch(err => {
+//                         console.log('Error en Query SELECT de Pedido', err);
+//                         // res.status(500).json({message: 'Hubo un error al ejecutar la consulta'});
+//                     });
+//     return pedidos;
+// }
 
-async function getProductsByTranId(transactionId){
-    console.log(`Buscando productos para transaccion ${transactionId}`);
-    //agregar message para errores
-    let productos = await queries
-                            .transactionProducts
-                            .getByTransaction(transactionId)
-                            .then(async data => {
-                                if(data && data.length > 0){
-                                    console.log(`Se encontraron ${data.length} productos para la transaccion ${transactionId}`);
-                                    let res = await Promise.all(data.map(async prod => {
-                                        // console.log('prod', prod);
-                                        let busquedaProd = await getProduct(prod.productId);
-                                        if(busquedaProd.product){
-                                            prod.product = busquedaProd.product;
-                                            prod.product.price = prod.price;
-                                            prod.product.quantity = prod.quantity;
-                                        }
-                                        else{
-                                            //error
-                                        }
-                                        // console.log('prod.product', prod.product);
-                                        // console.log('quantity', prod.product.quantity);
-                                        // return {id: prod.productId, quantity: prod.quantity}
-                                        return prod.product;
-                                    }));
-                                    return res;
-                                }
-                                else{
-                                    console.log(`No se encontraron productos para la transaccion ID: ${transactionId}`);
-                                }
-                            })
-                            .catch(err => {
-                                console.log('Error en Query SELECT de TransactionProduct', err);
-                            })
-    // console.log('productos', productos);
-    return productos;
-}
+// const getTransactionsByPedidoId = async (pedidoId) => {
+//     //agregar message para errores
+//     let pedidoTransaction = await queries
+//                             .transactions
+//                             .getByPedido(pedidoId)
+//                             .then(data => {
+//                                 if(data && data.length > 0){
+//                                     console.log(`${data.length} transacciones encontradas para el pedido ${pedidoId}`);
+//                                     let res = data.map(tran => {
+//                                         console.log(`Id transaccion: ${tran.transactionId}`);
+//                                         return {id: tran.transactionId}
+//                                     })
+//                                     return res;
+//                                     // res.status(200).json(data);
+//                                 }
+//                                 else{
+//                                     console.log(`No existe pedido para el ID: ${pedidoId}`);
+//                                     // res.status(400).json({message: `No existe pedido para el ID: ${pedidoId}`});
+//                                 }
+//                             })
+//                             .catch(err => {
+//                                 console.log('Error en Query SELECT de Transaction', err);
+//                                 // res.status(500).json({message: 'Hubo un error al ejecutar la consulta'});
+//                             });
+//     return pedidoTransaction;
+// }
 
-async function getPackagesByTranId(transactionId){
-    console.log(`Buscando paquetes para transaccion ${transactionId}`);
-    //agregar message para errores
-    let paquetes = await queries
-                            .transactionPackages
-                            .getByTransaction(transactionId)
-                            .then(async data => {
-                                if(data && data.length > 0){
-                                    console.log(`Se encontraron ${data.length} paquetes para la transaccion ${transactionId}`);
-                                    let res = await Promise.all(data.map(async pack => {
-                                        let busquedaPack = await getPackage(pack.packageId);
-                                        if(busquedaPack.package){
-                                            pack.package = busquedaPack.package;
-                                            pack.package.quantity = pack.quantity;
-                                        }
-                                        else{
-                                            //error
-                                        }
-                                        return pack.package;
-                                    }));
-                                    return res;
-                                }
-                                else{
-                                    console.log(`No se encontraron paquetes para la transaccion ID: ${transactionId}`);
-                                }
-                            })
-                            .catch(err => {
-                                console.log('Error en Query SELECT de TransactionPackage', err);
-                            })
-    return paquetes;
-}
+// async function getProductsByTranId(transactionId){
+//     console.log(`Buscando productos para transaccion ${transactionId}`);
+//     //agregar message para errores
+//     let productos = await queries
+//                             .transactionProducts
+//                             .getByTransaction(transactionId)
+//                             .then(async data => {
+//                                 if(data && data.length > 0){
+//                                     console.log(`Se encontraron ${data.length} productos para la transaccion ${transactionId}`);
+//                                     let res = await Promise.all(data.map(async prod => {
+//                                         // console.log('prod', prod);
+//                                         let busquedaProd = await getProduct(prod.productId);
+//                                         if(busquedaProd.product){
+//                                             prod.product = busquedaProd.product;
+//                                             prod.product.price = prod.price;
+//                                             prod.product.quantity = prod.quantity;
+//                                         }
+//                                         else{
+//                                             //error
+//                                         }
+//                                         // console.log('prod.product', prod.product);
+//                                         // console.log('quantity', prod.product.quantity);
+//                                         // return {id: prod.productId, quantity: prod.quantity}
+//                                         return prod.product;
+//                                     }));
+//                                     return res;
+//                                 }
+//                                 else{
+//                                     console.log(`No se encontraron productos para la transaccion ID: ${transactionId}`);
+//                                 }
+//                             })
+//                             .catch(err => {
+//                                 console.log('Error en Query SELECT de TransactionProduct', err);
+//                             })
+//     // console.log('productos', productos);
+//     return productos;
+// }
+
+// async function getPackagesByTranId(transactionId){
+//     console.log(`Buscando paquetes para transaccion ${transactionId}`);
+//     //agregar message para errores
+//     let paquetes = await queries
+//                             .transactionPackages
+//                             .getByTransaction(transactionId)
+//                             .then(async data => {
+//                                 if(data && data.length > 0){
+//                                     console.log(`Se encontraron ${data.length} paquetes para la transaccion ${transactionId}`);
+//                                     let res = await Promise.all(data.map(async pack => {
+//                                         let busquedaPack = await getPackage(pack.packageId);
+//                                         if(busquedaPack.package){
+//                                             pack.package = busquedaPack.package;
+//                                             pack.package.quantity = pack.quantity;
+//                                         }
+//                                         else{
+//                                             //error
+//                                         }
+//                                         return pack.package;
+//                                     }));
+//                                     return res;
+//                                 }
+//                                 else{
+//                                     console.log(`No se encontraron paquetes para la transaccion ID: ${transactionId}`);
+//                                 }
+//                             })
+//                             .catch(err => {
+//                                 console.log('Error en Query SELECT de TransactionPackage', err);
+//                             })
+//     return paquetes;
+// }
 
 async function realizarPedido(req, res){
     console.log('Conexion POST entrante : /api/pedido');
@@ -226,13 +270,13 @@ async function realizarPedido(req, res){
             let errorMessage = [];
 
             //Busco el usuario
-            let busquedaUser = await getUser(req.body.userId);
+            let busquedaUser = await getUserById(req.body.userId);
             //Si el usuario no existe, concateno mensaje de error
             if(!busquedaUser.user) errorMessage.push(busquedaUser.message);
 
             //Busco empresa asociada al usuario
             console.log(`Buscando compania compradora con id: ${req.body.buyerId}`);
-            let busquedaBuyer = await getCompany(req.body.buyerId);
+            let busquedaBuyer = await getCompanyById(req.body.buyerId);
             //Si la empresa no existe, concateno mensaje de error
             if(!busquedaBuyer.company) errorMessage.push(busquedaBuyer.message);
 
@@ -247,7 +291,7 @@ async function realizarPedido(req, res){
             await Promise.all(req.body.contenido.map(async seller => {
                 let sumaProdsSeller = 0, sumaPacksSeller = 0;
                 //Valido que el seller exista
-                let busSeller = await getCompany(seller.sellerId);
+                let busSeller = await getCompanyById(seller.sellerId);
                 if(!busSeller.company) errorMessage.push(busquedaBuyer.message);
                 else{
                     if(seller.productos && seller.productos.length > 0){
@@ -345,7 +389,7 @@ async function realizarPedido(req, res){
                             }
 
                             console.log(`Enviando para insercion transaccion de seller ${seller.sellerId}`);
-                            let transactionRes = await insertarTransaccion(transaction);
+                            let transactionRes = await insertTransaction(transaction);
 
                             if(transactionRes.id){
                                 console.log(`Transaccion de seller ${seller.sellerId} insertada correctamente con ID: ${transactionRes.id}`);
@@ -366,7 +410,7 @@ async function realizarPedido(req, res){
                                     }
 
                                     console.log(`Enviando producto con ID: ${producto.id} para insercion transaccionProduct de seller ${seller.sellerId}`);
-                                    let prodRes = await insertarTransactionProduct(prod);
+                                    let prodRes = await insertTransactionProduct(prod);
 
                                     if(!prodRes.id){
                                         console.log(`Fallo insert de transactionProduct con ID: ${producto.id}`);
@@ -401,7 +445,7 @@ async function realizarPedido(req, res){
                                     }
 
                                     console.log(`Enviando paquete con ID: ${paquete.id} para insercion transaccionPackage de seller ${seller.sellerId}`);
-                                    let packRes = await insertarTransactionPackage(pack);
+                                    let packRes = await insertTransactionPackage(pack);
 
                                     if(!packRes.id){
                                         console.log(`Fallo insert de transactionPackage con ID: ${paquete.id}`);
@@ -499,7 +543,7 @@ async function realizarPedido(req, res){
                             for(let id of deliveriesIds){
                                 console.log(`Enviando rollback de delivery ID: ${id}`);
                                 let rollackDelivery = await rollbackDelivery(id);
-                                if(rollackDelivery.res) console.log(`Rollback de delivery ${id} realizado correctamente`);
+                                if(rollackDelivery.result) console.log(`Rollback de delivery ${id} realizado correctamente`);
                                 else console.log(`Ocurrio un error en rollback de delivery ${id}`);
                             }
 
@@ -507,7 +551,7 @@ async function realizarPedido(req, res){
                             for(let id of packagesIds){
                                 console.log(`Enviando rollback de transactionPackage ID: ${id}`);
                                 let rollbackPackage = await rollbackTransactionPackage(id);
-                                if(rollbackPackage.res) console.log(`Rollback de transactionPackage ${id} realizado correctamente`);
+                                if(rollbackPackage.result) console.log(`Rollback de transactionPackage ${id} realizado correctamente`);
                                 else console.log(`Ocurrio un error en rollback de transactionPackage ${id}`);
                             }
 
@@ -515,7 +559,7 @@ async function realizarPedido(req, res){
                             for(let id of productsIds){
                                 console.log(`Enviando rollback de transactionProduct ID: ${id}`);
                                 let rollbackProduct = await rollbackTransactionProduct(id);
-                                if(rollbackProduct.res) console.log(`Rollback de transactionProduct ${id} realizado correctamente`);
+                                if(rollbackProduct.result) console.log(`Rollback de transactionProduct ${id} realizado correctamente`);
                                 else console.log(`Ocurrio un error en rollback de transactionProduct ${id}`);
                             }
 
@@ -523,7 +567,7 @@ async function realizarPedido(req, res){
                             for(let id of pedidoTransactionsIds){
                                 console.log(`Enviando rollback de pedidoTransaction ID: ${id}`);
                                 let rollbackPedTran = await rollbackPedidoTransaction(id);
-                                if(rollbackPedTran.res) console.log(`Rollback de pedidoTransaction ${id} realizado correctamente`);
+                                if(rollbackPedTran.result) console.log(`Rollback de pedidoTransaction ${id} realizado correctamente`);
                                 else console.log(`Ocurrio un error en rollback de pedidoTransaction ${id}`);
                             }
 
@@ -531,13 +575,13 @@ async function realizarPedido(req, res){
                             for(let id of transactionsIds){
                                 console.log(`Enviando rollback de transaction ID: ${id}`);
                                 let rollbackTran = await rollbackTransaction(id);
-                                if(rollbackTran.res) console.log(`Rollback de transaction ${id} realizado correctamente`);
+                                if(rollbackTran.result) console.log(`Rollback de transaction ${id} realizado correctamente`);
                                 else console.log(`Ocurrio un error en rollback de transaction ${id}`);
                             }
 
                             console.log('Comenzando rollbacks de pedido');
                             let rollbackPed = await rollbackPedido(pedidoRes.id);
-                            if(rollbackPed.res) console.log(`Rollback de pedido ${pedidoRes.id} realizado correctamente`);
+                            if(rollbackPed.result) console.log(`Rollback de pedido ${pedidoRes.id} realizado correctamente`);
                             else console.log(`Ocurrio un error en rollback de pedido ${pedidoRes.id}`);
 
                             res.status(500).json({message: 'No se pudo completar el pedido'});
@@ -565,217 +609,352 @@ async function realizarPedido(req, res){
     }
 }
 
+async function armarPedido(pedido){
+    //utilizar getTransactionsByPedido y getDeliveryByPedido
+}
+
+async function armarTransaction(transaction){
+    //utilizar getTransactionProductsByTransaction y getTransactionPackagesByTransaction
+}
+
+async function getPedidos(){
+
+}
+
+async function getPedidoById(id){
+
+}
+
+async function getPedidosByUser(id, user){
+
+}
+
+async function getPedidos(){
+
+}
+
+async function getPedidosByDate(dateFrom, dateTo){
+
+}
+
+async function getPedidosByDateByUser(id, user, dateFrom, dateTo){
+
+}
+
+async function getTransactionsByPedido(id){
+
+}
+
+async function getTransactionsById(id){
+
+}
+
+async function getTransactionsByDate(dateFrom, dateTo){
+
+}
+
+async function getTransactionsByCompany(id, company){
+
+}
+
+async function getTransactionsByDateByCompany(id, company, dateFrom, dateTo){
+
+}
+
+async function getTransactionProductsByTransaction(id){
+
+}
+
+async function getTransactionPackagesByTransaction(id){
+
+}
+
+async function getDeliveryByPedido(id){
+
+}
+
 async function insertPedido(pedido){
+    console.info('Comenzando insert de Pedido');
     let message = '';
     let id = await queries
             .pedidos
             .insert(pedido)
-            .then(data => {
-                // console.log(`Pedido insertado correctamente, ID: ${data[0]}`);
-                return data[0];
+            .then(res => {
+                if(res){
+                    console.log(`Insert de Pedido exitoso con ID: ${res[0]}`);
+                    return res[0];
+                }
+                else{
+                    console.info('Ocurrio un error');
+                    message = 'Ocurrio un error al intertar dar de alta';
+                    return 0;
+                }
             })
             .catch(err => {
                 console.log('Error en Query INSERT de Pedido: ', err);
-                message += `Error en Query INSERT de Pedido: ${err}`;
+                message = 'Ocurrio un error al intertar dar de alta';
+                return 0;
             });
+
     return { id, message};
 }
 
-async function insertarTransaccion(transaction){
+async function insertTransaction(transaction){
+    console.info('Comenzando insert de Transaction');
     let message = '';
     let id = await queries
-                .transactions
-                .insert(transaction)
-                .then(data => {
-                    // console.log(`Transaccion insertada correctamente, ID: ${data[0]}`);
-                    return data[0];
-                })
-                .catch(err => {
-                    console.log('Error en Query INSERT de Transaction: ', err);
-                    message += `Error en Query INSERT de Transaction: ${err}`;
-                });
-    return { id, message };
+            .transactions
+            .insert(transaction)
+            .then(res => {
+                if(res){
+                    console.log(`Insert de Transaction exitoso con ID: ${res[0]}`);
+                    return res[0];
+                }
+                else{
+                    console.info('Ocurrio un error');
+                    message = 'Ocurrio un error al intertar dar de alta';
+                    return 0;
+                }
+            })
+            .catch(err => {
+                console.log('Error en Query INSERT de Transaction: ', err);
+                message = 'Ocurrio un error al intertar dar de alta';
+                return 0;
+            });
+            
+    return { id, message};
 }
 
-async function insertarTransactionProduct(tranProd){
+async function insertTransactionProduct(tranProd){
+    console.info('Comenzando insert de TransactionProduct');
     let message = '';
     let id = await queries
-                    .transactionProducts
-                    .insert(tranProd)
-                    .then(data => {
-                        // console.log(`Producto de transaccion insertado correctamente, ID: ${data[0]}`);
-                        return data[0];
-                    })
-                    .catch(err => {
-                        console.log('Error en Query INSERT de TransactionProduct: ', err);
-                        message += `Error en Query INSERT de TransactionProduct: ${err}`;
-                    });
-    return { id, message };
+            .transactionProducts
+            .insert(tranProd)
+            .then(res => {
+                if(res){
+                    console.log(`Insert de TransactionProduct exitoso con ID: ${res[0]}`);
+                    return res[0];
+                }
+                else{
+                    console.info('Ocurrio un error');
+                    message = 'Ocurrio un error al intertar dar de alta';
+                    return 0;
+                }
+            })
+            .catch(err => {
+                console.log('Error en Query INSERT de TransactionProduct: ', err);
+                message = 'Ocurrio un error al intertar dar de alta';
+                return 0;
+            });
+            
+    return { id, message};
 }
 
-async function insertarTransactionPackage(tranPack){
+async function insertTransactionPackage(tranPack){
+    console.info('Comenzando insert de TransactionPackage');
     let message = '';
     let id = await queries
-                    .transactionPackages
-                    .insert(tranPack)
-                    .then(data => {
-                        // console.log(`Paquete de transaccion insertado correctamente, ID: ${data[0]}`);
-                        return data[0];
-                    })
-                    .catch(err => {
-                        console.log('Error en Query INSERT de TransactionPackage: ', err);
-                        message += `Error en Query INSERT de TransactionPackage: ${err}`;
-                    });
-    return { id, message };
+            .transactionPackages
+            .insert(tranPack)
+            .then(res => {
+                if(res){
+                    console.log(`Insert de TransactionPackage exitoso con ID: ${res[0]}`);
+                    return res[0];
+                }
+                else{
+                    console.info('Ocurrio un error');
+                    message = 'Ocurrio un error al intertar dar de alta';
+                    return 0;
+                }
+            })
+            .catch(err => {
+                console.log('Error en Query INSERT de TransactionPackage: ', err);
+                message = 'Ocurrio un error al intertar dar de alta';
+                return 0;
+            });
+            
+    return { id, message};
 }
 
 async function insertPedidoTransaction(pedidoTransaction){
+    console.info('Comenzando insert de PedidoTransaction');
     let message = '';
     let id = await queries
             .pedidoTransaction
             .insert(pedidoTransaction)
-            .then(data => {
-                // console.log(`PedidoTransaction insertado correctamente, ID: ${data[0]}`);
-                return data[0];
+            .then(res => {
+                if(res){
+                    console.log(`Insert de PedidoTransaction exitoso con ID: ${res[0]}`);
+                    return res[0];
+                }
+                else{
+                    console.info('Ocurrio un error');
+                    message = 'Ocurrio un error al intertar dar de alta';
+                    return 0;
+                }
             })
             .catch(err => {
                 console.log('Error en Query INSERT de PedidoTransaction: ', err);
-                message += `Error en Query INSERT de PedidoTransaction: ${err}`;
+                message = 'Ocurrio un error al intertar dar de alta';
+                return 0;
             });
+
     return { id, message};
 }
 
 async function insertDelivery(delivery){
+    console.info('Comenzando insert de Delivery');
     let message = '';
     let id = await queries
             .deliveries
             .insert(delivery)
-            .then(data => {
-                // console.log(`Delivery insertado correctamente, ID: ${data[0]}`);
-                return data[0];
+            .then(res => {
+                if(res){
+                    console.log(`Insert de Delivery exitoso con ID: ${res[0]}`);
+                    return res[0];
+                }
+                else{
+                    console.info('Ocurrio un error');
+                    message = 'Ocurrio un error al intertar dar de alta';
+                    return 0;
+                }
             })
             .catch(err => {
                 console.log('Error en Query INSERT de Delivery: ', err);
-                message += `Error en Query INSERT de Delivery: ${err}`;
+                message = 'Ocurrio un error al intertar dar de alta';
+                return 0;
             });
+
     return { id, message};
 }
 
 async function rollbackPedido(id){
     let message = '';
-    let res = await queries
+    let result = await queries
                     .pedidos
                     .delete(id)
-                    .then(data => {
+                    .then(res => {
                         // console.log(`Rollback de Pedido ${id} realizado correctamente: ${data}`);
-                        return data;
+                        return res;
                     })
                     .catch(err => {
                         console.log('Error en Query DELETE de Pedido: ', err);
                         message += `Error en Query DELETE de Pedido: ${err}`;
                     });
-    return { res, message };
+    return { result, message };
 }
 
 async function rollbackTransaction(id){
     let message = '';
-    let res = await queries
+    let result = await queries
                     .transactions
                     .delete(id)
-                    .then(data => {
+                    .then(res => {
                         // console.log(`Rollback de Transaction ${id} realizado correctamente: ${data}`);
-                        return data;
+                        return res;
                     })
                     .catch(err => {
                         console.log('Error en Query DELETE de Transaction: ', err);
                         message += `Error en Query DELETE de Transaction: ${err}`;
                     });
-    return { res, message };
+    return { result, message };
 }
 
 async function rollbackTransactionProduct(id){
     let message = '';
-    let res = await queries
+    let result = await queries
                     .transactionProducts
                     .delete(id)
-                    .then(data => {
+                    .then(res => {
                         // console.log(`Rollback de TransactionProduct ${id} realizado correctamente: ${data}`);
-                        return data;
+                        return res;
                     })
                     .catch(err => {
                         console.log('Error en Query DELETE de TransactionProduct: ', err);
                         message += `Error en Query DELETE de TransactionProduct: ${err}`;
                     });
-    return { res, message };
+    return { result, message };
 }
 
 async function rollbackTransactionPackage(id){
     let message = '';
-    let res = await queries
+    let result = await queries
                     .transactionPackages
                     .delete(id)
-                    .then(data => {
+                    .then(res => {
                         // console.log(`Rollback de TransactionPackage ${id} realizado correctamente: ${data}`);
-                        return data;
+                        return res;
                     })
                     .catch(err => {
                         console.log('Error en Query DELETE de TransactionPackage: ', err);
                         message += `Error en Query DELETE de TransactionPackage: ${err}`;
                     });
-    return { res, message };
+    return { result, message };
 }
 
 async function rollbackPedidoTransaction(id){
     let message = '';
-    let res = await queries
+    let result = await queries
                     .pedidoTransaction
                     .delete(id)
-                    .then(data => {
+                    .then(res => {
                         // console.log(`Rollback de PedidoTransaction ${id} realizado correctamente: ${data}`);
-                        return data;
+                        return res;
                     })
                     .catch(err => {
                         console.log('Error en Query DELETE de PedidoTransaction: ', err);
                         message += `Error en Query DELETE de PedidoTransaction: ${err}`;
                     });
-    return { res, message };
+    return { result, message };
 }
 
 async function rollbackDelivery(id){
     let message = '';
-    let res = await queries
+    let result = await queries
                     .deliveries
                     .delete(id)
-                    .then(data => {
+                    .then(res => {
                         // console.log(`Rollback de Delivery ${id} realizado correctamente: ${data}`);
-                        return data;
+                        return res;
                     })
                     .catch(err => {
                         console.log('Error en Query DELETE de Delivery: ', err);
                         message += `Error en Query DELETE de Delivery: ${err}`;
                     });
-    return { res, message };
+    return { result, message };
 }
 
 function validarPedido(body){
-    const schema = {
+    console.info('Comenzando validacion Joi de Pedido');
+    const schema = Joi.object().keys({
         userId: Joi.number().required(),
         buyerId: Joi.number().required(),
         amount: Joi.number().required(),
         specialDiscount: Joi.number().required(),
         deliveryType: Joi.string().required(),
         contenido: Joi.array().required()
-    };
+    });
+    console.info('Finalizando validacion Joi de Pedido');
     return Joi.validate(body, schema);
 }
 
 module.exports = {
+    // realizarPedido,
+    // getPedidos,
+
+    obtenerPedidos,
+    obtenerPedidoById,
+    obtenerPedidosByUser,
+    obtenerPedidosByDate,
+    obtenerPedidosByDateByUser,
+    obtenerTransactionsByPedido,
+    obtenerTransactionById,
+    obtenerTransactionsByDate,
+    obtenerTransactionsByCompany,
+    obtenerTransactionsByDateByCompany,
+    obtenerTransactionProductsByTransaction,
+    obtenerTransactionPackagesByTransaction,
+    obtenerDeliveryByPedido,
     realizarPedido,
-    getPedidos
-    // getPedidoById,
-    // getPedidosByUser,
-    // getPedidosByUserComplete,
-    // getTransactionsByPedidoId,
-    // getProductsByTranId,
-    // getPackagesByTranId
 }

@@ -6,19 +6,19 @@ const { verifyToken } = require('../auth/routes');
 
 //Todas las rutas empiezan con /api/pedido
 
-//Realizar un pedido
-router.post('/', PedidoRoutes.realizarPedido); //agregar validacion de token
-//Obtener un pedido por ID
-// router.get('/:id', PedidoRoutes.getPedidoById);
-//Obtener pedidos de un usuario
-// router.get('/user/:id', PedidoRoutes.getPedidosByUser);
-//Obtener todos los pedidos de un usuario, con sus respectivas transacciones, produtos y paquetes
-router.get('/user/:id', PedidoRoutes.getPedidos);
-//Obtener transacciones por ID pedido
-// router.get('/:id/transactions', PedidoRoutes.getTransactionsByPedidoId);
-//Obtener productos por ID de transaccion
-// router.get('/transaction/:id/products', PedidoRoutes.getProductsByTranId);
-//Obtener paquetes por ID de transaccion
-// router.get('/transactions/:id/packages', PedidoRoutes.getPackagesByTranId);
+router.get('/', verifyToken, PedidoRoutes.obtenerPedidos);
+router.get('/:id', verifyToken, PedidoRoutes.obtenerPedidoById);
+router.get('/user/:id', verifyToken, PedidoRoutes.obtenerPedidosByUser);
+router.get('/date', verifyToken, PedidoRoutes.obtenerPedidosByDate);
+router.get('/user/:id/date', verifyToken, PedidoRoutes.obtenerPedidosByDateByUser);
+router.get('/:id/transactions', verifyToken, PedidoRoutes.obtenerTransactionsByPedido);
+router.get('/:pedidoId/transaction/:transactionId', verifyToken, PedidoRoutes.obtenerTransactionById);
+router.get('/transactions/date', verifyToken, PedidoRoutes.obtenerTransactionsByDate);
+router.get('/company/:id', verifyToken, PedidoRoutes.obtenerTransactionsByCompany);
+router.get('/company/:id/date', verifyToken, PedidoRoutes.obtenerTransactionsByDateByCompany);
+router.get('/:pedidoId/transaction/:transactionId/products', verifyToken, PedidoRoutes.obtenerTransactionProductsByTransaction);
+router.get('/:pedidoId/transaction/:transactionId/packages', verifyToken, PedidoRoutes.obtenerTransactionPackagesByTransaction);
+router.get('/:id/delivery', verifyToken, PedidoRoutes.obtenerDeliveryByPedido);
+router.post('/', verifyToken, PedidoRoutes.realizarPedido);
 
 module.exports = router;

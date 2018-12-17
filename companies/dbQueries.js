@@ -65,6 +65,10 @@ module.exports = {
         delete: function(id, date){
             console.log(`Enviando Query DELETE a User`);
             return knex('Company').where('id', id).update('deleted', date);
+        },
+        rollback: function(id){
+            console.log(`Enviando Query DELETE a User`);
+            return knex('Company').where('id', id).del();
         }
     },
     rubros: {

@@ -723,17 +723,17 @@ async function deleteCompany(id, date){
 
 async function rollbackInsertCompany(id){
     let message = '';
-    let res = await queries
+    let result = await queries
                     .companies
-                    .delete(id)
-                    .then(data => {
-                        return data;
+                    .rollback(id)
+                    .then(res => {
+                        return res;
                     })
                     .catch(err => {
                         console.log('Error en Query DELETE de Company: ', err);
                         message += `Error en Query DELETE de Company: ${err}`;
                     });
-    return { res, message };
+    return { result, message };
 }
 
 function validarCompany(body){

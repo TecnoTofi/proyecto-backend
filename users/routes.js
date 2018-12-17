@@ -769,17 +769,17 @@ async function deleteUser(id, date){
 
 async function rollbackInsertUser(id){
     let message = '';
-    let res = await queries
+    let result = await queries
                     .users
-                    .delete(id)
-                    .then(data => {
-                        return data;
+                    .rollback(id)
+                    .then(res => {
+                        return res;
                     })
                     .catch(err => {
                         console.log('Error en Query DELETE de USER: ', err);
                         message += `Error en Query DELETE de USER: ${err}`;
                     });
-    return { res, message };
+    return { result, message };
 }
 
 function validarUser(body){

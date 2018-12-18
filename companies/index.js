@@ -48,7 +48,7 @@ router.get('/rubro/:id', CompanyRoutes.obtenerCompaniesByRubro);
 router.get('/:id', CompanyRoutes.obtenerCompanyById);
 router.get('/rut/:rut', CompanyRoutes.obtenerCompanyByRut);
 router.get('/name/:name', CompanyRoutes.obtenerCompanyByName);
-// router.post('/', upload.single('companyImage'), CompanyRoutes.altaCompany); //Comentada para no dejar publicada
+router.post('/', upload.single('companyImage'), CompanyRoutes.altaCompany); //Comentada para no dejar publicada
 router.put('/:id', upload.single('companyImage'), verifyToken, CompanyRoutes.modificarCompany);
 router.delete('/:id', verifyToken, CompanyRoutes.eliminarCompany);
 

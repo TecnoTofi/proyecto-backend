@@ -65,7 +65,7 @@ async function obtenerPedidosByUser(req, res){
         res.status(400).json({message: error.details[0].message});
     }
     else{
-        console.info(`Comprobando existencia de tipo ${req.params.id}`);
+        console.info(`Comprobando existencia de usuario ${req.params.id}`);
         let { user, message: userMessage } = await getUserById(req.params.id);
 
         if(!user){
@@ -92,7 +92,39 @@ async function obtenerPedidosByUser(req, res){
 }
 
 async function obtenerPedidosByDate(req, res){
-    
+    console.info('Conexion GET entrante : /api/pedido/date');
+
+    console.info('Comenzando validacion de tipos');
+    let fechas = {
+        dateFrom: req.body.dateFrom,
+        dateTo: req.body.dateTo
+    };
+
+    let { error } = validarFechas(fechas);
+
+    if(error){
+        console.info('Erorres encontrados en la request');
+        let errores = error.details.map(e => {
+            console.info(e.message);
+            return e.message;
+        });
+        console.info('Preparando response');
+        res.status(400).json({message: errores});
+    }
+    else{
+        let { pedidos, message } = await getPedidosByDate(fechas.dateFrom, fechas.dateTo);
+
+        if(pedidos){
+            console.info(`${pedidos.length} pedidos encontrados`);
+            console.info('Preparando response');
+            res.status(200).json(pedidos);
+        }
+        else{
+            console.info('No se encontraron pedidos');
+            console.info('Preparando response');
+            res.status(200).json({message});
+        }
+    }
 }
 
 async function obtenerPedidosByDateByUser(req, res){
@@ -132,37 +164,51 @@ async function obtenerDeliveryByPedido(req, res){
 }
 
 async function realizarPedido(req, res){
-    console.log('Conexion POST entrante : /api/pedido');
+    console.info('Conexion POST entrante : /api/pedido');
 
-    // validacion de tipos
-    console.log('Comenzando validacion JOI de request');
-    let { error } = validarPedido(req.body);
+    console.info('Enviando a validar tipos de datos en request');
+    let valPedido = {
+        userId: req.body.userId,
+        buyerId: req.body.buyerId,
+        amount: req.body.amount,
+        specialDiscount: req.body.specialDiscount,
+        deliveryType: req.body.deliveryType,
+        contenido: req.body.contenido
+    };
+    let { error } = validarPedido(valPedido);
     
     if(error){
-        console.log(`Error en la validacion de tipos de datos: ${error.details[0].message}`)
-        res.status(400).json({message: error.details[0].message});
+        console.info('Erorres encontrados en la request');
+        let errores = error.details.map(e => {
+            console.info(e.message);
+            return e.message;
+        });
+        console.info('Preparando response');
+        res.status(400).json({message: errores});
     }
     else{
-        console.log('Validacion JOI exitosa');
+        console.info('Validaciones de tipo de datos exitosa');
+        console.info('Comenzando validaciones de existencia');
 
         //Si hay contenido sigo, si no devuelvo error
-        if(req.body.contenido && req.body.contenido.length > 0){
+        if(req.body.contenido.length > 0){
             //validacion de existencia (userId, sellerId, buyerId, productos y paquetes)
             let errorMessage = [];
 
             //Busco el usuario
-            let busquedaUser = await getUserById(req.body.userId);
+            console.info(`Buscando usuario comprador con ID: ${req.body.userId}`);
+            let { user: userById, message: userMessage } = await getUserById(req.body.userId);
             //Si el usuario no existe, concateno mensaje de error
-            if(!busquedaUser.user) errorMessage.push(busquedaUser.message);
+            if(!userById) errorMessage.push(userMessage);
 
             //Busco empresa asociada al usuario
-            console.log(`Buscando compania compradora con id: ${req.body.buyerId}`);
-            let busquedaBuyer = await getCompanyById(req.body.buyerId);
+            console.info(`Buscando compania compradora con ID: ${req.body.buyerId}`);
+            let { company: companyById, message: companyMessage } = await getCompanyById(req.body.buyerId);
             //Si la empresa no existe, concateno mensaje de error
-            if(!busquedaBuyer.company) errorMessage.push(busquedaBuyer.message);
+            if(!companyById) errorMessage.push(companyMessage);
 
             //validar que la compania es la misma que la del usuario
-            if(busquedaBuyer.company.id !== busquedaUser.user.companyId)
+            if(companyById.id !== userById.companyId)
                 errorMessage.push('El usuario ingresado no corresponde con la empresa ingresada');
 
             //Inicio los arrays a utilizar para los inserts
@@ -172,24 +218,21 @@ async function realizarPedido(req, res){
             await Promise.all(req.body.contenido.map(async seller => {
                 let sumaProdsSeller = 0, sumaPacksSeller = 0;
                 //Valido que el seller exista
-                let busSeller = await getCompanyById(seller.sellerId);
-                if(!busSeller.company) errorMessage.push(busquedaBuyer.message);
+                let { company: sellerCompany, message: sellerMessage } = await getCompanyById(seller.sellerId);
+                if(!sellerCompany) errorMessage.push(sellerMessage);
                 else{
                     if(seller.productos && seller.productos.length > 0){
                         for(let prod of seller.productos){
-                            let busProd = await getProduct(prod.id);
-                            if(!busProd.product) errorMessage.push(busProd.message);
-                            else if(busProd.product.companyId !== seller.sellerId){
-                                console.log('busProd.product.companyId', busProd.product.companyId);
-                                console.log('busProd.product.companyId', typeof busProd.product.companyId);
-                                console.log('seller.sellerId', seller.sellerId);
-                                console.log('seller.sellerId', typeof seller.sellerId);
+                            let { product, message: productMessage } = await getProduct(prod.id);
+                            if(!product) errorMessage.push(productMessage);
+                            else if(product.companyId !== seller.sellerId){
                                 errorMessage.push(`Producto con ID: ${prod.id} no corresponde a empresa con ID: ${seller.sellerId}`);
                             }
                             else{
-                                sumaProds += busProd.product.price;
-                                sumaProdsSeller += busProd.product.price;
-                                prod.price = busProd.product.price;
+                                //revisar desde aca ya que debo ver como congelar los precios y comparar que todo este bien y tomar los valores mostrados en el carrito
+                                sumaProds += product.price;
+                                sumaProdsSeller += product.price;
+                                prod.price = product.price;
                             }
                         }
                     }
@@ -214,10 +257,9 @@ async function realizarPedido(req, res){
             }));
 
             if(errorMessage.length > 0){
-                console.log('Errores encontrados en las validaciones de existencias: ');
-                for(let error of errorMessage){
-                    console.log(error);
-                }
+                console.info(`Se encontraron ${errorMessage.length} errores de existencia en la request`);
+                errorMessage.map(err => console.log(err));
+                console.info('Enviando response')
                 res.status(400).json({message: errorMessage});
             }
             else{
@@ -249,7 +291,7 @@ async function realizarPedido(req, res){
                     if(pedidoRes.id){
                         console.log(`Pedido insertado correctamente, ID: ${pedidoRes.id}`);
                         let transactionsOk = true, productsOk = true, packagesOk = true, pedidoTransactionOK = true, deliveriesOK = true;
-                        let transactionsIds = [], pedidoTransactionsIds = [], deliveriesIds = [], productsIds = [], packagesIds = [];;
+                        let transactionsIds = [], pedidoTransactionsIds = [], deliveriesIds = [], productsIds = [], packagesIds = [];
                         let seller = {};
 
                         console.log('Comenzando armado e insercion de transacciones');
@@ -669,12 +711,11 @@ async function getPedidosByUser(id){
 }
 
 async function getPedidosByDate(dateFrom, dateTo){
-    //ver tema fechas
-    console.info(`Buscando todos los pedido del usuario ${id}`);
+    console.info(`Buscando todos los pedido entre ${dateFrom} y ${dateTo}`);
     let message = '';
     let pedidos = await queries
                         .pedidos
-                        .getByUser(id)
+                        .getByDate(dateFrom, dateTo)
                         .then(async data => {
                             if(data){
                                 let flag = true;
@@ -706,13 +747,13 @@ async function getPedidosByDate(dateFrom, dateTo){
     return { pedidos, message };
 }
 
-async function getPedidosByDateByUser(id, user, dateFrom, dateTo){
+async function getPedidosByDateByUser(id, dateFrom, dateTo){
     //ver tema fechas y user
-    console.info(`Buscando todos los pedido del usuario ${id}`);
+    console.info(`Buscando todos los pedido del usuario ${id} entre ${dateFrom} y ${dateTo}`);
     let message = '';
     let pedidos = await queries
                         .pedidos
-                        .getByUser(id)
+                        .getByDateByUser(id, dateFrom, dateTo)
                         .then(async data => {
                             if(data){
                                 let flag = true;
@@ -1277,6 +1318,16 @@ function validarPedido(body){
     });
     console.info('Finalizando validacion Joi de Pedido');
     return Joi.validate(body, schema);
+}
+
+function validarFechas(fechas){
+    console.info('Comenzando validacion Joi de Fecha');
+    const schema = Joi.object().keys({
+        dateFrom: Joi.date().required(),
+        dateTo: Joi.date().required()
+    });
+    console.info('Finalizando validacion Joi de Fecha');
+    return Joi.validate(fecha, schema);
 }
 
 module.exports = {

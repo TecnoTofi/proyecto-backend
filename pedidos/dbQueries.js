@@ -11,6 +11,12 @@ module.exports = {
         getByUser: function(userId){
             return knex.select().table('Pedido').where('userId', userId);
         },
+        getByDate: function(dateFrom, dateTo){
+            return knex.select().table('Pedido').where('timestamp', '>=', dateFrom).andWhere('timestamp', '<=', dateTo);
+        },
+        getByDateByUser: function(id, dateFrom, dateTo){
+            return knex.select().table('Pedido').where('userId', id).andWhere('timestamp', '>=', dateFrom).andWhere('timestamp', '<=', dateTo);
+        },
         insert: function(pedido){
             return knex('Pedido').insert(pedido).returning('id');
         },

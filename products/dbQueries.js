@@ -107,6 +107,17 @@ module.exports ={
         }
     },
     prices: {
+        getOneById: function(id){
+            return knex.select().table('ProductPrice').where('id', id).first();
+        },
+        getCurrent: function(prodId){
+            return knex.raw('select * from "ProductPrice" where "productId" = ? order by "validDateFrom" desc limit 1',
+            [prodId]);
+        },
+        getLast: function(prodId){
+            return knex.raw('select * from "ProductPrice" where "productId" = ? order by "validDateFrom" desc limit 2',
+            [prodId]);
+        },
         insert: function(price){
             return knex('ProductPrice').insert(price).returning('id');
         }

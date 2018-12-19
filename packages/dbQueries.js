@@ -40,5 +40,21 @@ module.exports = {
             return knex('PackageProduct').where('id', id).del();
         }
     },
+    prices: {
+        getOneById: function(id){
+            return knex.select().table('PackagePrice').where('id', id).first();
+        },
+        getCurrent: function(packId){
+            return knex.raw('select * from "PackagePrice" where "packageId" = ? order by "validDateFrom" desc limit 1',
+            [packId]);
+        },
+        getLast: function(packId){
+            return knex.raw('select * from "PackagePrice" where "packageId" = ? order by "validDateFrom" desc limit 2',
+            [packId]);
+        },
+        insert: function(price){
+            return knex('PackagePrice').insert(price).returning('id');
+        }
+    }
 
 }

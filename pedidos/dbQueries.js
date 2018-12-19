@@ -32,7 +32,7 @@ module.exports = {
             return knex.select().table('Transaction').where('id', id).first();
         },
         getByPedido: function(pedidoId){
-            return knex.select().table('PedidoTransaction').where('pedidoId', pedidoId);
+            return knex.select('transactionId').table('PedidoTransaction').where('pedidoId', pedidoId);
         },
         insert: function(transaction){
             return knex('Transaction').insert(transaction).returning('id');

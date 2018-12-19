@@ -9,7 +9,7 @@ const { verifyToken } = require('../auth/routes');
 router.get('/', verifyToken, PedidoRoutes.obtenerPedidos);
 router.get('/:id', verifyToken, PedidoRoutes.obtenerPedidoById);
 router.get('/user/:id', verifyToken, PedidoRoutes.obtenerPedidosByUser);
-router.get('/date', verifyToken, PedidoRoutes.obtenerPedidosByDate);
+router.get('/date/range', verifyToken, PedidoRoutes.obtenerPedidosByDate, );
 router.get('/user/:id/date', verifyToken, PedidoRoutes.obtenerPedidosByDateByUser);
 router.get('/:id/transactions', verifyToken, PedidoRoutes.obtenerTransactionsByPedido);
 router.get('/:pedidoId/transaction/:transactionId', verifyToken, PedidoRoutes.obtenerTransactionById);

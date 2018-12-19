@@ -19,6 +19,7 @@ router.get('/company/:id/date', verifyToken, PedidoRoutes.obtenerTransactionsByD
 router.get('/:pedidoId/transaction/:transactionId/products', verifyToken, PedidoRoutes.obtenerTransactionProductsByTransaction);
 router.get('/:pedidoId/transaction/:transactionId/packages', verifyToken, PedidoRoutes.obtenerTransactionPackagesByTransaction);
 router.get('/:id/delivery', verifyToken, PedidoRoutes.obtenerDeliveryByPedido);
+router.post('/calcular', verifyToken, PedidoRoutes.calcularTotal);
 router.post('/', verifyToken, PedidoRoutes.realizarPedido);
 
 module.exports = router;

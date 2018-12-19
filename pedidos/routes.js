@@ -179,6 +179,52 @@ async function obtenerDeliveryByPedido(req, res){
     
 }
 
+async function calcularTotal(req, res){
+    console.info('Conexion POST entrante : /api/pedido/calcular');
+
+    let validar = {
+        contenido: req.body.contenido,
+        specialDiscount: req.body.specialDiscount
+    };
+    
+    let { error } = validarCalculo(validar);
+
+    if(error){
+        console.info('Erorres encontrados en la request');
+        let errores = error.details.map(e => {
+            console.info(e.message);
+            return e.message;
+        });
+        console.info('Preparando response');
+        res.status(400).json({message: errores});
+    }
+    else{
+        console.info('Validaciones Joi exitosas');
+        console.info('Analizando contenido');
+        let { armado, sumaProds, sumaPacks } = await analizarContenido(req.body.contenido);
+        console.log('armado', armado)
+        console.log('sumaProds', sumaProds)
+        console.log('sumaPacks', sumaPacks)
+
+        if(armado){
+            console.info('Contenido analizado');
+            let total = sumaProds + sumaPacks;
+
+            console.info('Verificando special discount');
+            if(req.body.specialDiscount !== 0) total -= total * (req.body.specialDiscount / 100);
+
+            console.info(`Total calculado $${total}`);
+            console.info('Preparando response');
+            res.status(200).json({ total, sumaProds, sumaPacks });
+        }
+        else{
+            console.info('Error al calcular el total');
+            console.info('Preparando response');
+            res.status(500).json({message: 'Ocurrio un error al querer calcular el total'});
+        }
+    }
+}
+
 async function realizarPedido(req, res){
     console.info('Conexion POST entrante : /api/pedido');
 
@@ -229,164 +275,9 @@ async function realizarPedido(req, res){
             if(companyById && userById && companyById.id !== userById.companyId)
                 errorMessage.push('El usuario ingresado no corresponde con la empresa ingresada');
 
-            //Inicio los arrays a utilizar para los inserts
-            let sumaProds = 0, sumaPacks = 0;
-
-            //Recorro todos los sellers 
-            await Promise.all(req.body.contenido.map(async seller => {
-                let sumaProdsSeller = 0, sumaPacksSeller = 0;
-                //Valido que el seller exista
-                let { company: sellerCompany, message: sellerMessage } = await getCompanyById(seller.sellerId);
-                if(!sellerCompany) errorMessage.push(sellerMessage);
-                else{
-                    if(seller.productos && seller.productos.length > 0){
-                        for(let prod of seller.productos){
-                            let { product, message: productMessage } = await getProduct(prod.id);
-                            if(!product) errorMessage.push(productMessage);
-                            else if(Number(product.companyId) !== seller.sellerId){
-                                errorMessage.push(`Producto con ID: ${prod.id} no corresponde a empresa con ID: ${seller.sellerId}`);
-                            }
-                            else{
-                                console.info(`Buscando precios para comparar, producto: ${product.id}`);
-                                //revisar desde aca ya que debo ver como congelar los precios y comparar que todo este bien y tomar los valores mostrados en el carrito
-                                let { prices: lastPrices, message: currentMessage } = await getLastPricesProducts(product.id);
-                                let { price: cartPrice, message: cartMessage} = await getPriceByIdProduct(prod.priceId);
-
-                                let currentPrice = lastPrices.rows[0];
-                                let lastPrice = lastPrices.rows[1];
-                                prod.timestamp = new Date(prod.timestamp);
-
-                                if(lastPrices && cartPrice){
-                                    console.info('Precios encontrados');
-                                    if(currentPrice.id === cartPrice.id){
-                                        console.info(`IDs de precios coinciden: ${cartPrice.id}`);
-                                        if(currentPrice.price === prod.price && prod.timestamp > currentPrice.validDateFrom){
-                                            console.info('Precios y fechas coinciden, el precio es correcto');
-                                            sumaProds += currentPrice.price;
-                                            sumaProdsSeller += currentPrice.price;
-                                            prod.priceId = currentPrice.id;
-                                        }
-                                        else{
-                                            //retornar error, el carrito fue modificado
-                                            console.info('Precios en el carrito no coinciden con la base de datos');
-                                            errorMessage.push('Precios en el carrito no coinciden con la base de datos');
-                                        }
-                                    }
-                                    else{
-                                        console.info(`IDs de precios no coinciden: ${cartPrice.id}`);
-                                        console.info('Uso precio anterior');
-    
-                                        if(lastPrice){
-                                            if(cartPrice.id === lastPrice.id){
-                                                console.info(`IDs de precios coinciden: ${cartPrice.id}`);
-                                                if(cartPrice.price === lastPrice.price && prod.timestamp > lastPrice.validDateFrom){
-                                                    console.info('Precios y fechas coinciden, el precio es correcto');
-                                                    sumaProds += lastPrice.price;
-                                                    sumaProdsSeller += lastPrice.price;
-                                                    prod.priceId = lastPrice.id;
-                                                }else{
-                                                    //retornar error, el carrito fue modificado
-                                                    console.info('Precios en el carrito no coinciden con la base de datos');
-                                                    errorMessage.push('Precios en el carrito no coinciden con la base de datos');
-                                                }
-                                            }
-                                            else{
-                                                //retornar error, el carrito fue modificado
-                                                console.info('Precios en el carrito no coinciden con la base de datos');
-                                                errorMessage.push('Precios en el carrito no coinciden con la base de datos');
-                                            }
-                                        }
-                                        else{
-                                            console.info('Precio anterior no encontrado');
-                                            errorMessage.push('Precios en el carrito no coinciden con la base de datos');
-                                        }
-                                    }
-                                }
-                                else{
-                                    console.info('No se encontraron los precios');
-                                    console.info('CurrentPrice: ', currentMessage);
-                                    console.info('CartPrice: ', cartMessage);
-                                    errorMessage.push('Precios en el carrito no coinciden con la base de datos');
-                                }
-                            }
-                        }
-                    }
-
-                    if(seller.paquetes && seller.paquetes.length > 0){
-                        for(let pack of seller.paquetes){
-                            let { package, message: packageMessage } = await getPackage(pack.id);
-                            if(!package) errorMessage.push(packageMessage);
-                            else if(package.companyId !== seller.sellerId){
-                                errorMessage.push(`Paquete con ID: ${pack.id} no corresponde a empresa con ID: ${seller.sellerId}`);
-                            }
-                            else{
-                                console.info(`Buscando precios para comparar, paquete: ${package.id}`);
-                                //revisar desde aca ya que debo ver como congelar los precios y comparar que todo este bien y tomar los valores mostrados en el carrito
-                                let { price: lastPrices, message: currentMessage } = await getLastPricesPackages(package.id);
-                                let { price: cartPrice, message: cartMessage} = await getPriceByIdPackage(pack.priceId);
-
-                                let currentPrice = lastPrices[0];
-                                let lastPrice = lastPrices[1];
-
-                                if(currentPrice && cartPrice){
-                                    console.info('Precios encontrados');
-                                    if(currentPrice.id === cartPrice.id){
-                                        console.info(`IDs de precios coinciden: ${cartPrice.id}`);
-                                        if(currentPrice.price === prod.price && prod.timestamp > currentPrice.validDateFrom){
-                                            console.info('Precios y fechas coinciden, el precio es correcto');
-                                            sumaPacks += currentPrice.price;
-                                            sumaPacksSeller += currentPrice.price;
-                                            pack.priceId = currentPrice.id;
-                                        }
-                                        else{
-                                            //retornar error, el carrito fue modificado
-                                            console.info('Precios en el carrito no coinciden con la base de datos');
-                                            errorMessage.push('Precios en el carrito no coinciden con la base de datos');
-                                        }
-                                    }
-                                    else{
-                                        console.info(`IDs de precios no coinciden: ${cartPrice.id}`);
-                                        console.info('Uso precio anterior');
-    
-                                        if(lastPrice){
-                                            if(cartPrice.id === lastPrice.id){
-                                                console.info(`IDs de precios coinciden: ${cartPrice.id}`);
-                                                if(cartPrice.price === lastPrice.price && prod.timestamp > lastPrice.validDateFrom){
-                                                    console.info('Precios y fechas coinciden, el precio es correcto');
-                                                    sumaPacks += lastPrice.price;
-                                                    sumaPacksSeller += lastPrice.price;
-                                                    pack.priceId = lastPrice.id;
-                                                }else{
-                                                    //retornar error, el carrito fue modificado
-                                                    console.info('Precios en el carrito no coinciden con la base de datos');
-                                                    errorMessage.push('Precios en el carrito no coinciden con la base de datos');
-                                                }
-                                            }
-                                            else{
-                                                //retornar error, el carrito fue modificado
-                                                console.info('Precios en el carrito no coinciden con la base de datos');
-                                                errorMessage.push('Precios en el carrito no coinciden con la base de datos');
-                                            }
-                                        }
-                                        else{
-                                            console.info('Precio anterior no encontrado');
-                                            errorMessage.push('Precios en el carrito no coinciden con la base de datos');
-                                        }
-                                    }
-                                }
-                                else{
-                                    console.info('No se encontraron los precios');
-                                    console.info('CurrentPrice: ', currentMessage);
-                                    console.info('CartPrice: ', cartMessage);
-                                    errorMessage.push('Precios en el carrito no coinciden con la base de datos');
-                                }
-                            }
-                        }
-                    }
-                    seller.amount = sumaProdsSeller + sumaPacksSeller;
-                    // transactions.push(transaction);
-                }
-            }));
+            console.info('Analizamos contenido para validar existencias');
+            let { armado, sumaProds, sumaPacks } = await analizarContenido(req.body.contenido);
+            req.body.contenido = armado;
 
             if(errorMessage.length > 0){
                 console.info(`Se encontraron ${errorMessage.length} errores de existencia en la request`);
@@ -1488,6 +1379,179 @@ function validarFechas(fechas){
     return Joi.validate(fechas, schema);
 }
 
+function validarCalculo(validar){
+    console.info('Comenzando validacion Joi de calculo');
+    const schema = Joi.object().keys({
+        contenido: Joi.array().required(),
+        specialDiscount: Joi.number().required()
+    });
+    console.info('Finalizando validacion Joi de calculo');
+    return Joi.validate(validar, schema);
+}
+
+
+async function analizarContenido(contenido){
+    let sumaProds = 0, sumaPacks = 0;
+
+    let armado = await Promise.all(contenido.map(async seller => {
+        let sumaProdsSeller = 0, sumaPacksSeller = 0;
+        //Valido que el seller exista
+        let { company: sellerCompany, message: sellerMessage } = await getCompanyById(seller.sellerId);
+        if(!sellerCompany) errorMessage.push(sellerMessage);
+        else{
+            if(seller.productos && seller.productos.length > 0){
+                for(let prod of seller.productos){
+                    let { product, message: productMessage } = await getProduct(prod.id);
+                    if(!product) errorMessage.push(productMessage);
+                    else if(Number(product.companyId) !== seller.sellerId){
+                        errorMessage.push(`Producto con ID: ${prod.id} no corresponde a empresa con ID: ${seller.sellerId}`);
+                    }
+                    else{
+                        console.info(`Buscando precios para comparar, producto: ${product.id}`);
+                        //revisar desde aca ya que debo ver como congelar los precios y comparar que todo este bien y tomar los valores mostrados en el carrito
+                        let { prices: lastPrices, message: currentMessage } = await getLastPricesProducts(product.id);
+                        let { price: cartPrice, message: cartMessage} = await getPriceByIdProduct(prod.priceId);
+
+                        let currentPrice = lastPrices.rows[0];
+                        let lastPrice = lastPrices.rows[1];
+                        prod.timestamp = new Date(prod.timestamp);
+
+                        if(lastPrices && cartPrice){
+                            console.info('Precios encontrados');
+                            if(currentPrice.id === cartPrice.id){
+                                console.info(`IDs de precios coinciden: ${cartPrice.id}`);
+                                if(currentPrice.price === prod.price && prod.timestamp > currentPrice.validDateFrom){
+                                    console.info('Precios y fechas coinciden, el precio es correcto');
+                                    sumaProds += currentPrice.price * prod.quantity;
+                                    sumaProdsSeller += currentPrice.price * prod.quantity;
+                                    prod.priceId = currentPrice.id;
+                                }
+                                else{
+                                    //retornar error, el carrito fue modificado
+                                    console.info('Precios en el carrito no coinciden con la base de datos');
+                                    errorMessage.push('Precios en el carrito no coinciden con la base de datos');
+                                }
+                            }
+                            else{
+                                console.info(`IDs de precios no coinciden: ${cartPrice.id}`);
+                                console.info('Uso precio anterior');
+
+                                if(lastPrice){
+                                    if(cartPrice.id === lastPrice.id){
+                                        console.info(`IDs de precios coinciden: ${cartPrice.id}`);
+                                        if(cartPrice.price === lastPrice.price && prod.timestamp > lastPrice.validDateFrom){
+                                            console.info('Precios y fechas coinciden, el precio es correcto');
+                                            sumaProds += lastPrice.price * prod.quantity;
+                                            sumaProdsSeller += lastPrice.price * prod.quantity;
+                                            prod.priceId = lastPrice.id;
+                                        }else{
+                                            //retornar error, el carrito fue modificado
+                                            console.info('Precios en el carrito no coinciden con la base de datos');
+                                            errorMessage.push('Precios en el carrito no coinciden con la base de datos');
+                                        }
+                                    }
+                                    else{
+                                        //retornar error, el carrito fue modificado
+                                        console.info('Precios en el carrito no coinciden con la base de datos');
+                                        errorMessage.push('Precios en el carrito no coinciden con la base de datos');
+                                    }
+                                }
+                                else{
+                                    console.info('Precio anterior no encontrado');
+                                    errorMessage.push('Precios en el carrito no coinciden con la base de datos');
+                                }
+                            }
+                        }
+                        else{
+                            console.info('No se encontraron los precios');
+                            console.info('CurrentPrice: ', currentMessage);
+                            console.info('CartPrice: ', cartMessage);
+                            errorMessage.push('Precios en el carrito no coinciden con la base de datos');
+                        }
+                    }
+                }
+            }
+
+            if(seller.paquetes && seller.paquetes.length > 0){
+                for(let pack of seller.paquetes){
+                    let { package, message: packageMessage } = await getPackage(pack.id);
+                    if(!package) errorMessage.push(packageMessage);
+                    else if(package.companyId !== seller.sellerId){
+                        errorMessage.push(`Paquete con ID: ${pack.id} no corresponde a empresa con ID: ${seller.sellerId}`);
+                    }
+                    else{
+                        console.info(`Buscando precios para comparar, paquete: ${package.id}`);
+                        //revisar desde aca ya que debo ver como congelar los precios y comparar que todo este bien y tomar los valores mostrados en el carrito
+                        let { price: lastPrices, message: currentMessage } = await getLastPricesPackages(package.id);
+                        let { price: cartPrice, message: cartMessage} = await getPriceByIdPackage(pack.priceId);
+
+                        let currentPrice = lastPrices[0];
+                        let lastPrice = lastPrices[1];
+
+                        if(currentPrice && cartPrice){
+                            console.info('Precios encontrados');
+                            if(currentPrice.id === cartPrice.id){
+                                console.info(`IDs de precios coinciden: ${cartPrice.id}`);
+                                if(currentPrice.price === prod.price && prod.timestamp > currentPrice.validDateFrom){
+                                    console.info('Precios y fechas coinciden, el precio es correcto');
+                                    sumaPacks += currentPrice.price * pack.quantity;
+                                    sumaPacksSeller += currentPrice.price * pack.quantity;
+                                    pack.priceId = currentPrice.id;
+                                }
+                                else{
+                                    //retornar error, el carrito fue modificado
+                                    console.info('Precios en el carrito no coinciden con la base de datos');
+                                    errorMessage.push('Precios en el carrito no coinciden con la base de datos');
+                                }
+                            }
+                            else{
+                                console.info(`IDs de precios no coinciden: ${cartPrice.id}`);
+                                console.info('Uso precio anterior');
+
+                                if(lastPrice){
+                                    if(cartPrice.id === lastPrice.id){
+                                        console.info(`IDs de precios coinciden: ${cartPrice.id}`);
+                                        if(cartPrice.price === lastPrice.price && prod.timestamp > lastPrice.validDateFrom){
+                                            console.info('Precios y fechas coinciden, el precio es correcto');
+                                            sumaPacks += lastPrice.price * pack.quantity;
+                                            sumaPacksSeller += lastPrice.price * pack.quantity;
+                                            pack.priceId = lastPrice.id;
+                                        }else{
+                                            //retornar error, el carrito fue modificado
+                                            console.info('Precios en el carrito no coinciden con la base de datos');
+                                            errorMessage.push('Precios en el carrito no coinciden con la base de datos');
+                                        }
+                                    }
+                                    else{
+                                        //retornar error, el carrito fue modificado
+                                        console.info('Precios en el carrito no coinciden con la base de datos');
+                                        errorMessage.push('Precios en el carrito no coinciden con la base de datos');
+                                    }
+                                }
+                                else{
+                                    console.info('Precio anterior no encontrado');
+                                    errorMessage.push('Precios en el carrito no coinciden con la base de datos');
+                                }
+                            }
+                        }
+                        else{
+                            console.info('No se encontraron los precios');
+                            console.info('CurrentPrice: ', currentMessage);
+                            console.info('CartPrice: ', cartMessage);
+                            errorMessage.push('Precios en el carrito no coinciden con la base de datos');
+                        }
+                    }
+                }
+            }
+            seller.amount = sumaProdsSeller + sumaPacksSeller;
+            return seller;
+        }
+    }));
+
+    return { armado, sumaProds, sumaPacks };
+}
+
+
 module.exports = {
     obtenerPedidos,
     obtenerPedidoById,
@@ -1502,5 +1566,6 @@ module.exports = {
     obtenerTransactionProductsByTransaction,
     obtenerTransactionPackagesByTransaction,
     obtenerDeliveryByPedido,
+    calcularTotal,
     realizarPedido,
 }

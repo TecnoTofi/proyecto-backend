@@ -34,6 +34,9 @@ module.exports = {
         getByPedido: function(pedidoId){
             return knex.select('transactionId').table('PedidoTransaction').where('pedidoId', pedidoId);
         },
+        getBySeller: function(id){
+            return knex.select().table('Transaction').where('sellerId', id);
+        },
         insert: function(transaction){
             return knex('Transaction').insert(transaction).returning('id');
         },

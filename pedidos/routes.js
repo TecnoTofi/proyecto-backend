@@ -1,7 +1,7 @@
 const Joi = require('joi');
 const queries = require('./dbQueries');
 const { validarId } = require('../helpers/routes');
-const { getUserById } = require('../users/routes');
+const { getUserById, getUserByCompanyId } = require('../users/routes');
 const { getCompanyById } = require('../companies/routes');
 const {
     reducirStock: reducirStockProd, 
@@ -160,7 +160,55 @@ async function obtenerTransactionsByDate(req, res){
 }
 
 async function obtenerTransactionsByCompany(req, res){
+    console.info(`Conexion GET entrante : /api/pedido/company/${req.params.id}`);
     
+    console.info(`Comenzando validacion de tipos`);
+    let { error } = validarId(req.params.id);
+
+    if(error){
+        console.info(`Error en la validacion de tipos: ${error.details[0].message}`);
+        console.info('Preparando response');
+        res.status(400).json({message: error.details[0].message});
+    }
+    else{
+        console.info(`Comprobando existencia de compania ${req.params.id}`);
+        let { company, message: companyMessage } = await getCompanyById(req.params.id);
+
+        if(!company){
+            console.info(`No existe company con ID: ${req.params.id}`);
+            console.info('Preparando response');
+            res.status(400).json({message: companyMessage});
+        }
+        else{
+            let { user, message: userMessage } = await getUserByCompanyId(company.id);
+
+            if(!user){
+                console.info(`No existe usuario para la compania con ID: ${req.params.id}`);
+                console.info('Preparando response');
+                res.status(400).json({message: userMessage});
+            }
+            if(user.email === req.body.userEmail){
+                console.info(`Obteniendo pedidos de compania ${company.name}`);
+                let { transactions, message } = await getTransactionsByCompany(req.params.id);
+    
+                if(transactions){
+                    console.info(`${transactions.length} transacciones encontradas`);
+                    console.info('Preparando response');
+                    res.status(200).json(transactions);
+                }
+                else{
+                    console.info('No se encontraron transacciones');
+                    console.info('Preparando response');
+                    res.status(200).json({message});
+                }
+            }
+            else{
+                console.info('Token no corresponde con usuario correspondiente a la empresa');
+                console.info('Preparando response');
+                res.status(200).json({message: 'Token no corresponde con compania'});
+            }
+        }
+    } 
 }
 
 async function obtenerTransactionsByDateByCompany(req, res){
@@ -905,21 +953,20 @@ async function getTransactionsByDate(dateFrom, dateTo){
     return { pedidos, message };
 }
 
-async function getTransactionsByCompany(id, company){
-    //ver
-    console.info(`Buscando todos los pedido del usuario ${id}`);
+async function getTransactionsByCompany(id){
+    console.info(`Buscando todas las transacciones de la compania ${id}`);
     let message = '';
-    let pedidos = await queries
-                        .pedidos
-                        .getByUser(id)
+    let transactions = await queries
+                        .transactions
+                        .getBySeller(id)
                         .then(async data => {
                             if(data){
                                 let flag = true;
-                                console.info('Informacion de pedidos obtenida');
-                                let res = await Promise.all(data.map(async p => {
-                                    let pedido = await armarPedido(p);
-                                    if(pedido){
-                                        return pedido;
+                                console.info('Informacion de transacciones obtenida');
+                                let res = await Promise.all(data.map(async t => {
+                                    let transaccion = await armarTransaction(t);
+                                    if(transaccion){
+                                        return transaccion;
                                     }
                                     else{
                                         flag = false;
@@ -930,17 +977,17 @@ async function getTransactionsByCompany(id, company){
                                 else return null;
                             }
                             else{
-                                console.info(`No existen pedidos registrados en la BD para el usuario ${id}`);
-                                message = `No existen pedidos registrados en la BD para el usuario ${id}`;
+                                console.info(`No existen transacciones registradas en la BD para la comapnia ${id}`);
+                                message = `No existen transacciones registradas en la BD para la comapnia ${id}`;
                                 return null;
                             }
                         })
                         .catch(err => {
                             console.error(`Error en Query SELECT de Pedido : ${err}`);
-                            message = 'Ocurrio un error al obtener los pedidos';
+                            message = 'Ocurrio un error al obtener los transacciones';
                             return null;
                         });
-    return { pedidos, message };
+    return { transactions, message };
 }
 
 async function getTransactionsByDateByCompany(id, company, dateFrom, dateTo){

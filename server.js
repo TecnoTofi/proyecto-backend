@@ -61,7 +61,7 @@ app.use('/api/pedido', pedidosRoutes);
 
 //Mensaje de bienvenida a /
 app.get('/', (req, res) => {
-    res.json({message: 'Bienvenido a la plataforma'});
+    res.json({message: 'Bienvenido a la plataforma de sistema de gestion de pedidos'});
   });
 
 //Establecemos el puerto segun variable de ambiente del servidor o 3000 para ambiente de desarrollo

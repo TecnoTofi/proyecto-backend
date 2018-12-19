@@ -351,6 +351,78 @@ async function getPackage(packageId){
     return { package, message };
 }
 
+async function getPriceById(id){
+    console.info(`Buscando precio con ID: ${id}`);
+    let message = '';
+    let price = await queries
+                .prices
+                .getOneById(id)
+                .then(data => {
+                    if(data) {
+                        console.info(`Precio con ID: ${id} encontrado`);
+                        return data;
+                    }
+                    else{
+                        console.info(`No existe precio con ID: ${id}`);
+                        message = `No existe un precio con ID ${id}`;
+                        return null;
+                    }
+                })
+                .catch(err => {
+                    console.error(`Error en Query SELECT de ProductPrice: ${err}`);
+                    message = 'Ocurrio un error al obtener el precio';
+                });
+    return { price, message };
+}
+
+async function getCurrentPrice(id){
+    console.info(`Buscando precio con ID: ${id}`);
+    let message = '';
+    let price = await queries
+                .prices
+                .getCurrent(id)
+                .then(data => {
+                    if(data) {
+                        console.info(`Precio con ID: ${id} encontrado`);
+                        return data;
+                    }
+                    else{
+                        console.info(`No existe precio con ID: ${id}`);
+                        message = `No existe un precio con ID ${id}`;
+                        return null;
+                    }
+                })
+                .catch(err => {
+                    console.error(`Error en Query SELECT de ProductPrice: ${err}`);
+                    message = 'Ocurrio un error al obtener el precio';
+                });
+    return { price, message };
+}
+
+async function getLastPrices(id){
+    console.info(`Buscando precio con ID: ${id}`);
+    let message = '';
+    let prices = await queries
+                .prices
+                .getLast(id)
+                .then(data => {
+                    if(data) {
+                        console.info(`Precio con ID: ${id} encontrado`);
+                        return data;
+                    }
+                    else{
+                        console.info(`No existe precio con ID: ${id}`);
+                        message = `No existe un precio con ID ${id}`;
+                        return null;
+                    }
+                })
+                .catch(err => {
+                    console.error(`Error en Query SELECT de ProductPrice: ${err}`);
+                    message = 'Ocurrio un error al obtener el precio';
+                });
+    return { prices, message };
+}
+
 async function reducirStock(id, cantidad){
     console.log(`Comenzando reduccion de stock para paquete con ID: ${id}, cantidad a reducir: ${cantidad}`);
 
@@ -413,5 +485,8 @@ module.exports = {
     deletePackageProduct,
     insertPackagesCompleto,
     reducirStock,
-    getPackage
+    getPackage,
+    getPriceById,
+    getCurrentPrice,
+    getLastPrices
 };

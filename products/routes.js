@@ -765,6 +765,79 @@ async function getProduct2(id){
     return {product, message}
 }
 
+async function getPriceById(id){
+    console.info(`Buscando precio con ID: ${id}`);
+    let message = '';
+    let price = await queries
+                .prices
+                .getOneById(id)
+                .then(data => {
+                    if(data) {
+                        console.info(`Precio con ID: ${id} encontrado`);
+                        return data;
+                    }
+                    else{
+                        console.info(`No existe precio con ID: ${id}`);
+                        message = `No existe un precio con ID ${id}`;
+                        return null;
+                    }
+                })
+                .catch(err => {
+                    console.error(`Error en Query SELECT de ProductPrice: ${err}`);
+                    message = 'Ocurrio un error al obtener el precio';
+                });
+    return { price, message };
+}
+
+async function getCurrentPrice(id){
+    console.info(`Buscando precio actual para producto con ID: ${id}`);
+    let message = '';
+    let price = await queries
+                .prices
+                .getCurrent(id)
+                .then(data => {
+                    if(data) {
+                        console.info(`Precio con ID: ${data.id} encontrado`);
+                        return data;
+                    }
+                    else{
+                        console.info(`No existe precio con ID: ${id}`);
+                        message = `No existe un precio con ID ${id}`;
+                        return null;
+                    }
+                })
+                .catch(err => {
+                    console.error(`Error en Query SELECT de ProductPrice: ${err}`);
+                    message = 'Ocurrio un error al obtener el precio';
+                });
+    return { price, message };
+}
+
+async function getLastPrices(id){
+    console.info(`Buscando ultimos 2 precios para producto con ID: ${id}`);
+    let message = '';
+    let prices = await queries
+                .prices
+                .getLast(id)
+                .then(data => {
+                    if(data) {
+                        console.info(`Precios para producto ${id} encontrados`);
+                        return data;
+                    }
+                    else{
+                        console.info(`No existe precio con ID: ${id}`);
+                        message = `No existe un precio con ID ${id}`;
+                        return null;
+                    }
+                })
+                .catch(err => {
+                    console.error(`Error en Query SELECT de ProductPrice: ${err}`);
+                    message = 'Ocurrio un error al obtener el precio';
+                });
+    return { prices, message };
+}
+
+
 function validarRegistroEmpresaProducto(body) {
     const schema = {
         companyId:Joi.number().required(),
@@ -806,5 +879,8 @@ module.exports = {
     insertProductYAssociacion,
     getProductCompanyByProduct,
     getProductById,
-    getProductByCode
+    getProductByCode,
+    getPriceById,
+    getCurrentPrice,
+    getLastPrices
 };

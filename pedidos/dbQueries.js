@@ -91,7 +91,7 @@ module.exports = {
             return knex.select().table('Delivery').where('id', id).first();
         },
         getByTransaction: function(transactionId){
-            return knex.select().table('Delivery').where('transactionId', transactionId);
+            return knex.select().table('Delivery').where('transactionId', transactionId).first();
         },
         insert: function(delivery){
             return knex('Delivery').insert(delivery).returning('id');

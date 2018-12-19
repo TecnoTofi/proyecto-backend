@@ -83,18 +83,25 @@ async function obtenerPedidosByUser(req, res){
             res.status(400).json({message: userMessage});
         }
         else{
-            console.info(`Obteniendo pedidos de usuario ${user.name}`);
-            let { pedidos, message } = await getPedidosByUser(req.params.id);
-
-            if(pedidos){
-                console.info(`${pedidos.length} pedidos encontrados`);
-                console.info('Preparando response');
-                res.status(200).json(pedidos);
+            if(user.email === req.body.userEmail){
+                console.info(`Obteniendo pedidos de usuario ${user.name}`);
+                let { pedidos, message } = await getPedidosByUser(req.params.id);
+    
+                if(pedidos){
+                    console.info(`${pedidos.length} pedidos encontrados`);
+                    console.info('Preparando response');
+                    res.status(200).json(pedidos);
+                }
+                else{
+                    console.info('No se encontraron pedidos');
+                    console.info('Preparando response');
+                    res.status(200).json({message});
+                }
             }
             else{
-                console.info('No se encontraron pedidos');
+                console.info('Token no corresponde con usuario enviado por parametros');
                 console.info('Preparando response');
-                res.status(200).json({message});
+                res.status(200).json({message: 'Token no corresponde con usuario solicitado'});
             }
         }
     } 
@@ -219,7 +226,7 @@ async function realizarPedido(req, res){
             if(!companyById) errorMessage.push(companyMessage);
 
             //validar que la compania es la misma que la del usuario
-            if(companyById && companyById.id !== userById.companyId)
+            if(companyById && userById && companyById.id !== userById.companyId)
                 errorMessage.push('El usuario ingresado no corresponde con la empresa ingresada');
 
             //Inicio los arrays a utilizar para los inserts
@@ -1096,9 +1103,18 @@ async function getTransactionProductsByTransaction(id){
                                 let res = await Promise.all(data.map(async prod => {
                                     let { product } = await getProduct(prod.productId);
                                     if(product){
-                                        product.priceId = prod.priceId;
-                                        product.quantity = prod.quantity;
-                                        return product;
+                                        let { price } = await getPriceByIdProduct(prod.priceId);
+
+                                        if(price){
+                                            product.priceId = prod.priceId;
+                                            product.price = price.price;
+                                            product.quantity = prod.quantity;
+                                            return product;
+                                        }
+                                        else{
+                                            flag = false;
+                                            return null;
+                                        }
                                     }
                                     else{
                                         console.info(`Ocurrio un error al obtener el producto con ID: ${prod.productId}`);
@@ -1136,9 +1152,17 @@ async function getTransactionPackagesByTransaction(id){
                                 let res = await Promise.all(data.map(async pack => {
                                     let { package } = await getPackage(pack.packageId);
                                     if(package){
-                                        package.priceId = pack.priceId;
-                                        package.quantity = pack.quantity;
-                                        return package;
+                                        let { price } = await getPriceByIdPackage(pack.priceId);
+
+                                        if(price){
+                                            package.priceId = pack.priceId;
+                                            package.quantity = pack.quantity;
+                                            return package;
+                                        }
+                                        else{
+                                            flag = false;
+                                            return null;
+                                        }
                                     }
                                     else{
                                         console.info(`Ocurrio un error al obtener el paquete con ID: ${pack.packageId}`);

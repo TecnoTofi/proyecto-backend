@@ -11,12 +11,13 @@ const storage = multer.diskStorage({
     },
     filename: function(req, file, cb){
         //indicamos como se formara el nombre del archivo
-        cb(null, new Date().toISOString().replace(/:/g,'-') + file.originalname);
+        if(file) cb(null, new Date().toISOString().replace(/:/g,'-') + file.originalname);
+        else cb(null);
     }
 });
 //Creamos filtros para guardar unicamente jpg, jpeg y png
 const fileFilter = (req, file, cb) => {
-    if(file.mimetype === 'image/jpeg' || file.mimetype === 'image/png' || file.mimetype === 'image/jpg'){
+    if(file && file.mimetype === 'image/jpeg' || file.mimetype === 'image/png' || file.mimetype === 'image/jpg'){
         cb(null, true);
     }
     else{
@@ -35,7 +36,7 @@ const upload = multer({
 
 const ProductRoutes = require('./routes');
 const { verifyToken } = require('../auth/routes');
-
+/*
 //Todas las rutas empiezan con /api/product
 
 //Obtener todas las categorias de productos
@@ -61,5 +62,35 @@ router.post('/', upload.single('productImage'), verifyToken, ProductRoutes.inser
 router.get('/:id/companies',ProductRoutes.getProductCompanyByProduct);
 //Obtener un producto por Id
 router.get('/:id',ProductRoutes.getProductById);
+*/
 
+// Todas las rutas empiezan con /api/product
+
+//Producto
+router.get('/' , ProductRoutes.obtenerProducts);
+router.get(/^\/company$/, ProductRoutes.obtenerCompanyProducts);
+router.get('/:id' , ProductRoutes.obtenerProductById);
+router.get('/code/:code' , ProductRoutes.obtenerProductByCode);
+router.get('/category/:id' , ProductRoutes.obtenerProductsByCategory);
+
+//CompanyProduct
+router.get('/company/deleted' , ProductRoutes.obtenerDeletedCompanyProducts);
+router.get(/^\/company\/all/, ProductRoutes.obtenerAllCompanyProducts);
+router.get('/company/:id' , ProductRoutes.obtenerCompanyProductsByCompany);
+// router.get('/company/list/:id' , ProductRoutes.obtenerCompanyProductsByCompanyList);
+router.get('/company/:id/all' , ProductRoutes.obtenerAllCompanyProductsByCompany);
+// router.get('/company/all/list/:id' , ProductRoutes.obtenerCompanyProductsAllByCompanyList);
+router.get('/company/:id/deleted/' , ProductRoutes.obtenerDeletedCompanyProductsByCompany);
+// router.get('/company/deleted/list/:id' , ProductRoutes.obtenerCompanyProductsDeletedByCompanyList);
+// //
+router.get('/company/:companyId/product/:productId', verifyToken, ProductRoutes.obtenerCompanyProductById);
+
+router.post('/', verifyToken , upload.single('image'), ProductRoutes.altaProducto);
+router.post('/associate', verifyToken, upload.single('image'), ProductRoutes.asociarProducto);
+// // insertar y asociar producto
+// router.post('/company' ,upload.single('image'), ProductRoutes.altaAsociacionProducto);
+// //modificar Producto
+// router.put('/update/company/:id', upload.single('productImage'), ProductRoutes.modificarProducto);
+// //eliminar producto
+// router.delete('/delete/company/:id', ProductRoutes.eliminarProducto);
 module.exports = router;

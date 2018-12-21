@@ -427,12 +427,12 @@ async function obtenerProductsByCategory(req, res){
 async function altaProducto(req, res){
     console.log('Conexion POST entrante : /api/product');
 
-    let categories = JSON.parse('[' + req.body.categories + ']');
+    // let categories = JSON.parse('[' + req.body.categories + ']');
     
     let valproduct = {
         name: req.body.name,
         code: req.body.code,
-        categories: categories,
+        categories: req.body.categories,
         imageName: req.file.filename,
         imagePath: req.file.path,
     }
@@ -442,8 +442,13 @@ async function altaProducto(req, res){
     let { error } = validarProducto(valproduct);
     
     if(error){
-        console.log(`Error en la validacion de tipos de datos: ${error.details[0].message}`)
-        res.status(400).json({message: error.details[0].message});
+        console.info('Erorres encontrados en la request');
+        let errores = error.details.map(e => {
+            console.info(e.message);
+            return e.message;
+        });
+        console.info('Preparando response');
+        res.status(400).json({message: errores});
     }
     else{
         console.info('Validaciones de tipo de datos exitosa');
@@ -452,14 +457,19 @@ async function altaProducto(req, res){
         //Inicializo array de errores
         let errorMessage = [];
 
-        //let { valCategories, message: message } = await validarCategorias(categories)
-        let { producto: ProductoName } = await getProductByName(valproduct.name);
-        let { producto: ProductoCode } = await getProductByCode(valproduct.code);
-        let valCategories = await validarCategorias(categories);
+        let { categories: valCategories, messages: categoriesMessages } = await validarCategorias(req.body.categories)
+        let { producto: ProductoByName } = await getProductByName(valproduct.name);
+        let { producto: ProductoByCode } = await getProductByCode(valproduct.code);
 
-        if(valCategories.message) errorMessage.push(valCategories.message);
-        if(ProductoCode) errorMessage.push(`Ya existe un producto con Codigo ${valproduct.code}`);
-        if(ProductoName) errorMessage.push(`Ya existe un producto con Nombre ${valproduct.name}`);
+        if(!valCategories){
+            console.info('Erorres encontrados en las categorias');
+            categoriesMessages.map(msj => {
+                console.info(msj);
+                errorMessage.push(msj);
+            });
+        }
+        if(ProductoByCode) errorMessage.push(`Ya existe un producto con Codigo ${valproduct.code}`);
+        if(ProductoByName) errorMessage.push(`Ya existe un producto con Nombre ${valproduct.name}`);
 
 
         if(errorMessage.length > 0){
@@ -478,68 +488,67 @@ async function altaProducto(req, res){
                     created: new Date(),
                 }
 
-                console.log('Enviando a insertar producto');
-                let producto = await insertProduct(product);
+            console.log('Enviando a insertar producto');
+            let producto = await insertProduct(product);
 
-                if(producto.id){
-                    console.log(`Producto insertado correctamente con ID: ${producto.id}`);
-                    // console.log('product id', typeof insertProducto.productId);
+            if(producto.id){
+                console.log(`Producto insertado correctamente con ID: ${producto.id}`);
 
-                    let prodCategoryIds = [];
-                    let rollback = false;
-                    let prodCategory = {
-                        productId: producto.id
-                    }
-                    console.log(`Comenzando armado e insercion de ProductCategory para producto ${producto.id}`);
-                    let i = 0;
-                    let categoriesOk = true;
-                    while(i < categories.length && categoriesOk){
-                        
-                        prodCategory.categoryId = categories[i];
-                        
-                        console.log('Enviando Query INSERT para ProductCategory');
-                        let productCategoryRes = await insertProductCategory(prodCategory);
+                let prodCategoryIds = [];
+                let rollback = false;
+                let prodCategory = {
+                    productId: producto.id
+                }
+                console.log(`Comenzando armado e insercion de ProductCategory para producto ${producto.id}`);
+                let i = 0;
+                let categoriesOk = true;
+                while(i < req.body.categories.length && categoriesOk){
+                    
+                    prodCategory.categoryId = req.body.categories[i];
+                    
+                    console.log('Enviando Query INSERT para ProductCategory');
+                    let productCategoryRes = await insertProductCategory(prodCategory);
 
-                        if(!productCategoryRes.id){
-                            console.log(`Fallo insert de ProductCategory con ID: ${prodCategory.categoryId}`);
-                            errorMessage.push(productCategoryRes.message);
-                            rollback = true;
-                            categoriesOk = false;
-                        }
-                        else{
-                            console.log(`ProductCategory insertada correctamente con ID: ${productCategoryRes.id}`);
-                            prodCategoryIds.push(productCategoryRes.id);
-                        }
-                        i++;
-                    }
-
-                    if(!rollback){
-                        console.log('Producto finalizado exitosamente');
-                        res.status(201).json(producto.id);
+                    if(!productCategoryRes.id){
+                        console.log(`Fallo insert de ProductCategory con ID: ${prodCategory.categoryId}`);
+                        errorMessage.push(productCategoryRes.message);
+                        rollback = true;
+                        categoriesOk = false;
                     }
                     else{
-                        console.log('Ocurrio un error en el proceso de inserts, comenzando rollback');
+                        console.log(`ProductCategory insertada correctamente con ID: ${productCategoryRes.id}`);
+                        prodCategoryIds.push(productCategoryRes.id);
+                    }
+                    i++;
+                }
 
-                        console.log('Comenzando rollbacks de categorias');
-                        for(let id of prodCategoryIds){
-                            console.log(`Enviando rollback de ProductCategory ID: ${id}`);
-                            let rollbackProductCategory = await rollbackProductCategory(id);
-                            if(rollbackProductCategory.res) console.log(`Rollback de ProductCategory ${id} realizado correctamente`);
-                            else console.log(`Ocurrio un error en rollback de ProductCategory ${id}`);
-                        }
-                        console.log('Comenzando rollbacks de producto');
-                        let rollbackProduct = await rollbackProduct(producto.id);
-                        if(rollbackProduct.res) console.log(`Rollback de Producto ${id} realizado correctamente`);
-                        else console.log(`Ocurrio un error en rollback de Producto ${id}`);
-
-
-                    }   
+                if(!rollback){
+                    console.log('Producto finalizado exitosamente');
+                    res.status(201).json(producto.id);
                 }
                 else{
-                    console.log(`Error al insertar producto: ${producto.message}`);
-                    res.status(500).json({message: producto.message});
-                }
-    }
+                    console.log('Ocurrio un error en el proceso de inserts, comenzando rollback');
+
+                    console.log('Comenzando rollbacks de categorias');
+                    for(let id of prodCategoryIds){
+                        console.log(`Enviando rollback de ProductCategory ID: ${id}`);
+                        let rollbackProductCategory = await rollbackInsertProductCategory(id);
+                        if(rollbackProductCategory.res) console.log(`Rollback de ProductCategory ${id} realizado correctamente`);
+                        else console.log(`Ocurrio un error en rollback de ProductCategory ${id}`);
+                    }
+                    console.log('Comenzando rollbacks de producto');
+                    let rollbackProduct = await rollbackInsertProduct(producto.id);
+                    if(rollbackProduct.res) console.log(`Rollback de Producto ${id} realizado correctamente`);
+                    else console.log(`Ocurrio un error en rollback de Producto ${id}`);
+                    console.info('Preparando response');
+                    res.status(500).json({message: 'Ocurrio un error en el alta de productos'});
+                }   
+            }
+            else{
+                console.log(`Error al insertar producto: ${producto.message}`);
+                res.status(500).json({message: producto.message});
+            }
+        }
     }
 }
 
@@ -625,7 +634,7 @@ async function asociarProducto(req, res){
                       console.log('Ocurrio un error en el proceso de inserts, comenzando rollback');
 
                       console.log('Comenzando rollbacks de companyProduct');
-                      let rollbackCompanyProducto = await rollbackAssociateProduct(producto.id);
+                      let rollbackCompanyProducto = await rollbackInsertAssociateProduct(producto.id);
                       if(rollbackCompanyProducto.res) console.log(`Rollback de CompanyProduct ${producto.id} realizado correctamente`);
                       else console.log(`Ocurrio un error en rollback de Producto ${producto.id}`);
                       res.status(500).json({message: price.message});
@@ -782,19 +791,19 @@ async function altaAsociacionProducto(req, res){
                             console.log('Comenzando rollbacks de categorias');
                             for(let id of prodCategoryIds){
                             console.log(`Enviando rollback de ProductCategory ID: ${id}`);
-                            let rollbackProductoCategory = await rollbackProductCategory(id);
+                            let rollbackProductoCategory = await rollbackInsertProductCategory(id);
                             if(rollbackProductoCategory.res) console.log(`Rollback de ProductCategory ${id} realizado correctamente`);
                             else console.log(`Ocurrio un error en rollback de ProductCategory ${id}`);
                             }
 
                             console.log('Comenzando rollbacks de companyProduct');
-                            let rollbackCompanyProducto = await rollbackAssociateProduct(companyProducto.id);
+                            let rollbackCompanyProducto = await rollbackInsertAssociateProduct(companyProducto.id);
                             if(rollbackCompanyProducto.res) console.log(`Rollback de CompanyProduct ${companyProducto.id} realizado correctamente`);
                             else console.log(`Ocurrio un error en rollback de Producto ${companyProducto.id}`);
                             res.status(500).json({message: price.message});
 
                             console.log('Comenzando rollbacks de producto');
-                            let rollbackProducto = await rollbackProduct(producto.id);
+                            let rollbackProducto = await rollbackInsertProduct(producto.id);
                             if(rollbackProducto.res) console.log(`Rollback de Producto ${producto.id} realizado correctamente`);
                             else console.log(`Ocurrio un error en rollback de Producto ${producto.id}`);
                             res.status(500).json({message: price.message});
@@ -807,12 +816,12 @@ async function altaAsociacionProducto(req, res){
                             console.log('Comenzando rollbacks de categorias');
                             for(let id of prodCategoryIds){
                               console.log(`Enviando rollback de ProductCategory ID: ${id}`);
-                              let rollbackProductoCategory = await rollbackProductCategory(id);
+                              let rollbackProductoCategory = await rollbackInsertProductCategory(id);
                               if(rollbackProductoCategory.res) console.log(`Rollback de ProductCategory ${id} realizado correctamente`);
                               else console.log(`Ocurrio un error en rollback de ProductCategory ${id}`);
                             }
                             console.log('Comenzando rollbacks de producto');
-                            let rollbackProducto = await rollbackProduct(producto.id);
+                            let rollbackProducto = await rollbackInsertProduct(producto.id);
                             if(rollbackProducto.res) console.log(`Rollback de Producto ${id} realizado correctamente`);
                             else console.log(`Ocurrio un error en rollback de Producto ${id}`);
 
@@ -826,12 +835,12 @@ async function altaAsociacionProducto(req, res){
                         console.log('Comenzando rollbacks de categorias');
                         for(let id of prodCategoryIds){
                             console.log(`Enviando rollback de ProductCategory ID: ${id}`);
-                            let rollbackProductoCategory = await rollbackProductCategory(id);
+                            let rollbackProductoCategory = await rollbackInsertProductCategory(id);
                             if(rollbackProductoCategory.res) console.log(`Rollback de ProductCategory ${id} realizado correctamente`);
                             else console.log(`Ocurrio un error en rollback de ProductCategory ${id}`);
                         }
                         console.log('Comenzando rollbacks de producto');
-                        let rollbackProducto = await rollbackProduct(producto.id);
+                        let rollbackProducto = await rollbackInsertProduct(producto.id);
                         if(rollbackProducto.res) console.log(`Rollback de Producto ${id} realizado correctamente`);
                         else console.log(`Ocurrio un error en rollback de Producto ${id}`);
                     }   
@@ -1538,7 +1547,7 @@ async function insertProduct(producto){
     return { id, message };
 }
 
-async function rollbackProduct(id){
+async function rollbackInsertProduct(id){
     let message = '';
     let res = await queries
                     .products
@@ -1606,7 +1615,7 @@ async function deleteCompanyProduct(id, date){
     return { result, message };
 }
 
-async function rollbackAssociateProduct(id){
+async function rollbackInsertAssociateProduct(id){
     let message = '';
     let res = await queries
                     .companyProduct
@@ -1672,7 +1681,7 @@ async function insertProductCategory(prodCategory){
     return { id, message };
 }
 
-async function rollbackProductCategory(id){
+async function rollbackInsertProductCategory(id){
     let message = '';
     let res = await queries
                     .prodCategory
@@ -1713,13 +1722,12 @@ async function insertPrice(price){
     return { id, message };
 }
 
-async function rollbackPrice(id){
+async function rollbackInsertPrice(id){
     let message = '';
     let res = await queries
                     .prices
                     .delete(id)
                     .then(data => {
-                        // console.log(`Rollback de Pedido ${id} realizado correctamente: ${data}`);
                         return data;
                     })
                     .catch(err => {
@@ -1990,33 +1998,44 @@ function validarProductoAsociacion(body) {
 async function validarCategorias(categorias){
     console.log('Iniciando validacion de categorias');
     
-    let message = '';
+    let messages = [];
     let categories = [];
 
-    for(let cat in categorias){
-        let category = await queries
-                        .categories
-                        .getOneById(categorias[cat])
-                        .then(res => {
-                            if(!res){
-                                console.log(`Categoria no encontrada con ID: ${categorias[cat]}`);
-                                message += `Categoria no encontrada con ID: ${categorias[cat]}`;
+    for(let cat of categorias){
+
+        let { error } = validarId(cat);
+
+        if(error){
+            console.log(`Id de categoria: ${cat} no es valido`);
+            messages.push(`Id de categoria: ${cat} no es valido`);
+        }
+        else{
+            let category = await queries
+                            .categories
+                            .getOneById(cat)
+                            .then(res => {
+                                if(res){
+                                    console.log(`Categoria encontrada con ID: ${cat}`);
+                                    return res;
+                                }
+                                else{
+                                    console.log(`Categoria no encontrada con ID: ${cat}`);
+                                    messages.push(`Categoria no encontrada con ID: ${cat}`);
+                                    return null;
+                                }
+                            })
+                            .catch(err => {
+                                console.log(`Error en la Query SELECT de Category : ${err}`);
+                                messages.push(`Error en la Query SELECT de Category : ${err}`);
                                 return null;
-                            }
-                            else{
-                                console.log(`Categoria encontrada con ID: ${categorias[cat]}`);
-                                return res;
-                            }
-                        })
-                        .catch(err => {
-                            console.log(`Error en la Query SELECT de Category : ${err}`);
-                            message += `Error en la Query SELECT de Category : ${err}`;
-                            // res.status(500).json({message: err});
-                        });
-        categories.push(category);
+                            });
+            categories.push(category);
+        }
     };
-    return { categories, message };
+    if(messages.length === 0) return { categories, messages };
+    else return { messages };
 }
+
 module.exports = {
     obtenerProducts,
     obtenerCompanyProducts,

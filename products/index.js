@@ -66,14 +66,11 @@ router.get('/:id',ProductRoutes.getProductById);
 
 // Todas las rutas empiezan con /api/product
 
-//Producto
 router.get('/' , ProductRoutes.obtenerProducts);
 router.get(/^\/company$/, ProductRoutes.obtenerCompanyProducts);
 router.get('/:id' , ProductRoutes.obtenerProductById);
 router.get('/code/:code' , ProductRoutes.obtenerProductByCode);
 router.get('/category/:id' , ProductRoutes.obtenerProductsByCategory);
-
-//CompanyProduct
 router.get('/company/deleted' , ProductRoutes.obtenerDeletedCompanyProducts);
 router.get(/^\/company\/all/, ProductRoutes.obtenerAllCompanyProducts);
 router.get('/company/:id' , ProductRoutes.obtenerCompanyProductsByCompany);
@@ -82,9 +79,7 @@ router.get('/company/:id/all' , ProductRoutes.obtenerAllCompanyProductsByCompany
 // router.get('/company/all/list/:id' , ProductRoutes.obtenerCompanyProductsAllByCompanyList);
 router.get('/company/:id/deleted/' , ProductRoutes.obtenerDeletedCompanyProductsByCompany);
 // router.get('/company/deleted/list/:id' , ProductRoutes.obtenerCompanyProductsDeletedByCompanyList);
-// //
 router.get('/company/:companyId/product/:productId', verifyToken, ProductRoutes.obtenerCompanyProductById);
-
 router.post('/', verifyToken , upload.single('image'), ProductRoutes.altaProducto);
 router.post('/associate', verifyToken, upload.single('image'), ProductRoutes.asociarProducto);
 // // insertar y asociar producto

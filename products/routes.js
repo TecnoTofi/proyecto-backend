@@ -555,98 +555,123 @@ async function altaProducto(req, res){
 async function asociarProducto(req, res){
     console.log('Conexion POST entrante : /api/product/associate');
     
-    let ValProductCompany = {
-            productId:req.body.productId,
+    let valCompanyProduct = {
+            productId: req.body.productId,
             companyId: req.body.companyId,
             description: req.body.description,
             name: req.body.name,
             stock: req.body.stock,
+            price: req.body.price,
             imageName: req.file.filename,
             imagePath: req.file.path,
-            price:req.body.price,
-    }
+    };
 
     // validacion de tipos
     console.log('Comenzando validacion JOI de request');
-    let { error } = validarAsociacion(ValProductCompany);
+    let { error } = validarAsociacion(valCompanyProduct);
     
     if(error){
-        console.log(`Error en la validacion de tipos de datos: ${error.details[0].message}`)
-        res.status(400).json({message: error.details[0].message});
+        console.info('Erorres encontrados en la request');
+        let errores = error.details.map(e => {
+            console.info(e.message);
+            return e.message;
+        });
+        console.info('Preparando response');
+        res.status(400).json({message: errores});
     }
     else{
         console.info('Validaciones de tipo de datos exitosa');
-        console.info('Comenzando validaciones de existencia');
 
-        //Inicializo array de errores
-        let errorMessage = [];
+        let { user } = await getUserByEmail(req.body.userEmail);
 
-        let { producto: Producto } = await getProductById(ValProductCompany.productId);
-        let { company: Company } = await getCompanyById(ValProductCompany.companyId);
-        //let { company: companyById, message: companyByIdMessage } = await getCompanyById(valCompanyProduct.companyId);
+        if(user){
+            if(user.companyId === valCompanyProduct.companyId){
+                console.info('Usuario corresponde con empresa');
+                console.info('Comenzando validaciones de existencia');
 
-        if(!Producto) errorMessage.push(`No existe un producto con id ${ValProductCompany.productId}`);
-        if(!Company) errorMessage.push(`No existe una compania con id ${ValProductCompany.companyId}`);
+                //Inicializo array de errores
+                let errorMessage = [];
+
+                let { producto: productoById, message: productMessage } = await getProductById(valCompanyProduct.productId);
+                let { company, message: companyMessage } = await getCompanyById(valCompanyProduct.companyId);
+                let { producto: companyProductByProduct } = await getCompanyProductByProduct(valCompanyProduct.productId);
+
+                if(!productoById) errorMessage.push(productMessage);
+                if(!company) errorMessage.push(companyMessage);
+                if(companyProductByProduct) errorMessage.push(`La compania ya tiene asociado este producto`);
 
 
-        if(errorMessage.length > 0){
-            console.info(`Se encontraron ${errorMessage.length} errores de existencia en la request`);
-            errorMessage.map(err => console.log(err));
-            console.info('Enviando response')
-            res.status(400).json({message: errorMessage});
+                if(errorMessage.length > 0){
+                    console.info(`Se encontraron ${errorMessage.length} errores de existencia en la request`);
+                    errorMessage.map(err => console.log(err));
+                    console.info('Enviando response')
+                    res.status(400).json({message: errorMessage});
+                }
+                else{
+                    console.log('Validaciones de existencia exitosas');
+                    console.info('Preparando objeto companyProduct para insertar');
+                    let product = {
+                            productId:valCompanyProduct.productId,
+                            companyId: valCompanyProduct.companyId,
+                            description: valCompanyProduct.description,
+                            name: valCompanyProduct.name,
+                            stock: valCompanyProduct.stock,
+                            imageName: valCompanyProduct.imageName, //validar que la imagen si no es enviada, use la del producto
+                            imagePath: valCompanyProduct.imagePath,
+                            created: new Date(),
+                        }
+
+                    console.log('Enviando a insertar companyProduct');
+                    let producto = await associateProduct(product);
+
+                    if(producto.id){
+                        console.log(`CompanyProduct insertado correctamente con ID: ${producto.id}`);
+
+                        let precio = {
+                            price: valCompanyProduct.price,
+                            productId: producto.id,
+                            validDateFrom: new Date(),
+
+                        };
+
+                        let price = await insertPrice(precio);
+
+                        if(price.id){
+                        console.log(`Price insertado correctamente con ID: ${price.id}`);
+
+                        console.log('Producto finalizado exitosamente');
+                        res.status(201).json(producto.id);
+                        }
+                        else{
+                        console.log(`Error al insertar price: ${price.message}`);
+                        console.log('Ocurrio un error en el proceso de inserts, comenzando rollback');
+
+                        console.log('Comenzando rollbacks de companyProduct');
+                        let rollbackCompanyProducto = await rollbackInsertAssociateProduct(producto.id);
+                        if(rollbackCompanyProducto.res) console.log(`Rollback de CompanyProduct ${producto.id} realizado correctamente`);
+                        else console.log(`Ocurrio un error en rollback de Producto ${producto.id}`);
+                        res.status(500).json({message: price.message});
+                        }
+                        console.log('Producto finalizado exitosamente');
+                        res.status(201).json(producto.id);
+                    }  
+                    else{
+                        console.log(`Error al insertar producto: ${producto.message}`);
+                        res.status(500).json({message: producto.message});
+                    }
+                }
+            }
+            else{
+                console.info('El usuario no corresponse con la empresa');
+                console.info('Preparando response');
+                res.status(400).json('El usuario no corresponse con la empresa');
+            }
         }
         else{
-            console.log('Validaciones de existencia exitosas');
-            let product = {
-                    productId:ValProductCompany.productId,
-                    companyId: ValProductCompany.companyId,
-                    description: ValProductCompany.description,
-                    name: ValProductCompany.name,
-                    stock: ValProductCompany.stock,
-                    imageName: ValProductCompany.imageName,
-                    imagePath: ValProductCompany.imagePath,
-                    created: new Date(),
-                }
-
-                console.log('Enviando a insertar companyProduct');
-                let producto = await associateProduct(product);
-
-                if(producto.id){
-                    console.log(`CompanyProduct insertado correctamente con ID: ${producto.id}`);
-
-                    let precio = {
-                        price: ValProductCompany.price,
-                        productId: producto.id,
-                        validDateFrom: new Date(),
-
-                    };
-
-                    let price = await insertPrice(precio);
-
-                    if(price.id){
-                      console.log(`Price insertado correctamente con ID: ${price.id}`);
-
-                      console.log('Producto finalizado exitosamente');
-                      res.status(201).json(producto.id);
-                    }
-                    else{
-                      console.log(`Error al insertar price: ${price.message}`);
-                      console.log('Ocurrio un error en el proceso de inserts, comenzando rollback');
-
-                      console.log('Comenzando rollbacks de companyProduct');
-                      let rollbackCompanyProducto = await rollbackInsertAssociateProduct(producto.id);
-                      if(rollbackCompanyProducto.res) console.log(`Rollback de CompanyProduct ${producto.id} realizado correctamente`);
-                      else console.log(`Ocurrio un error en rollback de Producto ${producto.id}`);
-                      res.status(500).json({message: price.message});
-                    }
-                    console.log('Producto finalizado exitosamente');
-                    res.status(201).json(producto.id);
-                }  
-                else{
-                    console.log(`Error al insertar producto: ${producto.message}`);
-                    res.status(500).json({message: producto.message});
-                }
-    }
+            console.info('No se pudo encontrar el usuario');
+            console.info('Preparando response');
+            res.status(500).json('Ocurrio un error al asociar producto');
+        }
     }
 }
 
@@ -1496,6 +1521,36 @@ async function getCompanyProductById(id){
     return { producto, message };
 }
 
+async function getCompanyProductByProduct(id){
+    console.info(`Buscando CompanyProduct con productId: ${id}`);
+    let message = '';
+    let producto = await queries
+                    .companyProduct
+                    .getOneById(id)
+                    .then(data => {
+                        if(data){
+                            console.info(`CompanyProduct con productId: ${id} encontrado`);
+                            let regex = /\\/g;
+                            // const productos = Promise.all(data.map(async prod => {
+                                data.imagePath = data.imagePath.replace(regex, '/');
+                                // return prod;
+                            // }));
+                            return data;
+                        }
+                        else{
+                            console.info(`No existe CompanyProduct con productId: ${id}`);
+                            message = `No existe un CompanyProduct con productId ${id}`;
+                            return null;
+                        }
+                    })
+                    .catch(err => {
+                        console.error(`Error en Query SELECT de CompanyProduct : ${err}`);
+                        message = 'Ocurrio un error al obtener el producto';
+                        return null;
+                    });
+    return { producto, message };
+}
+
 async function getProductsByCategory(categoryId){
     console.info(`Buscando productos de la categoria: ${categoryId}`);
     let message = '';
@@ -1968,12 +2023,12 @@ function validarProducto(body) {
 
 function validarAsociacion(body) {
     const schema = {
-        productId:Joi.number().required(),
-        companyId:Joi.number().required(),
+        productId: Joi.number().required(),
+        companyId: Joi.number().required(),
         name: Joi.string().min(3).max(30).required(),
-        description:Joi.string().min(5).max(50).required(),
-        price:Joi.number().required(),
-        stock:Joi.number().required(),
+        description: Joi.string().min(5).max(50).required(),
+        stock: Joi.number().required(),
+        price: Joi.number().required(),
         imageName: Joi.allow('').allow(null),
         imagePath: Joi.allow('').allow(null)
     };

@@ -2,8 +2,7 @@ const Joi = require('joi');
 const queries = require('./dbQueries');
 const { getCompanyById } = require('../companies/routes');
 const { getUserByEmail } = require('../users/routes');
-const { getCategoryById, getCategories, validarId } = require('../helpers/routes');
-
+const { getCategoryById, validarId } = require('../helpers/routes');
 
 async function obtenerProducts(req, res){
     console.info('Conexion GET entrante : /api/product/');
@@ -1987,142 +1986,38 @@ async function getLastPrices(id){
     return { prices, message };
 }
 
-//Mejorar
 const reducirStock = async (id, cantidad) => {
-    console.log(`Comenzando reduccion de stock para producto con ID: ${id}, cantidad a reducir: ${cantidad}`);
+    console.info(`Comenzando reduccion de stock para producto con ID: ${id}, cantidad a reducir: ${cantidad}`);
 
-    let busProd = await getCompanyProductById(id);
+    let { producto } = await getCompanyProductById(id);
 
-    if(!busProd.producto){
-        console.log('Error al obtener paquete para reducir');
+    if(!producto){
+        console.info('No se pudo encontrar el producto');
         return false;
     }
-    console.log('Reduciendo cantidad');
-    busProd.producto.stock = busProd.producto.stock - cantidad;
-    let reducido = false;
-    console.log('Enviando Query UPDATE');
-    await queries
-        .companyProduct
-        .modify(id, busProd.producto)
-        .then(data => {
-            if(data){
-                reducido = true;
-                console.log('Query UPDATE exitosa');
-            }
-        })
-        .catch(err => {
-            console.log(`Error en Query UPDATE de Product: ${err}`);
-        });
-        
-    return reducido;
-}
-
-/*
-
-
-async function getProductByCompany(req, res){
-    console.log(`Conexion GET entrante : /api/product/company/${req.params.id}`);
-
-    console.log('Yendo a buscar empresa');
-    let busquedaCompany = await getCompany(req.params.id);
-
-    if(!busquedaCompany.company){
-        console.log('Retornando error');
-        res.status(404).json({message: busquedaCompany.message});
-    }
     else{
-        console.log('Yendo a buscar productos de la empresa');
-        let companyProducts = await queries
-                                    .companyProduct
-                                    .getByCompany(req.params.id)
-                                    .then(data => {
-                                        return data;
-                                    })
-                                    .catch(err => {
-                                        console.log(`Error al buscar los productos de la empresa: ${err}`);
-                                        res.status(500).json({message: 'Error al buscar productos de una empresa'});
-                                    });
-
-        if(companyProducts && companyProducts.length > 0){
-            console.log('La empresa tiene productos');
-            console.log('Procediendo a armar response');
-
-            let response = [];
-
-            for(let cp of companyProducts){
-                console.log(`Agregando nombre de emprsa a producto con ID: ${cp.id}`);
-                cp.companyName = busquedaCompany.company.name;
-
-                console.log(`Yendo a buscar categorias de producto con productId: ${cp.productId}`);
-                cp.categories = await queries
-                                    .prodCategory
-                                    .getByProdIdName(cp.productId)
-                                    .then(data => {
-                                        return data.rows;
-                                    })
-                                    .catch(err => {
-                                        console.log(`Error al buscar categorias de un producto: ${err}`);
-                                        //hacer un res.status.json
-                                    });
-
-                cp.code = await queries
-                                .products
-                                .getOneById(cp.productId)
-                                .then(data => {
-                                    return data.code;
-                                })
-                                .catch(err => {
-                                    console.log(`Error al obtener producto con ID: ${cp.productId}`);
-                                    //hacer un res.status.json
-                                });
-                
-                response.push(cp);
-            }
-        
-            res.status(200).json(response);
-        }
-        else{
-            console.log('La empresa no tiene productos');
-            res.status(200).json({message: 'La empresa no tiene productos'});
-        }
+        console.log('Reduciendo cantidad');
+        producto.stock = producto.stock - cantidad;
+        let reducido = false;
+        console.log('Enviando Query UPDATE');
+        await queries
+                .companyProduct
+                .modify(id, busProd.producto)
+                .then(data => {
+                    if(data){
+                        reducido = true;
+                        console.log('Query UPDATE exitosa');
+                    }
+                    else{
+                        console.log(`Error en Query UPDATE de Product: ${err}`);
+                    }
+                })
+                .catch(err => {
+                    console.log(`Error en Query UPDATE de Product: ${err}`);
+                });
+        return reducido;
     }
 }
-
-async function getProductCompanyByProduct(req,res){
-    console.log(`Conexion GET entrante : /api/product/${req.params.id}/companies`);
-    console.log('id del producto', req.params.id);
-
-    await queries
-        .companyProduct
-        .getByProduct(req.params.id)
-        .then(async products => {
-            console.log('Informacion de Products obtenida');
-            let regex = /\\/g;
-            const productos = await Promise.all(products.map(async prod => {
-                let busComp = await getCompany(prod.companyId);
-                prod.companyName = busComp.company.name;
-                prod.imagePath = prod.imagePath.replace(regex, '/');
-                return prod;
-            }));
-            // console.log(productos);
-            res.status(200).json(productos);
-        })
-        .catch(err =>{
-            console.log(`Error en Query SELECT a Company Product : ${err}`);
-            res.status(500).json({message: err});
-        });
-}
-
-async function getProductById(req,res){
-    console.log('Conexion GET entrante : /api/product/id');
-
-    let busProd = await getProduct2(req.params.id);
-
-    console.log('Enviando respuesta');
-    if(busProd.product) res.status(200).json(busProd.product);
-    else res.status(404).json(busProd.message);
-}
-*/
 
 function validarCode(code){
     const schema = Joi.string().required();
@@ -2231,9 +2126,7 @@ module.exports = {
     getDeletedCompanyProducts,
     getCompanyProductsByCompany,
     getAllCompanyProductsByCompany,
-    // getAllProductsByCompanyList,
     getDeletedProductsByCompany,
-    // getDeletedProductsByCompanyList,
     getProductById,getProductByCode,
     getProductByName,
     getCompanyProductById,

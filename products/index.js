@@ -36,33 +36,6 @@ const upload = multer({
 
 const ProductRoutes = require('./routes');
 const { verifyToken } = require('../auth/routes');
-/*
-//Todas las rutas empiezan con /api/product
-
-//Obtener todas las categorias de productos
-router.get('/category', ProductRoutes.getCategories);
-//Obtener todos los productos
-// router.get('/', ProductRoutes.getAllProducts);
-//Insertar un producto
-// router.post('/', upload.single('image'), verifyToken, ProductRoutes.insertProduct);
-//Asociar un producto a una empresa
-router.post('/company', verifyToken, ProductRoutes.insertCompanyProduct);
-//Obtener los productos de una empresa por su ID
-router.get('/company/:id', ProductRoutes.getProductByCompany);
-//Obtener todos los productos con datos para el listado generico
-router.get('/', ProductRoutes.getAllProductsGenericList);
-//modificar Producto
-router.post('/update/company/:id', upload.single('productImage'), ProductRoutes.updateCompanyProduct);
-// router.post('/update/company/:id', ProductRoutes.updateCompanyProduct);
-//eliminar producto
-router.post('/delete/company/:id', ProductRoutes.deleteCompanyProduct);
-//insertar y asociar producto
-router.post('/', upload.single('productImage'), verifyToken, ProductRoutes.insertProductYAssociacion);
-//Obtener todos los CompanyProduct de un mismo productId
-router.get('/:id/companies',ProductRoutes.getProductCompanyByProduct);
-//Obtener un producto por Id
-router.get('/:id',ProductRoutes.getProductById);
-*/
 
 // Todas las rutas empiezan con /api/product
 
@@ -74,17 +47,12 @@ router.get('/category/:id' , ProductRoutes.obtenerProductsByCategory);
 router.get('/company/deleted' , ProductRoutes.obtenerDeletedCompanyProducts);
 router.get(/^\/company\/all/, ProductRoutes.obtenerAllCompanyProducts);
 router.get('/company/:id' , ProductRoutes.obtenerCompanyProductsByCompany);
-// router.get('/company/list/:id' , ProductRoutes.obtenerCompanyProductsByCompanyList);
 router.get('/company/:id/all' , ProductRoutes.obtenerAllCompanyProductsByCompany);
-// router.get('/company/all/list/:id' , ProductRoutes.obtenerCompanyProductsAllByCompanyList);
 router.get('/company/:id/deleted/' , ProductRoutes.obtenerDeletedCompanyProductsByCompany);
-// router.get('/company/deleted/list/:id' , ProductRoutes.obtenerCompanyProductsDeletedByCompanyList);
 router.get('/company/:companyId/product/:productId', verifyToken, ProductRoutes.obtenerCompanyProductById);
 router.post('/' , upload.single('image'), verifyToken, ProductRoutes.altaProductoVal);
 router.post('/associate', upload.single('image'), verifyToken, ProductRoutes.asociarProductoVal);
 router.post('/company' , upload.single('image'), verifyToken, ProductRoutes.altaAsociacionProducto);
-// //modificar Producto
 router.put('/:productId/company/:companyId', upload.single('image'), verifyToken, ProductRoutes.modificarProducto);
-// //eliminar producto
 router.delete('/company/:id', verifyToken, ProductRoutes.eliminarProducto);
 module.exports = router;

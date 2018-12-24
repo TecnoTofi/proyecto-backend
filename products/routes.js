@@ -26,13 +26,12 @@ async function obtenerCompanyProducts(req, res){
     console.log('test')
     console.info('Conexion GET entrante : /api/product/company');
 
-    let { CompanyProducts, message } = await getCompanyProducts();
-    console.log(CompanyProducts);
+    let { companyProducts, message } = await getCompanyProducts();
 
-    if(CompanyProducts){
-        console.info(`${CompanyProducts.length} productos encontrados`);
+    if(companyProducts){
+        console.info(`${companyProducts.length} productos encontrados`);
         console.info('Preparando response');
-        res.status(200).json(CompanyProducts);
+        res.status(200).json(companyProducts);
     }
     else{
         console.info('No se encontraron productos');
@@ -77,24 +76,6 @@ async function obtenerDeletedCompanyProducts(req, res){
     }
 }
 
-// async function obtenerCompanyProductsDeletedList(req, res){
-//     console.info('Conexion GET entrante : /api/product/companyDeleted/List');
-
-//     let { CompanyProducts, message } = await getDeletedCompanyProductsList();
-//     console.log(CompanyProducts);
-
-//     if(CompanyProducts){
-//         console.info(`${CompanyProducts.length} productos encontrados`);
-//         console.info('Preparando response');
-//         res.status(200).json({CompanyProducts});
-//     }
-//     else{
-//         console.info('No se encontraron productos');
-//         console.info('Preparando response');
-//         res.status(200).json({message});
-//     }
-// }
-
 async function obtenerCompanyProductsByCompany(req, res){
     console.info(`Conexion GET entrante : /api/product/company/${req.params.id}`);
 
@@ -116,7 +97,7 @@ async function obtenerCompanyProductsByCompany(req, res){
             res.status(400).json({message: companyMessage});
         }
         else{
-            let { companyProducts, message } = await getProductsByCompany(req.params.id);
+            let { companyProducts, message } = await getCompanyProductsByCompany(req.params.id);
 
             if(companyProducts){
                 console.info(`${companyProducts.length} productos encontrados`);
@@ -131,24 +112,6 @@ async function obtenerCompanyProductsByCompany(req, res){
         }
     }
 }
-
-// async function obtenerCompanyProductsByCompanyList(req, res){
-//     console.info(`Conexion GET entrante : /api/product/company/list/${req.params.id}`);
-
-//     let { CompanyProducts, message } = await getProductsByCompanyList(req.params.id);
-//     console.log(CompanyProducts);
-
-//     if(CompanyProducts){
-//         console.info(`${CompanyProducts.length} productos encontrados`);
-//         console.info('Preparando response');
-//         res.status(200).json({CompanyProducts});
-//     }
-//     else{
-//         console.info('No se encontraron productos');
-//         console.info('Preparando response');
-//         res.status(200).json({message});
-//     }
-// }
 
 async function obtenerAllCompanyProductsByCompany(req, res){
     console.info(`Conexion GET entrante : /api/product/company/${req.params.id}/all`);
@@ -167,24 +130,6 @@ async function obtenerAllCompanyProductsByCompany(req, res){
         res.status(200).json({message});
     }
 }
-
-// async function obtenerCompanyProductsAllByCompanyList(req, res){
-//     console.info(`Conexion GET entrante : /api/product/company/all/list/${req.params.id}`);
-
-//     let { CompanyProducts, message } = await getAllProductsByCompanyList(req.params.id);
-//     console.log(CompanyProducts);
-
-//     if(CompanyProducts){
-//         console.info(`${CompanyProducts.length} productos encontrados`);
-//         console.info('Preparando response');
-//         res.status(200).json({CompanyProducts});
-//     }
-//     else{
-//         console.info('No se encontraron productos');
-//         console.info('Preparando response');
-//         res.status(200).json({message});
-//     }
-// }
 
 async function obtenerDeletedCompanyProductsByCompany(req, res){
     console.info(`Conexion GET entrante : /api/product/company/${req.params.id}/deleted`);
@@ -406,23 +351,6 @@ async function obtenerProductsByCategory(req, res){
         }
     }
 }
-
-// async function obtenerCategorias(req, res){
-//     console.info('Conexion GET entrante : /api/product/category');
-
-//     let { categories, message } = await getCategories();
-
-//     if(categories){
-//         console.info(`${categories.length} categorias encontradas`);
-//         console.info('Preparando response');
-//         res.status(200).json({products});
-//     }
-//     else{
-//         console.info('No se encontraron categorias');
-//         console.info('Preparando response');
-//         res.status(200).json({message});
-//     }
-// }
 
 async function altaProductoVal(req, res){
     console.log('Conexion POST entrante : /api/product');
@@ -1209,42 +1137,35 @@ async function eliminarProducto(req, res){
     }
 }
 
-// async function getAllProductsGenericList(req, res){
-//     console.log(`Conexion GET entrante : /api/product`);
-
-//     console.log('Yendo a buscar productos');
-//     let { products: Productos } = await getProducts();
-
-//     if(Productos && Productos.length > 0){
-//         console.log('Se encontraron productos');
-//         console.log('Procediendo a armar response');
-
-//         let response = [];
-
-//         for(let prod of productos){
-
-//             let { category: Category } = await getCategoryName(prod.id);
-//             prod.categories = category;
-//             response.push(prod);
-//         }
-//         res.status(200).json(response);
-//     }
-//     else {
-//         console.log('No hay productos registrados');
-//         res.status(200).json({message: 'No hay productos registrados'});
-//     }
-// }
-
 async function getProducts(){
     console.info('Buscando todos los productos');
     let message ='';
     let products = await queries
                         .products
                         .getAll()
-                        .then(data => {
+                        .then(async data => {
                             if(data){
                                 console.info('Informacion de productos obtenida');
-                                return data;
+                                let flag = true;
+                                for(let p of data){
+                                    let categories = [];
+                                    p.imagePath = p.imagePath.replace(/\\/g, '/');
+                                    let { categorias: categoriesIds } = await getProductCategoryByProduct(p.id);
+                                    if(categoriesIds){
+                                        for(let c of categoriesIds){
+                                            let { category } = await getCategoryById(c.categoryId);
+                                            categories.push(category);
+                                        }
+                                        p.categories = categories;
+                                    }
+                                    else{
+                                        console.info('Ocurrio un error obteniendo las categorias del producto');
+                                        message = 'Ocurrio un error al obtener los productos';
+                                        flag = false;
+                                    }
+                                }
+                                if(flag) return data;
+                                else return null;
                             }
                             else{
                                 console.info('No existen productos registrados en la BD');
@@ -1260,41 +1181,35 @@ async function getProducts(){
     return { products , message };
 }
 
-// async function getCategoryName(id){
-//     console.info('Buscando datos de categorias');
-//     let message ='';
-//     let category = await queries
-//                         .prodCategory
-//                         .getByProdIdName(id)
-//                         .then(data => {
-//                             if(data.rows){
-//                                 console.info('Informacion de categorias obtenida');
-//                                 return data.rows;
-//                             }
-//                             else{
-//                                 console.info(`No existen categorias registrados en la BD para el producto con id ${id}`);
-//                                 message = `No existen categorias registrados en la BD para el producto con id ${id}`;
-//                                 return null;
-//                             }
-//                         })
-//                         .catch(err => {
-//                             console.error(`Error en Query SELECT de Category : ${err}`);
-//                             message = 'Ocurrio un error al obtener las Categorias+';
-//                             return null;
-//                         });
-//     return { category , message };
-// }
-
 async function getCompanyProducts(){
     console.info('Buscando todos los productos de companias no eliminados');
     let message ='';
     let companyProducts = await queries
                         .companyProduct
                         .getCompanyProducts()
-                        .then(data => {
+                        .then(async data => {
                             if(data){
                                 console.info('Informacion de productos no eliminados de companias obtenida');
-                                return data;
+                                let flag = true;
+                                for(let p of data.rows){
+                                    let categories = [];
+                                    p.imagePath = p.imagePath.replace(/\\/g, '/');
+                                    let { categorias: categoriesIds } = await getProductCategoryByProduct(p.productId);
+                                    if(categoriesIds){
+                                        for(let c of categoriesIds){
+                                            let { category } = await getCategoryById(c.categoryId);
+                                            categories.push(category);
+                                        }
+                                        p.categories = categories;
+                                    }
+                                    else{
+                                        console.info('Ocurrio un error obteniendo las categorias del producto');
+                                        message = 'Ocurrio un error al obtener los productos';
+                                        flag = false;
+                                    }
+                                }
+                                if(flag) return data.rows;
+                                else return null;
                             }
                             else{
                                 console.info('No existen productos no eliminados de companias registrados en la BD');
@@ -1316,16 +1231,29 @@ async function getAllCompanyProducts(){
     let companyProducts = await queries
                         .companyProduct
                         .getAll()
-                        .then(data => {
+                        .then(async data => {
                             if(data){
-                                console.log(data);
                                 console.info('Informacion de productos obtenida');
-                                let regex = /\\/g;
-                                const productos = Promise.all(data.map(async prod => {
-                                    prod.imagePath = prod.imagePath.replace(regex, '/');
-                                    return prod;
-                                }));
-                                return productos;
+                                let flag = true;
+                                for(let p of data.rows){
+                                    let categories = [];
+                                    p.imagePath = p.imagePath.replace(/\\/g, '/');
+                                    let { categorias: categoriesIds } = await getProductCategoryByProduct(p.productId);
+                                    if(categoriesIds){
+                                        for(let c of categoriesIds){
+                                            let { category } = await getCategoryById(c.categoryId);
+                                            categories.push(category);
+                                        }
+                                        p.categories = categories;
+                                    }
+                                    else{
+                                        console.info('Ocurrio un error obteniendo las categorias del producto');
+                                        message = 'Ocurrio un error al obtener los productos';
+                                        flag = false;
+                                    }
+                                }
+                                if(flag) return data.rows;
+                                else return null;
                             }
                             else{
                                 console.info('No existen productos de companias registrados en la BD');
@@ -1347,10 +1275,29 @@ async function getDeletedCompanyProducts(){
     let CompanyProducts = await queries
                         .companyProduct
                         .getDeleted()
-                        .then(data => {
+                        .then(async data => {
                             if(data){
                                 console.info('Informacion de productos de companias eliminados obtenida');
-                                return data;
+                                let flag = true;
+                                for(let p of data.rows){
+                                    let categories = [];
+                                    p.imagePath = p.imagePath.replace(/\\/g, '/');
+                                    let { categorias: categoriesIds } = await getProductCategoryByProduct(p.productId);
+                                    if(categoriesIds){
+                                        for(let c of categoriesIds){
+                                            let { category } = await getCategoryById(c.categoryId);
+                                            categories.push(category);
+                                        }
+                                        p.categories = categories;
+                                    }
+                                    else{
+                                        console.info('Ocurrio un error obteniendo las categorias del producto');
+                                        message = 'Ocurrio un error al obtener los productos';
+                                        flag = false;
+                                    }
+                                }
+                                if(flag) return data.rows;
+                                else return null;
                             }
                             else{
                                 console.info('No existen productos de companias eliminados registrados en la BD');
@@ -1366,46 +1313,35 @@ async function getDeletedCompanyProducts(){
     return { CompanyProducts , message };
 }
 
-// async function getDeletedCompanyProductsList(){
-//     console.info('Buscando todos los productos de companias eliminados');
-//     let message ='';
-//     let CompanyProducts = await queries
-//                         .companyProduct
-//                         .getAllForListDeleted()
-//                         .then(data => {
-//                             if(data.rows){
-//                                 console.info('Informacion de productos de companias eliminados obtenida');
-//                                 let regex = /\\/g;
-//                                 const productos = Promise.all(data.rows.map(async prod => {
-//                                     prod.imagePath = prod.imagePath.replace(regex, '/');
-//                                     return prod;
-//                                 }));
-//                                 return productos;
-//                             }
-//                             else{
-//                                 console.info('No existen productos de companias eliminados registrados en la BD');
-//                                 message = 'No existen productos de companias eliminados registrados en la BD';
-//                                 return null;
-//                             }
-//                         })
-//                         .catch(err => {
-//                             console.error(`Error en Query SELECT de CompanyProduct : ${err}`);
-//                             message = 'Ocurrio un error al obtener los productos eliminados de companias';
-//                             return null;
-//                         });
-//     return { CompanyProducts , message };
-// }
-
-async function getProductsByCompany(id){
+async function getCompanyProductsByCompany(id){
     console.info(`Buscando todos los productos habilitados de la compania con id : ${id}`);
     let message ='';
     let companyProducts = await queries
                         .companyProduct
                         .getByCompany(id)
-                        .then(data => {
+                        .then(async data => {
                             if(data){
                                 console.info(`Informacion de productos habilitados de la compania con id : ${id},  obtenida`);
-                                return data;
+                                let flag = true;
+                                for(let p of data.rows){
+                                    let categories = [];
+                                    p.imagePath = p.imagePath.replace(/\\/g, '/');
+                                    let { categorias: categoriesIds } = await getProductCategoryByProduct(p.productId);
+                                    if(categoriesIds){
+                                        for(let c of categoriesIds){
+                                            let { category } = await getCategoryById(c.categoryId);
+                                            categories.push(category);
+                                        }
+                                        p.categories = categories;
+                                    }
+                                    else{
+                                        console.info('Ocurrio un error obteniendo las categorias del producto');
+                                        message = 'Ocurrio un error al obtener los productos';
+                                        flag = false;
+                                    }
+                                }
+                                if(flag) return data.rows;
+                                else return null;
                             }
                             else{
                                 console.info(`No existen productos habilitados para la compania con id : ${id}, registrados en la BD`);
@@ -1421,46 +1357,35 @@ async function getProductsByCompany(id){
     return { companyProducts , message };
 }
 
-async function getProductsByCompanyList(id){
-    console.info(`Buscando todos los productos habilitados de la compania con id : ${id}`);
-    let message ='';
-    let CompanyProducts = await queries
-                        .companyProduct
-                        .getForListHabilitadosByCompany(id)
-                        .then(data => {
-                            if(data.rows){
-                                console.info(`Informacion de productos habilitados de la compania con id : ${id},  obtenida`);
-                                let regex = /\\/g;
-                                const productos = Promise.all(data.rows.map(async prod => {
-                                    prod.imagePath = prod.imagePath.replace(regex, '/');
-                                    return prod;
-                                }));
-                                return productos;
-                            }
-                            else{
-                                console.info(`No existen productos habilitados para la compania con id : ${id}, registrados en la BD`);
-                                message = `No existen productos habilitados para la compania con id : ${id}, registrados en la BD`;
-                                return null;
-                            }
-                        })
-                        .catch(err => {
-                            console.error(`Error en Query SELECT de CompanyProduct : ${err}`);
-                            message = 'Ocurrio un error al obtener los productos hanilitados de la compania';
-                            return null;
-                        });
-    return { CompanyProducts , message };
-}
-
 async function getAllCompanyProductsByCompany(id){
     console.info(`Buscando todos los productos de la compania con id : ${id}`);
     let message ='';
     let CompanyProducts = await queries
                         .companyProduct
                         .getAllByCompany(id)
-                        .then(data => {
+                        .then(async data => {
                             if(data){
                                 console.info(`Informacion de productos de la compania con id : ${id},  obtenida`);
-                                return data;
+                                let flag = true;
+                                for(let p of data.rows){
+                                    let categories = [];
+                                    p.imagePath = p.imagePath.replace(/\\/g, '/');
+                                    let { categorias: categoriesIds } = await getProductCategoryByProduct(p.productId);
+                                    if(categoriesIds){
+                                        for(let c of categoriesIds){
+                                            let { category } = await getCategoryById(c.categoryId);
+                                            categories.push(category);
+                                        }
+                                        p.categories = categories;
+                                    }
+                                    else{
+                                        console.info('Ocurrio un error obteniendo las categorias del producto');
+                                        message = 'Ocurrio un error al obtener los productos';
+                                        flag = false;
+                                    }
+                                }
+                                if(flag) return data.rows;
+                                else return null;
                             }
                             else{
                                 console.info(`No existen productos para la compania con id : ${id}, registrados en la BD`);
@@ -1476,46 +1401,35 @@ async function getAllCompanyProductsByCompany(id){
     return { CompanyProducts , message };
 }
 
-// async function getAllProductsByCompanyList(id){
-//     console.info(`Buscando todos los productos de la compania con id : ${id}`);
-//     let message ='';
-//     let CompanyProducts = await queries
-//                         .companyProduct
-//                         .getAllForListByCompany(id)
-//                         .then(data => {
-//                             if(data.rows){
-//                                 console.info(`Informacion de productos de la compania con id : ${id},  obtenida`);
-//                                 let regex = /\\/g;
-//                                 const productos = Promise.all(data.rows.map(async prod => {
-//                                     prod.imagePath = prod.imagePath.replace(regex, '/');
-//                                     return prod;
-//                                 }));
-//                                 return productos;
-//                             }
-//                             else{
-//                                 console.info(`No existen productos para la compania con id : ${id}, registrados en la BD`);
-//                                 message = `No existen productos para la compania con id : ${id}, registrados en la BD`;
-//                                 return null;
-//                             }
-//                         })
-//                         .catch(err => {
-//                             console.error(`Error en Query SELECT de CompanyProduct : ${err}`);
-//                             message = 'Ocurrio un error al obtener los productos de la compania';
-//                             return null;
-//                         });
-//     return { CompanyProducts , message };
-// }
-
 async function getDeletedProductsByCompany(id){
     console.info(`Buscando todos los productos eliminados de la compania con id : ${id}`);
     let message ='';
     let companyProducts = await queries
                         .companyProduct
                         .getDeleteByCompany(id)
-                        .then(data => {
+                        .then(async data => {
                             if(data){
                                 console.info(`Informacion de productos eliminados de la compania con id : ${id},  obtenida`);
-                                return data;
+                                let flag = true;
+                                for(let p of data.rows){
+                                    let categories = [];
+                                    p.imagePath = p.imagePath.replace(/\\/g, '/');
+                                    let { categorias: categoriesIds } = await getProductCategoryByProduct(p.productId);
+                                    if(categoriesIds){
+                                        for(let c of categoriesIds){
+                                            let { category } = await getCategoryById(c.categoryId);
+                                            categories.push(category);
+                                        }
+                                        p.categories = categories;
+                                    }
+                                    else{
+                                        console.info('Ocurrio un error obteniendo las categorias del producto');
+                                        message = 'Ocurrio un error al obtener los productos';
+                                        flag = false;
+                                    }
+                                }
+                                if(flag) return data.rows;
+                                else return null;
                             }
                             else{
                                 console.info(`No existen productos eliminados para la compania con id : ${id}, registrados en la BD`);
@@ -1531,46 +1445,33 @@ async function getDeletedProductsByCompany(id){
     return { companyProducts , message };
 }
 
-// async function getDeletedProductsByCompanyList(id){
-//     console.info(`Buscando todos los productos eliminados de la compania con id : ${id}`);
-//     let message ='';
-//     let CompanyProducts = await queries
-//                         .companyProduct
-//                         .getForDeleteListByCompany(id)
-//                         .then(data => {
-//                             if(data.rows){
-//                                 console.info(`Informacion de productos eliminados de la compania con id : ${id},  obtenida`);
-//                                 let regex = /\\/g;
-//                                 const productos = Promise.all(data.rows.map(async prod => {
-//                                     prod.imagePath = prod.imagePath.replace(regex, '/');
-//                                     return prod;
-//                                 }));
-//                                 return productos;
-//                             }
-//                             else{
-//                                 console.info(`No existen productos eliminados para la compania con id : ${id}, registrados en la BD`);
-//                                 message = `No existen productos eliminados para la compania con id : ${id}, registrados en la BD`;
-//                                 return null;
-//                             }
-//                         })
-//                         .catch(err => {
-//                             console.error(`Error en Query SELECT de CompanyProduct : ${err}`);
-//                             message = 'Ocurrio un error al obtener los productos eliminados de la compania';
-//                             return null;
-//                         });
-//     return { CompanyProducts , message };
-// }
-
 async function getProductById(id){
     console.info(`Buscando producto con id: ${id}`);
     let message = '';
     let producto = await queries
                     .products
                     .getOneById(id)
-                    .then(data => {
+                    .then(async data => {
                         if(data){
                             console.info(`Producto con ID: ${id} encontrado`);
-                            return data;
+                            let flag = true;
+                            let categories = [];
+                            data.imagePath = data.imagePath.replace(/\\/g, '/');
+                            let { categorias: categoriesIds } = await getProductCategoryByProduct(data.id);
+                            if(categoriesIds){
+                                for(let c of categoriesIds){
+                                    let { category } = await getCategoryById(c.categoryId);
+                                    categories.push(category);
+                                }
+                                data.categories = categories;
+                            }
+                            else{
+                                console.info('Ocurrio un error obteniendo las categorias del producto');
+                                message = 'Ocurrio un error al obtener los productos';
+                                flag = false;
+                            }
+                            if(flag) return data;
+                            else return null;
                         }
                         else{
                             console.info(`No existe producto con id: ${id}`);
@@ -1592,10 +1493,27 @@ async function getProductByCode(code){
     let producto = await queries
                     .products
                     .getOneByCode(code)
-                    .then(data => {
+                    .then(async data => {
                         if(data){
                             console.info(`Producto con Codigo: ${code} encontrado`);
-                            return data;
+                            let flag = true;
+                            let categories = [];
+                            data.imagePath = data.imagePath.replace(/\\/g, '/');
+                            let { categorias: categoriesIds } = await getProductCategoryByProduct(data.id);
+                            if(categoriesIds){
+                                for(let c of categoriesIds){
+                                    let { category } = await getCategoryById(c.categoryId);
+                                    categories.push(category);
+                                }
+                                data.categories = categories;
+                            }
+                            else{
+                                console.info('Ocurrio un error obteniendo las categorias del producto');
+                                message = 'Ocurrio un error al obtener los productos';
+                                flag = false;
+                            }
+                            if(flag) return data;
+                            else return null;
                         }
                         else{
                             console.info(`No existe producto con codigo: ${code}`);
@@ -1642,15 +1560,29 @@ async function getCompanyProductById(id){
     let producto = await queries
                     .companyProduct
                     .getOneById(id)
-                    .then(data => {
+                    .then(async data => {
                         if(data){
                             console.info(`CompanyProduct con id: ${id} encontrado`);
-                            let regex = /\\/g;
-                            // const productos = Promise.all(data.map(async prod => {
-                                data.imagePath = data.imagePath.replace(regex, '/');
-                                // return prod;
-                            // }));
-                            return data;
+                            let flag = true;
+                                // for(let p of data.rows){
+                                    let categories = [];
+                                    data.imagePath = data.imagePath.replace(/\\/g, '/');
+                                    let { categorias: categoriesIds } = await getProductCategoryByProduct(data.productId);
+                                    if(categoriesIds){
+                                        for(let c of categoriesIds){
+                                            let { category } = await getCategoryById(c.categoryId);
+                                            categories.push(category);
+                                        }
+                                        data.categories = categories;
+                                    }
+                                    else{
+                                        console.info('Ocurrio un error obteniendo las categorias del producto');
+                                        message = 'Ocurrio un error al obtener los productos';
+                                        flag = false;
+                                    }
+                                // }
+                                if(flag) return data;
+                                else return null;
                         }
                         else{
                             console.info(`No existe CompanyProduct con ID: ${id}`);
@@ -1702,10 +1634,29 @@ async function getProductsByCategory(categoryId){
     let productos = await queries
                     .products
                     .getByCategoryId(categoryId)
-                    .then(data => {
+                    .then(async data => {
                         if(data){
                             console.info(`Productos con categoria: ${categoryId} encontrados`);
-                            return data.rows;
+                            let flag = true;
+                                for(let p of data.rows){
+                                    let categories = [];
+                                    p.imagePath = p.imagePath.replace(/\\/g, '/');
+                                    let { categorias: categoriesIds } = await getProductCategoryByProduct(p.id);
+                                    if(categoriesIds){
+                                        for(let c of categoriesIds){
+                                            let { category } = await getCategoryById(c.categoryId);
+                                            categories.push(category);
+                                        }
+                                        p.categories = categories;
+                                    }
+                                    else{
+                                        console.info('Ocurrio un error obteniendo las categorias del producto');
+                                        message = 'Ocurrio un error al obtener los productos';
+                                        flag = false;
+                                    }
+                                }
+                                if(flag) return data.rows;
+                                else return null;
                         }
                         else{
                             console.info(`No existen productos con categoria: ${categoryId}`);
@@ -1719,6 +1670,31 @@ async function getProductsByCategory(categoryId){
                         return null;
                     });
     return { productos, message };
+}
+
+async function getProductCategoryByProduct(productId){
+    console.info(`Buscando categorias del producto: ${productId}`);
+    let message = '';
+    let categorias = await queries
+                    .prodCategory
+                    .getByProductId(productId)
+                    .then(data => {
+                        if(data){
+                            console.info(`Categorias del producto: ${productId} encontradas`);
+                            return data;
+                        }
+                        else{
+                            console.info(`No existen categorias para el producto: ${productId}`);
+                            message = `No existen categorias para el producto: ${productId}`;
+                            return null;
+                        }
+                    })
+                    .catch(err => {
+                        console.error(`Error en Query SELECT de ProductCategory : ${err}`);
+                        message = 'Ocurrio un error al obtener las categorias';
+                        return null;
+                    });
+    return { categorias, message };
 }
 
 async function insertProduct(producto){
@@ -2237,18 +2213,13 @@ module.exports = {
     obtenerCompanyProducts,
     obtenerAllCompanyProducts,
     obtenerDeletedCompanyProducts,
-    // obtenerCompanyProductsDeletedList,
     obtenerCompanyProductsByCompany,
-    // obtenerCompanyProductsByCompanyList,
     obtenerAllCompanyProductsByCompany,
-    // obtenerCompanyProductsAllByCompanyList,
     obtenerDeletedCompanyProductsByCompany,
-    // obtenerCompanyProductsDeletedByCompanyList,
     obtenerProductById,
     obtenerCompanyProductById,
     obtenerProductByCode,
     obtenerProductsByCategory,
-    // obtenerCategorias,
     altaProductoVal,
     asociarProductoVal,
     altaAsociacionProducto,
@@ -2258,8 +2229,7 @@ module.exports = {
     getCompanyProducts,
     getAllCompanyProducts,
     getDeletedCompanyProducts,
-    getProductsByCompany,
-    // getProductsByCompanyList,
+    getCompanyProductsByCompany,
     getAllCompanyProductsByCompany,
     // getAllProductsByCompanyList,
     getDeletedProductsByCompany,

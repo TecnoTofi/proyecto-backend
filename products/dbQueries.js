@@ -57,7 +57,7 @@ module.exports ={
             return knex.select().table('ProductCategory');
         },
         getByProductId: function(id){
-            return knex.select().table('ProductCategory').where('productId', id);
+            return knex.select('categoryId').table('ProductCategory').where('productId', id);
         },
         getByProdIdName: function(id){
             return knex.raw('select c.id, c.name from "ProductCategory" p, "Category" c where p."productId" = ? and p."categoryId" = c.id',
@@ -76,13 +76,16 @@ module.exports ={
     companyProduct: {
 
         getCompanyProducts: function(){
-            return knex.select().table('CompanyProduct').where('deleted', null);
+            // return knex.select().table('CompanyProduct').where('deleted', null);
+            return knex.raw('select pc.id, p.id "productId", p.code, pc."companyId", pc.name, pc.description, pc.stock, pc."imagePath", pc."imageName", pc.created, pc.deleted, (select price from "ProductPrice" where "productId" = pc.id order by "validDateFrom" desc limit 1) "price", (select id from "ProductPrice" where "productId" = pc.id order by "validDateFrom" desc limit 1) "priceId"  from "Product" p , "CompanyProduct" pc where pc."productId" = p.id and pc.deleted is null');
         },
         getAll: function(){
-            return knex.select().table('CompanyProduct');
+            // return knex.select().table('CompanyProduct');
+            return knex.raw('select pc.id, p.id "productId", p.code, pc."companyId", pc.name, pc.description, pc.stock, pc."imagePath", pc."imageName", pc.created, pc.deleted, (select price from "ProductPrice" where "productId" = pc.id order by "validDateFrom" desc limit 1) "price", (select id from "ProductPrice" where "productId" = pc.id order by "validDateFrom" desc limit 1) "priceId"  from "Product" p , "CompanyProduct" pc where pc."productId" = p.id');
         },
         getDeleted: function(){
-            return knex.select().table('CompanyProduct').whereNotNull('deleted');
+            // return knex.select().table('CompanyProduct').whereNotNull('deleted');
+            return knex.raw('select pc.id, p.id "productId", p.code, pc."companyId", pc.name, pc.description, pc.stock, pc."imagePath", pc."imageName", pc.created, pc.deleted, (select price from "ProductPrice" where "productId" = pc.id order by "validDateFrom" desc limit 1) "price", (select id from "ProductPrice" where "productId" = pc.id order by "validDateFrom" desc limit 1) "priceId"  from "Product" p , "CompanyProduct" pc where pc."productId" = p.id and pc.deleted is not null');
         },
         getOneById: function(id){
             return knex.select().table('CompanyProduct').where('id', id).first();
@@ -92,13 +95,19 @@ module.exports ={
             [id]);
         },
         getAllByCompany: function(id){
-            return knex.select().table('CompanyProduct').where('companyId', id);
+            // return knex.select().table('CompanyProduct').where('companyId', id);
+            return knex.raw('select pc.id, p.id "productId", p.code, pc."companyId", pc.name, pc.description, pc.stock, pc."imagePath", pc."imageName", pc.created, pc.deleted, (select price from "ProductPrice" where "productId" = pc.id order by "validDateFrom" desc limit 1) "price", (select id from "ProductPrice" where "productId" = pc.id order by "validDateFrom" desc limit 1) "priceId"  from "Product" p , "CompanyProduct" pc where pc."productId" = p.id and pc."companyId" = ?',
+            [id]);
         },
         getByCompany: function(id){
-            return knex.select().table('CompanyProduct').where('companyId', id).whereNull('deleted');
+            // return knex.select().table('CompanyProduct').where('companyId', id).whereNull('deleted');
+            return knex.raw('select pc.id, p.id "productId", p.code, pc."companyId", pc.name, pc.description, pc.stock, pc."imagePath", pc."imageName", pc.created, pc.deleted, (select price from "ProductPrice" where "productId" = pc.id order by "validDateFrom" desc limit 1) "price", (select id from "ProductPrice" where "productId" = pc.id order by "validDateFrom" desc limit 1) "priceId"  from "Product" p , "CompanyProduct" pc where pc."productId" = p.id and pc.deleted is null and pc."companyId" = ?',
+            [id]);
         },
         getDeleteByCompany: function(id){
-            return knex.select().table('CompanyProduct').where('companyId', id).whereNotNull('deleted');
+            // return knex.select().table('CompanyProduct').where('companyId', id).whereNotNull('deleted');
+            return knex.raw('select pc.id, p.id "productId", p.code, pc."companyId", pc.name, pc.description, pc.stock, pc."imagePath", pc."imageName", pc.created, pc.deleted, (select price from "ProductPrice" where "productId" = pc.id order by "validDateFrom" desc limit 1) "price", (select id from "ProductPrice" where "productId" = pc.id order by "validDateFrom" desc limit 1) "priceId"  from "Product" p , "CompanyProduct" pc where pc."productId" = p.id and pc.deleted is not null and pc."companyId" = ?',
+            [id]);
         },
         getByProduct: function(id){
             return knex.select().table('CompanyProduct').where('productId', id);

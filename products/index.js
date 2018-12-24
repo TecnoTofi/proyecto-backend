@@ -80,12 +80,11 @@ router.get('/company/:id/all' , ProductRoutes.obtenerAllCompanyProductsByCompany
 router.get('/company/:id/deleted/' , ProductRoutes.obtenerDeletedCompanyProductsByCompany);
 // router.get('/company/deleted/list/:id' , ProductRoutes.obtenerCompanyProductsDeletedByCompanyList);
 router.get('/company/:companyId/product/:productId', verifyToken, ProductRoutes.obtenerCompanyProductById);
-router.post('/', verifyToken , upload.single('image'), ProductRoutes.altaProducto);
-router.post('/associate', verifyToken, upload.single('image'), ProductRoutes.asociarProducto);
-// // insertar y asociar producto
-// router.post('/company' ,upload.single('image'), ProductRoutes.altaAsociacionProducto);
+router.post('/' , upload.single('image'), verifyToken, ProductRoutes.altaProductoVal);
+router.post('/associate', upload.single('image'), verifyToken, ProductRoutes.asociarProductoVal);
+router.post('/company' , upload.single('image'), verifyToken, ProductRoutes.altaAsociacionProducto);
 // //modificar Producto
-// router.put('/update/company/:id', upload.single('productImage'), ProductRoutes.modificarProducto);
+router.put('/:productId/company/:companyId', upload.single('image'), verifyToken, ProductRoutes.modificarProducto);
 // //eliminar producto
-// router.delete('/delete/company/:id', ProductRoutes.eliminarProducto);
+router.delete('/company/:id', verifyToken, ProductRoutes.eliminarProducto);
 module.exports = router;

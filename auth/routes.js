@@ -54,7 +54,7 @@ function verifyToken (req, res, next) {
                 console.info('Agregando credenciales al body de la request');
                 req.body.userEmail = userData.userEmail;
                 req.body.userPassword = userData.userPassword;
-
+                
                 //continuamos a la siguiente funcion
                 console.info('Llamando a siguiente funcion');
                 next();

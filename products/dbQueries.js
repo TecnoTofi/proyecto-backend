@@ -148,7 +148,7 @@ module.exports ={
         },
         modify: function(id, product){
             // return knex.raw(`update "CompanyProduct" set "companyId" = ${product.companyId}, "productId" = ${product.productId}, "name" = ${product.name}, description = ${product.description}, price = ${product.price}, stock = ${product.stock}, "imagePath" = ${product.imagePath}, "imageName" = ${product.imageName} where id = ${id};`);
-            return knex('CompanyProduct').where('id', id).update(product);
+            return knex('CompanyProduct').where('id', id).update({stock: product.stock});
         },
         delete: function(id,date){
             console.log(`Enviando Query DELETE a companyProduct`);

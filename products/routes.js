@@ -1563,25 +1563,23 @@ async function getCompanyProductById(id){
                         if(data){
                             console.info(`CompanyProduct con id: ${id} encontrado`);
                             let flag = true;
-                                // for(let p of data.rows){
-                                    let categories = [];
-                                    data.imagePath = data.imagePath.replace(/\\/g, '/');
-                                    let { categorias: categoriesIds } = await getProductCategoryByProduct(data.productId);
-                                    if(categoriesIds){
-                                        for(let c of categoriesIds){
-                                            let { category } = await getCategoryById(c.categoryId);
-                                            categories.push(category);
-                                        }
-                                        data.categories = categories;
-                                    }
-                                    else{
-                                        console.info('Ocurrio un error obteniendo las categorias del producto');
-                                        message = 'Ocurrio un error al obtener los productos';
-                                        flag = false;
-                                    }
-                                // }
-                                if(flag) return data;
-                                else return null;
+                            let categories = [];
+                            data.imagePath = data.imagePath.replace(/\\/g, '/');
+                            let { categorias: categoriesIds } = await getProductCategoryByProduct(data.productId);
+                            if(categoriesIds){
+                                for(let c of categoriesIds){
+                                    let { category } = await getCategoryById(c.categoryId);
+                                    categories.push(category);
+                                }
+                                data.categories = categories;
+                            }
+                            else{
+                                console.info('Ocurrio un error obteniendo las categorias del producto');
+                                message = 'Ocurrio un error al obtener los productos';
+                                flag = false;
+                            }
+                            if(flag) return data;
+                            else return null;
                         }
                         else{
                             console.info(`No existe CompanyProduct con ID: ${id}`);
@@ -1998,11 +1996,12 @@ const reducirStock = async (id, cantidad) => {
     else{
         console.log('Reduciendo cantidad');
         producto.stock = producto.stock - cantidad;
+
         let reducido = false;
         console.log('Enviando Query UPDATE');
         await queries
                 .companyProduct
-                .modify(id, busProd.producto)
+                .modify(id, producto)
                 .then(data => {
                     if(data){
                         reducido = true;

@@ -5,7 +5,7 @@ const { getUserById, getUserByCompanyId } = require('../users/routes');
 const { getCompanyById } = require('../companies/routes');
 const {
     reducirStock: reducirStockProd, 
-    getProduct,
+    getCompanyProductById,
     getLastPrices: getLastPricesProducts,
     getPriceById: getPriceByIdProduct
 } = require('../products/routes');
@@ -249,12 +249,9 @@ async function calcularTotal(req, res){
     else{
         console.info('Validaciones Joi exitosas');
         console.info('Analizando contenido');
-        let { armado, sumaProds, sumaPacks } = await analizarContenido(req.body.contenido);
-        console.log('armado', armado)
-        console.log('sumaProds', sumaProds)
-        console.log('sumaPacks', sumaPacks)
+        let { armado, sumaProds, sumaPacks, errorMessage } = await analizarContenido(req.body.contenido);
 
-        if(armado){
+        if(errorMessage.length > 0 && armado){
             console.info('Contenido analizado');
             let total = sumaProds + sumaPacks;
 
@@ -266,9 +263,10 @@ async function calcularTotal(req, res){
             res.status(200).json({ total, sumaProds, sumaPacks });
         }
         else{
-            console.info('Error al calcular el total');
-            console.info('Preparando response');
-            res.status(500).json({message: 'Ocurrio un error al querer calcular el total'});
+            console.info(`Se encontraron ${errorMessage.length} errores al analizar el contenido`);
+            errorMessage.map(err => console.log(err));
+            console.info('Enviando response')
+            res.status(400).json({message: errorMessage});
         }
     }
 }
@@ -324,8 +322,9 @@ async function realizarPedido(req, res){
                 errorMessage.push('El usuario ingresado no corresponde con la empresa ingresada');
 
             console.info('Analizamos contenido para validar existencias');
-            let { armado, sumaProds, sumaPacks } = await analizarContenido(req.body.contenido);
+            let { armado, sumaProds, sumaPacks, errorMessage: errores } = await analizarContenido(req.body.contenido);
             req.body.contenido = armado;
+            errorMessage.concat(errores);
 
             if(errorMessage.length > 0){
                 console.info(`Se encontraron ${errorMessage.length} errores de existencia en la request`);
@@ -339,6 +338,9 @@ async function realizarPedido(req, res){
 
                 //Validamos que el total recibido sea la suma correcta
                 let total = sumaProds + sumaPacks;
+                console.info('sumaProds', sumaProds);
+                console.info('sumaPacks', sumaPacks);
+                console.info('total', total);
                 // taotal * (specialDiscount / 100) = total a descontar
                 if(req.body.specialDiscount !== 0) total -= total * (req.body.specialDiscount / 100);
 
@@ -1039,7 +1041,7 @@ async function getTransactionProductsByTransaction(id){
                                 console.info(`Se encontraron ${data.length} productos para la transaccion ${id}`);
                                 let flag = true;
                                 let res = await Promise.all(data.map(async prod => {
-                                    let { product } = await getProduct(prod.productId);
+                                    let { product } = await getCompanyProductById(prod.productId);
                                     if(product){
                                         let { price } = await getPriceByIdProduct(prod.priceId);
 
@@ -1436,9 +1438,8 @@ function validarCalculo(validar){
     return Joi.validate(validar, schema);
 }
 
-
 async function analizarContenido(contenido){
-    let sumaProds = 0, sumaPacks = 0;
+    let sumaProds = 0, sumaPacks = 0, errorMessage = [];
 
     let armado = await Promise.all(contenido.map(async seller => {
         let sumaProdsSeller = 0, sumaPacksSeller = 0;
@@ -1448,7 +1449,7 @@ async function analizarContenido(contenido){
         else{
             if(seller.productos && seller.productos.length > 0){
                 for(let prod of seller.productos){
-                    let { product, message: productMessage } = await getProduct(prod.id);
+                    let { producto: product, message: productMessage } = await getCompanyProductById(prod.id);
                     if(!product) errorMessage.push(productMessage);
                     else if(Number(product.companyId) !== seller.sellerId){
                         errorMessage.push(`Producto con ID: ${prod.id} no corresponde a empresa con ID: ${seller.sellerId}`);
@@ -1595,9 +1596,8 @@ async function analizarContenido(contenido){
         }
     }));
 
-    return { armado, sumaProds, sumaPacks };
+    return { armado, sumaProds, sumaPacks, errorMessage };
 }
-
 
 module.exports = {
     obtenerPedidos,

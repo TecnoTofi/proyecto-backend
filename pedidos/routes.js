@@ -144,7 +144,59 @@ async function obtenerPedidosByDate(req, res){
 }
 
 async function obtenerPedidosByDateByUser(req, res){
-    
+    console.info(`Conexion GET entrante : /api/pedido/user/${req.params.id}/date`);
+
+    console.info(`Comenzando validacion de tipos`);
+    let { error } = validarId(req.params.id);
+
+    if(error){
+        console.info(`Error en la validacion de tipos: ${error.details[0].message}`);
+        console.info('Preparando response');
+        res.status(400).json({message: error.details[0].message});
+    }
+    else{
+        console.info('Comenzando validacion de tipos');
+        let fechas = {
+            dateFrom: new Date(req.body.dateFrom).toUTCString(),
+            dateTo: new Date(req.body.dateTo).toUTCString()
+        };
+
+        let { error: errorFechas } = validarFechas(fechas);
+
+        if(errorFechas){
+            console.info('Erorres encontrados en la request');
+            let errores = errorFechas.details.map(e => {
+                console.info(e.message);
+                return e.message;
+            });
+            console.info('Preparando response');
+            res.status(400).json({message: errores});
+        }
+        else{
+
+            let { user, message: userMessage } = await getUserById(req.params.id);
+
+            if(user){
+                let { pedidos, message } = await getPedidosByDateByUser(req.params.id, fechas.dateFrom, fechas.dateTo);
+
+                if(pedidos){
+                    console.info(`${pedidos.length} pedidos encontrados`);
+                    console.info('Preparando response');
+                    res.status(200).json(pedidos);
+                }
+                else{
+                    console.info('No se encontraron pedidos');
+                    console.info('Preparando response');
+                    res.status(200).json({message});
+                }
+            }
+            else{
+                console.info(`No se encontro el usuario ${req.params.id}`);
+                console.info('Preparando response');
+                res.status(400).json({message: userMessage});
+            }
+        }
+    }
 }
 
 async function obtenerTransactionsByPedido(req, res){
@@ -918,32 +970,20 @@ async function getTransactionById(id){
 }
 
 async function getTransactionsByDate(dateFrom, dateTo){
-    //ver
-    console.info(`Buscando todos los pedido del usuario ${id}`);
+    console.info(`Buscando todas las transacciones entre ${dateFrom} y ${dateTo}`);
     let message = '';
-    let pedidos = await queries
-                        .pedidos
-                        .getByUser(id)
+    let transactions = await queries
+                        .transactions
+                        .getByDate(dateFrom, dateTo)
                         .then(async data => {
                             if(data){
-                                let flag = true;
-                                console.info('Informacion de pedidos obtenida');
-                                let res = await Promise.all(data.map(async p => {
-                                    let pedido = await armarPedido(p);
-                                    if(pedido){
-                                        return pedido;
-                                    }
-                                    else{
-                                        flag = false;
-                                        return null;
-                                    }
-                                }));
-                                if(flag) return res;
-                                else return null;
+                                console.info('Informacion de transacciones obtenida');
+                                let res = data.map(t => t.transactionId);
+                                return res;
                             }
                             else{
-                                console.info(`No existen pedidos registrados en la BD para el usuario ${id}`);
-                                message = `No existen pedidos registrados en la BD para el usuario ${id}`;
+                                console.info(`No existen transacciones registrados en la BD entre ${dateFrom} y ${dateTo}`);
+                                message = `No existen transacciones registrados en la BD entre ${dateFrom} y ${dateTo}`;
                                 return null;
                             }
                         })
@@ -952,7 +992,7 @@ async function getTransactionsByDate(dateFrom, dateTo){
                             message = 'Ocurrio un error al obtener los pedidos';
                             return null;
                         });
-    return { pedidos, message };
+    return { transactions, message };
 }
 
 async function getTransactionsByCompany(id){
@@ -993,32 +1033,20 @@ async function getTransactionsByCompany(id){
 }
 
 async function getTransactionsByDateByCompany(id, company, dateFrom, dateTo){
-    //ver
-    console.info(`Buscando todos los pedido del usuario ${id}`);
+    console.info(`Buscando todas las transacciones entre ${dateFrom} y ${dateTo} para el seller ${company}`);
     let message = '';
-    let pedidos = await queries
-                        .pedidos
-                        .getByUser(id)
+    let transactions = await queries
+                        .transactions
+                        .getByDate(id, dateFrom, dateTo)
                         .then(async data => {
                             if(data){
-                                let flag = true;
-                                console.info('Informacion de pedidos obtenida');
-                                let res = await Promise.all(data.map(async p => {
-                                    let pedido = await armarPedido(p);
-                                    if(pedido){
-                                        return pedido;
-                                    }
-                                    else{
-                                        flag = false;
-                                        return null;
-                                    }
-                                }));
-                                if(flag) return res;
-                                else return null;
+                                console.info('Informacion de transacciones obtenida');
+                                let res = data.map(t => t.transactionId);
+                                return res;
                             }
                             else{
-                                console.info(`No existen pedidos registrados en la BD para el usuario ${id}`);
-                                message = `No existen pedidos registrados en la BD para el usuario ${id}`;
+                                console.info(`No existen transacciones registrados en la BD entre ${dateFrom} y ${dateTo} para el seller ${company}`);
+                                message = `No existen transacciones registrados en la BD entre ${dateFrom} y ${dateTo} para el seller ${company}`;
                                 return null;
                             }
                         })
@@ -1027,7 +1055,7 @@ async function getTransactionsByDateByCompany(id, company, dateFrom, dateTo){
                             message = 'Ocurrio un error al obtener los pedidos';
                             return null;
                         });
-    return { pedidos, message };
+    return { transactions, message };
 }
 
 async function getTransactionProductsByTransaction(id){

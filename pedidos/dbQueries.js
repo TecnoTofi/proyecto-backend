@@ -37,6 +37,12 @@ module.exports = {
         getBySeller: function(id){
             return knex.select().table('Transaction').where('sellerId', id);
         },
+        getByDate: function(dateFrom, dateTo){
+            return knex.select().table('Transaction').where('timestamp', '>=', dateFrom).andWhere('timestamp', '<=', dateTo);
+        },
+        getByDateByCompany: function(id, dateFrom, dateTo){
+            return knex.select().table('Transaction').where('sellerId', id).andWhere('timestamp', '>=', dateFrom).andWhere('timestamp', '<=', dateTo);
+        },
         insert: function(transaction){
             return knex('Transaction').insert(transaction).returning('id');
         },

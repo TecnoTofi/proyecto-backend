@@ -488,17 +488,17 @@ async function altaProducto(body, file){
 
     // let categories = JSON.parse('[' + req.body.categories + ']');
     
-    let valproduct = {
+    let valProduct = {
         name: body.name,
         code: body.code,
         categories: body.categories,
         imageName: file ? file.filename : null,
         imagePath: file ? file.path : null,
-    }
+    };
 
     // validacion de tipos
     console.log('Comenzando validacion JOI de request');
-    let { error } = validarProducto(valproduct);
+    let { error } = validarProducto(valProduct);
     
     if(error){
         console.info('Erorres encontrados en la request');
@@ -518,8 +518,8 @@ async function altaProducto(body, file){
         let errorMessage = [];
 
         let { categories: valCategories, messages: categoriesMessages } = await validarCategorias(body.categories);
-        let { producto: ProductoByName } = await getProductByName(valproduct.name);
-        let { producto: ProductoByCode } = await getProductByCode(valproduct.code);
+        let { producto: ProductoByName } = await getProductByName(valProduct.name);
+        let { producto: ProductoByCode } = await getProductByCode(valProduct.code);
 
         if(!valCategories){
             console.info('Erorres encontrados en las categorias');
@@ -528,8 +528,8 @@ async function altaProducto(body, file){
                 errorMessage.push(msj);
             });
         }
-        if(ProductoByCode) errorMessage.push(`Ya existe un producto con Codigo ${valproduct.code}`);
-        if(ProductoByName) errorMessage.push(`Ya existe un producto con Nombre ${valproduct.name}`);
+        if(ProductoByCode) errorMessage.push(`Ya existe un producto con Codigo ${valProduct.code}`);
+        if(ProductoByName) errorMessage.push(`Ya existe un producto con Nombre ${valProduct.name}`);
 
 
         if(errorMessage.length > 0){
@@ -542,10 +542,10 @@ async function altaProducto(body, file){
         else{
             console.log('Validaciones de existencia exitosas');
             let product = {
-                    name: valproduct.name,
-                    code: valproduct.code,
-                    imageName: valproduct.imageName,
-                    imagePath: valproduct.imagePath,
+                    name: valProduct.name,
+                    code: valProduct.code,
+                    imageName: valProduct.imageName,
+                    imagePath: valProduct.imagePath,
                     created: new Date(),
                 }
 
@@ -881,30 +881,16 @@ async function asociarProducto(body, file){
 async function altaAsociacionProducto(req, res){
     console.log('Conexion POST entrante : /api/product/company');
 
-    console.log('body', req.body);
-
     let { status: altaStatus, message: altaMessage, product, categories } = await altaProducto(req.body, req.file);
-
-    console.log('alta');
-    console.log('status', altaStatus);
-    console.log('message', altaMessage);
-    console.log('product', product);
-    console.log('categories', categories);
 
     if(altaStatus === 201){
         req.body.productId = Number(product);
         let { status: asociarStatus, message: asociarMessage, companyProduct } = await asociarProducto(req.body, req.file);
 
-        console.log('asociar');
-        console.log('status', asociarStatus);
-        console.log('message', asociarMessage);
-        console.log('companyProduct', companyProduct);
-
         if(asociarStatus === 201){
-            res.status(201).json(Number(companyProduct));
+            res.status(201).json({id: Number(companyProduct)});
         }
         else{
-            //rollback de alta
             for(let cat of categories){
                 console.log(`Enviando rollback de ProductCategory ID: ${cat}`);
                 let rollbackProductCategory = await rollbackInsertProductCategory(cat);
@@ -912,9 +898,9 @@ async function altaAsociacionProducto(req, res){
                 else console.log(`Ocurrio un error en rollback de ProductCategory ${cat}`);
             }
             console.log('Comenzando rollbacks de producto');
-            let rollbackProduct = await rollbackInsertProduct(producto.id);
-            if(rollbackProduct.res) console.log(`Rollback de Producto ${id} realizado correctamente`);
-            else console.log(`Ocurrio un error en rollback de Producto ${id}`);
+            let rollbackProduct = await rollbackInsertProduct(product);
+            if(rollbackProduct.res) console.log(`Rollback de Producto ${product} realizado correctamente`);
+            else console.log(`Ocurrio un error en rollback de Producto ${product}`);
             
             res.status(asociarStatus).json(asociarMessage);
         }
@@ -2025,13 +2011,13 @@ function validarCode(code){
 }
 
 function validarProducto(body) {
-    const schema = {
+    const schema = Joi.object().keys({
         name: Joi.string().min(3).max(50).required(),
         code: Joi.string().required(),
         categories: Joi.array().required(),
         imageName: Joi.allow('').allow(null),
         imagePath: Joi.allow('').allow(null)
-    };
+    });
     return Joi.validate(body, schema);
 }
 

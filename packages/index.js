@@ -14,13 +14,14 @@ const storage = multer.diskStorage({
     },
     filename: function(req, file, cb){
         //indicamos como se formara el nombre del archivo
-        cb(null, new Date().toISOString().replace(/:/g,'-') + file.originalname);
+        if(file) cb(null, new Date().toISOString().replace(/:/g,'-') + file.originalname);
+        else cb(null);
     }
 });
 
 //Creamos filtros para guardar unicamente jpg, jpeg y png
 const fileFilter = (req, file, cb) => {
-    if(file.mimetype === 'image/jpeg' || file.mimetype === 'image/png' || file.mimetype === 'image/jpg'){
+    if(file && file.mimetype === 'image/jpeg' || file.mimetype === 'image/png' || file.mimetype === 'image/jpg'){
         cb(null, true);
     }
     else{
@@ -40,24 +41,29 @@ const upload = multer({
 //Todas las rutas empiezan con /api/package
 
 //Obtener todos los paquetes
-router.get('/', PackagesRoutes.getAllPackages);
-//Obtener todos los paquetes de una compania
-router.get('/company/:id', PackagesRoutes.getAllPackagesByCompany);
+router.get('/', PackagesRoutes.obtenerPackages);
+router.get('/all', PackagesRoutes.obtenerAllPackages);
+router.get('/deleted', PackagesRoutes.obtenerDeletedPackages);
+router.get('/company/:id', PackagesRoutes.obtenerPackagesByCompany);
+router.get('/company/:id/all', PackagesRoutes.obtenerAllPackagesByCompany);
+router.get('/company/:id/deleted', PackagesRoutes.obtenerDeletedPackagesByCompany);
 //Insertar un paquete
-// router.post('/'/*, upload.single('image'), verifyToken*/, PackagesRoutes.insertPackages);
+// router.post('/', upload.single('image'), verifyToken, PackagesRoutes.insertPackages);
 //Agregar productos al paquete
-// router.post('/product'/*, verifyToken*/, PackagesRoutes.insertPackageProduct);
+// router.post('/product', verifyToken, PackagesRoutes.insertPackageProduct);
 //Obtener los productos de un paquete por su ID
-router.get('/products/:id', PackagesRoutes.getAllProductByPackage);
+// router.get('/products/:id', PackagesRoutes.getAllProductByPackage);
 //modificar paquete
-router.post('/update/idPack', PackagesRoutes.updatePackage);
+// router.post('/update/idPack', PackagesRoutes.updatePackage);
 //eliminar paquete
-router.post('/delete/idPack', PackagesRoutes.deletePackage);
+// router.post('/delete/idPack', PackagesRoutes.deletePackage);
 //modificar lineas del paquete
-router.post('/product/update/idPacProd', PackagesRoutes.updatePackageProduct);
+// router.post('/product/update/idPacProd', PackagesRoutes.updatePackageProduct);
 //eliminar lineas del paquete
-router.post('/product/delete/idPacProd', PackagesRoutes.deletePackageProduct);
+// router.post('/product/delete/idPacProd', PackagesRoutes.deletePackageProduct);
 //prueba
-router.post('/',upload.single('image'), verifyToken, PackagesRoutes.insertPackagesCompleto);
+// router.post('/',upload.single('image'), verifyToken, PackagesRoutes.insertPackagesCompleto);
 
+router.post('/', upload.single('image'), verifyToken, PackagesRoutes.altaPaquete);
+// router.put('/update/:id', PackagesRoutes.modificarPaquete);
 module.exports = router;

@@ -788,7 +788,7 @@ async function asociarProducto(body, file){
 
                 let { producto: productoById, message: productMessage } = await getProductById(valCompanyProduct.productId);
                 let { company, message: companyMessage } = await getCompanyById(valCompanyProduct.companyId);
-                let { producto: companyProductByProduct } = await getCompanyProductByProduct(valCompanyProduct.productId);
+                let { producto: companyProductByProduct } = await getCompanyProductByProduct(valCompanyProduct.companyId, valCompanyProduct.productId);
 
                 if(!productoById) errorMessage.push(productMessage);
                 if(!company) errorMessage.push(companyMessage);
@@ -1595,15 +1595,15 @@ async function getCompanyProductById(id){
     return { producto, message };
 }
 
-async function getCompanyProductByProduct(id){
-    console.info(`Buscando CompanyProduct con productId: ${id}`);
+async function getCompanyProductByProduct(idComp, idProd){
+    console.info(`Buscando CompanyProduct con productId: ${idProd} para la compania ${idComp}`);
     let message = '';
     let producto = await queries
                     .companyProduct
-                    .getOneById(id)
+                    .getOneByProductByCompany(idComp, idProd)
                     .then(data => {
                         if(data){
-                            console.info(`CompanyProduct con productId: ${id} encontrado`);
+                            console.info(`CompanyProduct con productId: ${idProd} para compania ${idComp} encontrado`);
                             let regex = /\\/g;
                             // const productos = Promise.all(data.map(async prod => {
                                 data.imagePath = data.imagePath.replace(regex, '/');
@@ -1612,8 +1612,8 @@ async function getCompanyProductByProduct(id){
                             return data;
                         }
                         else{
-                            console.info(`No existe CompanyProduct con productId: ${id}`);
-                            message = `No existe un CompanyProduct con productId ${id}`;
+                            console.info(`No existe CompanyProduct con productId: ${idProd} para la compania ${idComp}`);
+                            message = `No existe un CompanyProduct con productId ${idProd} para la compania ${idComp}`;
                             return null;
                         }
                     })
@@ -1724,7 +1724,7 @@ async function rollbackInsertProduct(id){
     let message = '';
     let res = await queries
                     .products
-                    .delete(id)
+                    .deleteRollback(id)
                     .then(data => {
                         // console.log(`Rollback de Pedido ${id} realizado correctamente: ${data}`);
                         return data;

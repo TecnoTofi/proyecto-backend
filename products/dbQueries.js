@@ -49,8 +49,10 @@ module.exports ={
         delete: function(id,date){
             console.log(`Enviando Query DELETE a Product`);
             return knex('Product').where('id', id).update('deleted', date);
+        },
+        deleteRollback: function(id){
+            return knex('Product').where('id', id).del();
         }
-
     },
     prodCategory: {
         getAll: function(){
@@ -74,7 +76,6 @@ module.exports ={
         }
     },
     companyProduct: {
-
         getCompanyProducts: function(){
             // return knex.select().table('CompanyProduct').where('deleted', null);
             return knex.raw('select pc.id, p.id "productId", p.code, pc."companyId", pc.name, pc.description, pc.stock, pc."imagePath", pc."imageName", pc.created, pc.deleted, (select price from "ProductPrice" where "productId" = pc.id order by "validDateFrom" desc limit 1) "price", (select id from "ProductPrice" where "productId" = pc.id order by "validDateFrom" desc limit 1) "priceId"  from "Product" p , "CompanyProduct" pc where pc."productId" = p.id and pc.deleted is null');
@@ -130,7 +131,6 @@ module.exports ={
         getAllForListDeleted(){
             return knex.raw('select p.id, p.code, p.deleted, p.created, pc."companyId", pc.name, pc.description, pc.stock, pc."imagePath", pc."imageName", pc.created, pc.deleted,c.id, c.price, c."validDateFrom" from "Product" p , "ProductPrice" c , "CompanyProduct" pc where c."productId" = pc.id and pc."productId" = p.id and  pc.deleted is not null');
         },
-
         getAllForListByCompany(id){
             return knex.raw('select p.id, p.code, p.deleted, p.created, pc."companyId", pc.name, pc.description, pc.stock, pc."imagePath", pc."imageName", pc.created, pc.deleted,c.id, c.price, c."validDateFrom" from "Product" p , "ProductPrice" c , "CompanyProduct" pc where pc."companyId" = ? and  c."productId" = pc.id and pc."productId" = p.id',
             [id]);
@@ -143,6 +143,10 @@ module.exports ={
             return knex.raw('select p.id, p.code, p.deleted, p.created, pc."companyId", pc.name, pc.description, pc.stock, pc."imagePath", pc."imageName", pc.created, pc.deleted,c.id, c.price, c."validDateFrom" from "Product" p , "ProductPrice" c , "CompanyProduct" pc where pc."companyId" = ? and  c."productId" = pc.id and pc."productId" = p.id and pc.deleted  is not null',
             [id]);
         },
+        getOneByProductByCompany: function(idComp, idProd){
+            return knex.raw('select pc.id, pc."companyId", pc.name, pc.description, pc.stock, pc."imagePath", pc."imageName", pc.created, pc.deleted from "Product" p  , "CompanyProduct" pc where pc."companyId" = ? and  pc."productId" =? and p.id = pc."productId"',
+            [idComp,idProd]);
+        },
         insert: function(product){
             return knex('CompanyProduct').insert(product).returning('id');
         },
@@ -150,10 +154,10 @@ module.exports ={
             // return knex.raw(`update "CompanyProduct" set "companyId" = ${product.companyId}, "productId" = ${product.productId}, "name" = ${product.name}, description = ${product.description}, price = ${product.price}, stock = ${product.stock}, "imagePath" = ${product.imagePath}, "imageName" = ${product.imageName} where id = ${id};`);
             return knex('CompanyProduct').where('id', id).update({stock: product.stock});
         },
-        delete: function(id,date){
+        delete: function(id, date){
             console.log(`Enviando Query DELETE a companyProduct`);
             return knex('CompanyProduct').where('id', id).update('deleted', date);
-        }
+        }        
     },
     prices: {
         getOneById: function(id){

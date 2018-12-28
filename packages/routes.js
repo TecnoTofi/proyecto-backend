@@ -56,7 +56,7 @@ async function obtenerDeletedPackages(req, res){
 }
 
 async function obtenerPackagesByCompany(req, res){
-    console.info(`Conexion GET entrante : /api/package/company/habilitados/${req.params.id}`);
+    console.info(`Conexion GET entrante : /api/package/company/${req.params.id}`);
 
     console.info(`Comenzando validacion de tipos`);
     let { error } = validarId(req.params.id);
@@ -93,7 +93,7 @@ async function obtenerPackagesByCompany(req, res){
 }
 
 async function obtenerAllPackagesByCompany(req, res){
-    console.info(`Conexion GET entrante : /api/package/company/${req.params.id}`);
+    console.info(`Conexion GET entrante : /api/package/company/${req.params.id}/all`);
 
     console.info(`Comenzando validacion de tipos`);
     let { error } = validarId(req.params.id);
@@ -131,9 +131,7 @@ async function obtenerAllPackagesByCompany(req, res){
 }
 
 async function obtenerDeletedPackagesByCompany(req, res){
-    console.info(`Conexion GET entrante : /api/package/company/deleted/${req.params.id}`);
-
-    console.info(`Conexion GET entrante : /api/package/company/habilitados/${req.params.id}`);
+    console.info(`Conexion GET entrante : /api/package/company/${req.params.id}/deleted`);
 
     console.info(`Comenzando validacion de tipos`);
     let { error } = validarId(req.params.id);
@@ -172,37 +170,61 @@ async function obtenerDeletedPackagesByCompany(req, res){
 async function obtenerPaqueteById(req, res){
     console.info(`Conexion GET entrante : /api/package/${req.params.id}`);
 
-    let { paquete, message } = await getPackageByIdList(req.params.id);
-    console.log(paquete);
+    console.info(`Comenzando validacion de tipos`);
+    let { error } = validarId(req.params.id);
 
-    if(paquete){
-        console.info(`${paquete.length} paquete encontrados`);
+    if(error){
+        console.info(`Error en la validacion de tipos: ${error.details[0].message}`);
         console.info('Preparando response');
-        res.status(200).json({paquete});
+        res.status(400).json({message: error.details[0].message});
     }
     else{
-        console.info('No se encontraron paquete');
-        console.info('Preparando response');
-        res.status(200).json({message});
+        console.info('Validacion de tipos exitosa');
+        console.info(`Yendo a buscar paquete con ID: ${req.params.id}`);
+        let { paquete, message } = await getPackageById(req.params.id);
+
+        if(paquete){
+            console.info(`Paquete encontrado`);
+            console.info('Preparando response');
+            res.status(200).json(paquete);
+        }
+        else{
+            console.info('No se encontro paquete');
+            console.info('Preparando response');
+            res.status(200).json({message});
+        }
     }
 }
 
 async function obtenerPaqueteByCode(req, res){
-    console.info(`Conexion GET entrante : /api/package/company/deleted/${req.params.code}`);
+    console.info(`Conexion GET entrante : /api/package/code/${req.params.code}`);
 
-    let { paquete, message } = await getPackageByCodeList(req.params.code);
-    console.log(paquete);
+    console.info(`Comenzando validacion de tipos`);
+    let { error } = validarCode(req.params.code);
 
-    if(paquete){
-        console.info(`${paquete.length} paquete encontrados`);
+    if(error){
+        console.info(`Error en la validacion de tipos: ${error.details[0].message}`);
         console.info('Preparando response');
-        res.status(200).json({producto});
+        res.status(400).json({message: error.details[0].message});
     }
     else{
-        console.info('No se encontraron paquete');
-        console.info('Preparando response');
-        res.status(200).json({message});
+        let { paquete, message } = await getPackageByCode(req.params.code);
+
+        if(paquete){
+            console.info(`Paquete encontrado`);
+            console.info('Preparando response');
+            res.status(200).json(paquete);
+        }
+        else{
+            console.info('No se encontro paquete');
+            console.info('Preparando response');
+            res.status(200).json({message});
+        }
     }
+}
+
+async function  obtenerAllProductsByPackage(req, res) {
+    console.info(`Conexion GET entrante : /api/package/${req.params.id}/products`);
 }
 
 async function altaPaquete(req, res){
@@ -426,8 +448,8 @@ async function altaPaquete(req, res){
     }
 }
 
-async function asociarProductos(req, res){
-    console.log('Conexion POST entrante : /api/package/products');
+async function agregarPackageProduct(req, res){
+    console.log(`Conexion POST entrante : /api/package/${req.params.id}/product`);
 
     console.info(`Comenzando validacion de tipos`);
     //let { error } = validarId(req.params.id);
@@ -491,7 +513,7 @@ async function asociarProductos(req, res){
 }
 
 async function modificarPaquete(req, res){
-    console.info(`Conexion PUT entrante : /api/package/update/${req.params.id}`);
+    console.info(`Conexion PUT entrante : /api/package/${req.params.id}`);
 
     console.info(`Comenzando validacion de tipos`);
     //let { error } = validarId(req.params.id);
@@ -1026,7 +1048,7 @@ async function modificarPaquete(req, res){
 }
 
 async function eliminarPaquete(req, res){
-    console.info(`Conexion DELETE entrante : /api/product/${req.params.id}`);
+    console.info(`Conexion DELETE entrante : /api/package/${req.params.id}`);
 
     console.info(`Comenzando validacion de tipos`);
     let { error } = validarId(req.params.id);
@@ -1342,12 +1364,12 @@ async function getPackageById(id){
                     .getOneById(id)
                     .then(data => {
                         if(data){
-                            console.info(`paquete con ID: ${id} encontrado`);
+                            console.info(`Paquete con ID: ${id} encontrado`);
                             return data;
                         }
                         else{
-                            console.info(`No existe paquete con id: ${id}`);
-                            message = `No existe un paquete con id ${id}`;
+                            console.info(`No existe paquete con ID: ${id}`);
+                            message = `No existe un paquete con ID ${id}`;
                             return null;
                         }
                     })
@@ -1359,35 +1381,35 @@ async function getPackageById(id){
     return { paquete, message };
 }
 
-async function getPackageByIdList(id){
-    console.info(`Buscando paquete con id: ${id}`);
-    let message = '';
-    let paquete = await queries
-                    .packages
-                    .getOneByIdList(id)
-                    .then(data => {
-                        if(data.rows){
-                            console.info(`paquete con ID: ${id} encontrado`);
-                            let regex = /\\/g;
-                            const paquetes = Promise.all(data.rows.map(async paq => {
-                                paq.imagePath = paq.imagePath.replace(regex, '/');
-                                return paq;
-                            }));
-                            paquetes                            
-                        }
-                        else{
-                            console.info(`No existe paquete con id: ${id}`);
-                            message = `No existe un paquete con id ${id}`;
-                            return null;
-                        }
-                    })
-                    .catch(err => {
-                        console.error(`Error en Query SELECT de Package : ${err}`);
-                        message = 'Ocurrio un error al obtener el paquete';
-                        return null;
-                    });
-    return { paquete, message };
-}
+// async function getPackageByIdList(id){
+//     console.info(`Buscando paquete con id: ${id}`);
+//     let message = '';
+//     let paquete = await queries
+//                     .packages
+//                     .getOneByIdList(id)
+//                     .then(data => {
+//                         if(data.rows){
+//                             console.info(`paquete con ID: ${id} encontrado`);
+//                             let regex = /\\/g;
+//                             const paquetes = Promise.all(data.rows.map(async paq => {
+//                                 paq.imagePath = paq.imagePath.replace(regex, '/');
+//                                 return paq;
+//                             }));
+//                             paquetes                            
+//                         }
+//                         else{
+//                             console.info(`No existe paquete con id: ${id}`);
+//                             message = `No existe un paquete con id ${id}`;
+//                             return null;
+//                         }
+//                     })
+//                     .catch(err => {
+//                         console.error(`Error en Query SELECT de Package : ${err}`);
+//                         message = 'Ocurrio un error al obtener el paquete';
+//                         return null;
+//                     });
+//     return { paquete, message };
+// }
 
 async function getPackageByCode(code){
     console.info(`Buscando paquete con codigo: ${code}`);
@@ -1414,35 +1436,35 @@ async function getPackageByCode(code){
     return { paquete, message };
 }
 
-async function getPackageByCodeList(code){
-    console.info(`Buscando paquete con codigo: ${code}`);
-    let message = '';
-    let paquete = await queries
-                    .packages
-                    .getOneByCode(code)
-                    .then(data => {
-                        if(data,rows){
-                            console.info(`Paquete con Codigo: ${code} encontrado`);
-                            let regex = /\\/g;
-                            const paquetes = Promise.all(data.rows.map(async paq => {
-                                paq.imagePath = paq.imagePath.replace(regex, '/');
-                                return paq;
-                            }));
-                            paquetes                            
-                        }
-                        else{
-                            console.info(`No existe paquete con codigo: ${code}`);
-                            message = `No existe un paquete con codigo ${code}`;
-                            return null;
-                        }
-                    })
-                    .catch(err => {
-                        console.error(`Error en Query SELECT de Package : ${err}`);
-                        message = 'Ocurrio un error al obtener el paquete';
-                        return null;
-                    });
-    return { paquete, message };
-}
+// async function getPackageByCodeList(code){
+//     console.info(`Buscando paquete con codigo: ${code}`);
+//     let message = '';
+//     let paquete = await queries
+//                     .packages
+//                     .getOneByCode(code)
+//                     .then(data => {
+//                         if(data,rows){
+//                             console.info(`Paquete con Codigo: ${code} encontrado`);
+//                             let regex = /\\/g;
+//                             const paquetes = Promise.all(data.rows.map(async paq => {
+//                                 paq.imagePath = paq.imagePath.replace(regex, '/');
+//                                 return paq;
+//                             }));
+//                             paquetes                            
+//                         }
+//                         else{
+//                             console.info(`No existe paquete con codigo: ${code}`);
+//                             message = `No existe un paquete con codigo ${code}`;
+//                             return null;
+//                         }
+//                     })
+//                     .catch(err => {
+//                         console.error(`Error en Query SELECT de Package : ${err}`);
+//                         message = 'Ocurrio un error al obtener el paquete';
+//                         return null;
+//                     });
+//     return { paquete, message };
+// }
 
 async function getAllProductByPackage (id){
     console.info(`Buscando productos del paquete con id: ${id}`);
@@ -1710,7 +1732,7 @@ async function rollbackInsertPrice(id){
     return { res, message };
 }
 
-async function buscarCategoryInPackage(idPack,idCat){
+async function buscarCategoryInPackage(idPack, idCat){
     console.info(`Buscando categorias en paquete con id: ${idPack}`);
     let message = '';
     let category = await queries
@@ -1735,7 +1757,7 @@ async function buscarCategoryInPackage(idPack,idCat){
     return { category, message };
 }
 
-async function buscarProductInPackage(idPack,idPro){
+async function buscarProductInPackage(idPack, idPro){
     console.info(`Buscando companyProducts en paquete con id: ${idPack}`);
     let message = '';
     let producto = await queries
@@ -1758,6 +1780,114 @@ async function buscarProductInPackage(idPack,idPro){
                         return null;
                     });
     return { producto, message };
+}
+
+async function getPriceById(id){
+    console.info(`Buscando precio con ID: ${id}`);
+    let message = '';
+    let price = await queries
+                .prices
+                .getOneById(id)
+                .then(data => {
+                    if(data) {
+                        console.info(`Precio con ID: ${id} encontrado`);
+                        return data;
+                    }
+                    else{
+                        console.info(`No existe precio con ID: ${id}`);
+                        message = `No existe un precio con ID ${id}`;
+                        return null;
+                    }
+                })
+                .catch(err => {
+                    console.error(`Error en Query SELECT de ProductPrice: ${err}`);
+                    message = 'Ocurrio un error al obtener el precio';
+                });
+    return { price, message };
+}
+
+async function getCurrentPrice(id){
+    console.info(`Buscando precio con ID: ${id}`);
+    let message = '';
+    let price = await queries
+                .prices
+                .getCurrent(id)
+                .then(data => {
+                    if(data) {
+                        console.info(`Precio con ID: ${id} encontrado`);
+                        return data;
+                    }
+                    else{
+                        console.info(`No existe precio con ID: ${id}`);
+                        message = `No existe un precio con ID ${id}`;
+                        return null;
+                    }
+                })
+                .catch(err => {
+                    console.error(`Error en Query SELECT de ProductPrice: ${err}`);
+                    message = 'Ocurrio un error al obtener el precio';
+                });
+    return { price, message };
+}
+
+async function getLastPrices(id){
+    console.info(`Buscando precio con ID: ${id}`);
+    let message = '';
+    let prices = await queries
+                .prices
+                .getLast(id)
+                .then(data => {
+                    if(data) {
+                        console.info(`Precio con ID: ${id} encontrado`);
+                        return data;
+                    }
+                    else{
+                        console.info(`No existe precio con ID: ${id}`);
+                        message = `No existe un precio con ID ${id}`;
+                        return null;
+                    }
+                })
+                .catch(err => {
+                    console.error(`Error en Query SELECT de ProductPrice: ${err}`);
+                    message = 'Ocurrio un error al obtener el precio';
+                });
+    return { prices, message };
+}
+
+async function reducirStock(id, cantidad){
+    console.log(`Comenzando reduccion de stock para paquete con ID: ${id}, cantidad a reducir: ${cantidad}`);
+
+    let busPack = await getPackageById(id);
+
+    if(!busPack.package){
+        console.log('Error al obtener paquete para reducir');
+        return false;
+    }
+
+    console.log('Reduciendo cantidad');
+    busPack.package.stock = busPack.package.stock - cantidad;
+    let reducido = false;
+    console.log('Enviando Query UPDATE');
+    await queries
+        .packages
+        .modify(id, busPack.package)
+        .then(data => {
+            if(data){
+                reducido = true;
+                console.log('Query UPDATE exitosa');
+            }
+        })
+        .catch(err => {
+            console.log(`Error en Query UPDATE de Package: ${err}`);
+        });
+        
+    return reducido;
+}
+
+function validarCode(code){
+    const schema = Joi.string().required();
+
+    return Joi.validate(code, schema);
 }
 
 async function validarCategorias(categorias){
@@ -2162,108 +2292,6 @@ async function getPackage(packageId){
 }
 */
 
-async function getPriceById(id){
-    console.info(`Buscando precio con ID: ${id}`);
-    let message = '';
-    let price = await queries
-                .prices
-                .getOneById(id)
-                .then(data => {
-                    if(data) {
-                        console.info(`Precio con ID: ${id} encontrado`);
-                        return data;
-                    }
-                    else{
-                        console.info(`No existe precio con ID: ${id}`);
-                        message = `No existe un precio con ID ${id}`;
-                        return null;
-                    }
-                })
-                .catch(err => {
-                    console.error(`Error en Query SELECT de ProductPrice: ${err}`);
-                    message = 'Ocurrio un error al obtener el precio';
-                });
-    return { price, message };
-}
-
-async function getCurrentPrice(id){
-    console.info(`Buscando precio con ID: ${id}`);
-    let message = '';
-    let price = await queries
-                .prices
-                .getCurrent(id)
-                .then(data => {
-                    if(data) {
-                        console.info(`Precio con ID: ${id} encontrado`);
-                        return data;
-                    }
-                    else{
-                        console.info(`No existe precio con ID: ${id}`);
-                        message = `No existe un precio con ID ${id}`;
-                        return null;
-                    }
-                })
-                .catch(err => {
-                    console.error(`Error en Query SELECT de ProductPrice: ${err}`);
-                    message = 'Ocurrio un error al obtener el precio';
-                });
-    return { price, message };
-}
-
-async function getLastPrices(id){
-    console.info(`Buscando precio con ID: ${id}`);
-    let message = '';
-    let prices = await queries
-                .prices
-                .getLast(id)
-                .then(data => {
-                    if(data) {
-                        console.info(`Precio con ID: ${id} encontrado`);
-                        return data;
-                    }
-                    else{
-                        console.info(`No existe precio con ID: ${id}`);
-                        message = `No existe un precio con ID ${id}`;
-                        return null;
-                    }
-                })
-                .catch(err => {
-                    console.error(`Error en Query SELECT de ProductPrice: ${err}`);
-                    message = 'Ocurrio un error al obtener el precio';
-                });
-    return { prices, message };
-}
-
-async function reducirStock(id, cantidad){
-    console.log(`Comenzando reduccion de stock para paquete con ID: ${id}, cantidad a reducir: ${cantidad}`);
-
-    let busPack = await getPackageById(id);
-
-    if(!busPack.package){
-        console.log('Error al obtener paquete para reducir');
-        return false;
-    }
-
-    console.log('Reduciendo cantidad');
-    busPack.package.stock = busPack.package.stock - cantidad;
-    let reducido = false;
-    console.log('Enviando Query UPDATE');
-    await queries
-        .packages
-        .modify(id, busPack.package)
-        .then(data => {
-            if(data){
-                reducido = true;
-                console.log('Query UPDATE exitosa');
-            }
-        })
-        .catch(err => {
-            console.log(`Error en Query UPDATE de Package: ${err}`);
-        });
-        
-    return reducido;
-}
-
 function validarPackage(body) {
     const schema = {
         companyId: Joi.number().required(),
@@ -2296,5 +2324,16 @@ module.exports = {
     obtenerPackagesByCompany,
     obtenerAllPackagesByCompany,
     obtenerDeletedPackagesByCompany,
+    //
+    obtenerPaqueteById,
+    obtenerPaqueteByCode,
+    obtenerAllProductsByPackage,
     altaPaquete,
+    agregarPackageProduct,
+    modificarPaquete,
+    eliminarPaquete,
+    getPriceById,
+    getCurrentPrice,
+    getLastPrices,
+    reducirStock,
 };

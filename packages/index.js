@@ -47,23 +47,11 @@ router.get('/deleted', PackagesRoutes.obtenerDeletedPackages);
 router.get('/company/:id', PackagesRoutes.obtenerPackagesByCompany);
 router.get('/company/:id/all', PackagesRoutes.obtenerAllPackagesByCompany);
 router.get('/company/:id/deleted', PackagesRoutes.obtenerDeletedPackagesByCompany);
-//Insertar un paquete
-// router.post('/', upload.single('image'), verifyToken, PackagesRoutes.insertPackages);
-//Agregar productos al paquete
-// router.post('/product', verifyToken, PackagesRoutes.insertPackageProduct);
-//Obtener los productos de un paquete por su ID
-// router.get('/products/:id', PackagesRoutes.getAllProductByPackage);
-//modificar paquete
-// router.post('/update/idPack', PackagesRoutes.updatePackage);
-//eliminar paquete
-// router.post('/delete/idPack', PackagesRoutes.deletePackage);
-//modificar lineas del paquete
-// router.post('/product/update/idPacProd', PackagesRoutes.updatePackageProduct);
-//eliminar lineas del paquete
-// router.post('/product/delete/idPacProd', PackagesRoutes.deletePackageProduct);
-//prueba
-// router.post('/',upload.single('image'), verifyToken, PackagesRoutes.insertPackagesCompleto);
-
+router.get('/:id', PackagesRoutes.obtenerPaqueteById);
+router.get('/code/:code', PackagesRoutes.obtenerPaqueteByCode);
+router.get('/:id/products', PackagesRoutes.obtenerAllProductsByPackage);
 router.post('/', upload.single('image'), verifyToken, PackagesRoutes.altaPaquete);
-// router.put('/update/:id', PackagesRoutes.modificarPaquete);
+router.post('/:id/product', verifyToken, PackagesRoutes.agregarPackageProduct);
+router.put('/:id', upload.single('image'), verifyToken, PackagesRoutes.modificarPaquete);
+router.delete('/:id', verifyToken, PackagesRoutes.eliminarPaquete);
 module.exports = router;

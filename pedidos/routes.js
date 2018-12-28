@@ -1069,7 +1069,7 @@ async function getTransactionProductsByTransaction(id){
                                 console.info(`Se encontraron ${data.length} productos para la transaccion ${id}`);
                                 let flag = true;
                                 let res = await Promise.all(data.map(async prod => {
-                                    let { product: producto } = await getCompanyProductById(prod.productId);
+                                    let { producto } = await getCompanyProductById(prod.productId);
                                     if(producto){
                                         let { price } = await getPriceByIdProduct(prod.priceId);
 

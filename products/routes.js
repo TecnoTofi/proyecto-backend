@@ -188,19 +188,29 @@ async function obtenerCompanyProductsDeletedByCompanyList(req, res){
 async function obtenerProductById(req, res){
     console.info(`Conexion GET entrante : /api/product/${req.params.id}`);
 
-    let { producto, message } = await getProductById(req.params.id);
-    console.log(producto);
+    console.info(`Comenzando validacion de tipos`);
+    let { error } = validarId(req.params.id);
 
-    if(producto){
-        console.info(`${producto.length} productos encontrados`);
+    if(error){
+        console.info(`Error en la validacion de tipos: ${error.details[0].message}`);
         console.info('Preparando response');
-        res.status(200).json(producto);
+        res.status(400).json({message: error.details[0].message});
     }
     else{
-        console.info('No se encontraron productos');
-        console.info('Preparando response');
-        res.status(200).json({message});
-    }
+        let { producto, message } = await getProductById(req.params.id);
+        console.log(producto);
+    
+        if(producto){
+            console.info(`${producto.length} productos encontrados`);
+            console.info('Preparando response');
+            res.status(200).json(producto);
+        }
+        else{
+            console.info('No se encontraron productos');
+            console.info('Preparando response');
+            res.status(200).json({message});
+        }
+    }    
 }
 
 async function obtenerCompanyProductById(req, res){
@@ -299,7 +309,7 @@ async function obtenerProductByCode(req, res){
         let { producto, message } = await getProductByCode(req.params.code);
 
         if(producto){
-            console.info(`${producto.length} productos encontrados`);
+            console.info(`Producto encontrado`);
             console.info('Preparando response');
             res.status(200).json(producto);
         }
@@ -506,8 +516,6 @@ async function altaProducto(body, file){
             console.info(e.message);
             return e.message;
         });
-        // console.info('Preparando response');
-        // res.status(400).json({message: errores});
         return { status: 400, message: errores };
     }
     else{
@@ -1020,34 +1028,34 @@ async function modificarProducto(req, res){
                         let { id: priceId, message: priceMessage } = await insertPrice(precio);
 
                         if(priceId){
-                          console.log(`Price insertado correctamente con ID: ${priceId}`);
+                            console.log(`Price insertado correctamente con ID: ${priceId}`);
 
-                          console.log('Modificacion de producto finalizada exitosamente');
-                          res.status(200).json({message: 'Modificacion exitosa'});
+                            console.log('Modificacion de producto finalizada exitosamente');
+                            res.status(200).json({message: 'Modificacion exitosa'});
                         }
                         else{
-                          console.log(`Error al insertar price: ${priceMessage}`);
-                          console.log('Comenzando rollbacks de companyProduct');
-                          let productRollback = {
-                            companyId: productById.companyId,
-                            productId: productById.productId,
-                            name: productById.name,
-                            description: productById.description,
-                            stock: productById.stock,
-                            imageName: productById.imageName,
-                            imagePath: productById.imagePath,
-                           };
+                            console.log(`Error al insertar price: ${priceMessage}`);
+                            console.log('Comenzando rollbacks de companyProduct');
+                            let productRollback = {
+                                companyId: productById.companyId,
+                                productId: productById.productId,
+                                name: productById.name,
+                                description: productById.description,
+                                stock: productById.stock,
+                                imageName: productById.imageName,
+                                imagePath: productById.imagePath,
+                            };
 
-                           let { result: resultUpdateRollback, message: updateRollbackMessage } = await updateProduct(req.params.productId, productRollback);
+                            let { result: resultUpdateRollback, message: updateRollbackMessage } = await updateProduct(req.params.productId, productRollback);
 
-                           if(resultUpdateRollback){
-                             console.info(`Company con ID: ${req.params.id} corregida correctamente`);
-                           }
-                           else{
-                            console.info('No se pudo realizar rollbacks de companyProduct');
-                            console.info(updateRollbackMessage);
-                            console.info('Preparando response');
-                            res.status(500).json({message: 'Ocurrio un error al modificar el companyProduct'});
+                            if(resultUpdateRollback){
+                                console.info(`Company con ID: ${req.params.id} corregida correctamente`);
+                            }
+                            else{
+                                console.info('No se pudo realizar rollbacks de companyProduct');
+                                console.info(updateRollbackMessage);
+                                console.info('Preparando response');
+                                res.status(500).json({message: 'Ocurrio un error al modificar el companyProduct'});
                             }
                         }
                     }
@@ -1148,6 +1156,7 @@ async function getProducts(){
                                         message = 'Ocurrio un error al obtener los productos';
                                         flag = false;
                                     }
+                                    
                                 }
                                 if(flag) return data;
                                 else return null;
@@ -1455,6 +1464,7 @@ async function getProductById(id){
                                 message = 'Ocurrio un error al obtener los productos';
                                 flag = false;
                             }
+
                             if(flag) return data;
                             else return null;
                         }
@@ -1497,6 +1507,7 @@ async function getProductByCode(code){
                                 message = 'Ocurrio un error al obtener los productos';
                                 flag = false;
                             }
+
                             if(flag) return data;
                             else return null;
                         }
@@ -1564,6 +1575,17 @@ async function getCompanyProductById(id){
                                 message = 'Ocurrio un error al obtener los productos';
                                 flag = false;
                             }
+
+                            console.info(`Buscando precio para producto ${data.productId}`)
+                            let {price, message} = await getCurrentPrice(data.productId);
+
+                            if(price) data.price = price;
+                            else{
+                                console.info(`No se encontro precio para producto ${data.productId}`);
+                                message = `No se encontro precio para producto ${data.productId}`;
+                                flag = false;
+                            }
+
                             if(flag) return data;
                             else return null;
                         }

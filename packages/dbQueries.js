@@ -38,7 +38,8 @@ module.exports = {
             [code]);
         },
         getByCompany: function(id){
-            return knex.select().table('Package').where('companyId', id).andWhere('deleted', null);
+            return knex.raw('select p.id, p.code, p."name", p.description, p."companyId", p.stock, p."imageName", p."imagePath", p.created, p.deleted, (select price from "PackagePrice" where "packageId" = p.id order by "validDateFrom" desc limit 1) "price", (select id from "PackagePrice" where "packageId" = p.id order by "validDateFrom" desc limit 1) "priceId" from "Package" p where p."companyId" = ? and p.deleted is null',
+            [id]);
         },
         getAllByCompany: function(id){
             return knex.select().table('Package').where('companyId', id);
@@ -64,9 +65,9 @@ module.exports = {
         modify: function(id, package){
             return knex('Package').where('id', id).update(package);
         },
-        /*delete: function(id){
+        deleteRollback: function(id){
             return knex('Package').where('id', id).del();
-        }*/
+        },
         delete: function(id,date){
             console.log(`Enviando Query DELETE a companyProduct`);
             return knex('Package').where('id', id).update('deleted', date);
@@ -91,6 +92,9 @@ module.exports = {
         },
         delete: function(id){
             return knex('PackageProduct').where('id', id).del();
+        },
+        deleteByPackage: function(id){
+            return knex('PackageProduct').where('packageId', id).del();
         }
     },
     packCategory: {
@@ -102,8 +106,7 @@ module.exports = {
         },
         getByPackageIdByCategoryId: function(idpack,idcat){
             return knex.raw('select p.id, p."packageId", p."categoryId" from "PackageCategory" p where p."packageId" = ? and p."categoryId" = ?',
-            [idpack,idcat]);
-            
+            [idpack,idcat]);  
         },
         getByPackIdName: function(id){
             return knex.raw('select c.id, c.name from "PackageCategory" p, "Category" c where p."productId" = ? and p."categoryId" = c.id',
@@ -117,6 +120,9 @@ module.exports = {
         },
         delete: function(id){
             return knex('PackageCategory').where('id', id).del();
+        },
+        deleteByPackage: function(id){
+            return knex('PackageCategory').where('packageId', id).del();
         }
     },
     prices: {

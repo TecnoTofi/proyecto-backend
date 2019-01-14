@@ -54,4 +54,5 @@ router.post('/', upload.single('image'), verifyToken, PackagesRoutes.altaPaquete
 router.post('/:id/product', verifyToken, PackagesRoutes.agregarPackageProduct);
 router.put('/:id', upload.single('image'), verifyToken, PackagesRoutes.modificarPaquete);
 router.delete('/:id', verifyToken, PackagesRoutes.eliminarPaquete);
+
 module.exports = router;

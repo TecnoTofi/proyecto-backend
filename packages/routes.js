@@ -1,6 +1,7 @@
 const Joi = require('joi');
 const queries = require('./dbQueries');
 const { getCompanyById } = require('../companies/routes');
+const { getUserByEmail } = require('../users/routes');
 const { getCompanyProductById } = require('../products/routes');
 const { validarId, getCategoryById } = require('../helpers/routes');
 
@@ -32,7 +33,7 @@ async function obtenerAllPackages(req, res){
         res.status(200).json(paquetes);
     }
     else{
-        console.info('No se encontraron productos');
+        console.info('No se encontraron paquetes');
         console.info('Preparando response');
         res.status(200).json({message});
     }
@@ -223,7 +224,7 @@ async function obtenerPaqueteByCode(req, res){
     }
 }
 
-async function  obtenerAllProductsByPackage(req, res) {
+async function obtenerAllProductsByPackage(req, res) {
     console.info(`Conexion GET entrante : /api/package/${req.params.id}/products`);
 }
 
@@ -234,7 +235,6 @@ async function altaPaquete(req, res){
     // let categories = JSON.parse('[' + req.body.categories + ']');
 
     let valPackage = {
-        companyId: req.body.companyId,
         code: req.body.code,
         name: req.body.name,
         description: req.body.description,
@@ -242,8 +242,8 @@ async function altaPaquete(req, res){
         price: req.body.price,
         categories: req.body.categories,
         productos: req.body.productos,
-        imageName: req.file ? req.file.filename : req.body.imageName,
-        imagePath: req.file ? req.file.path : req.body.imagePath,
+        imageName: req.file ? req.file.filename : 'uploads\packages\package.jpg',
+        imagePath: req.file ? req.file.path : 'uploads\packages\package.jpg',
     };
 
     // validacion de tipos
@@ -265,100 +265,110 @@ async function altaPaquete(req, res){
 
         //Inicializo array de errores
         let errorMessage = [];
+        let { user: userByEmail, message: userMessage } = await getUserByEmail(req.body.userEmail);
 
-        let { productos, message: messageProductos } = await validarProductos(req.body.productos);
-        let { paquete: packageByCode } = await getPackageByCode(valPackage.code);
-        let { categories, message: messageCategorias } = await validarCategorias(req.body.categories);
-        
-        if(messageCategorias.length > 0) errorMessage.concat(messageCategorias);
-        if(messageProductos.length > 0) errorMessage.concat(messageProductos);
-        if(packageByCode) errorMessage.push(`Ya existe un paquete con Codigo ${valPackage.code}`);
-
-
-        if(errorMessage.length > 0){
-            console.info(`Se encontraron ${errorMessage.length} errores de existencia en la request`);
-            errorMessage.map(err => console.log(err));
-            console.info('Enviando response')
-            res.status(400).json({message: errorMessage});
+        if(!userByEmail){
+            console.info('Ocurrio un error al buscar el usuario');
+            console.info('Preparando response');
+            res.status(500).json({message: 'Ocurrio un error con la solicitud'});
         }
         else{
-            console.log('Validaciones de existencia exitosas');
-            let package = {
-                companyId: valPackage.companyId,
-                code: valPackage.code,
-                name: valPackage.name,
-                description: valPackage.description,
-                stock: valPackage.stock,
-                imageName: valPackage.imageName,
-                imagePath: valPackage.imagePath,
-                created: new Date(),
-            };
+            let { productos, message: messageProductos } = await validarProductos(req.body.productos, userByEmail.companyId);
+            let { categories, message: messageCategorias } = await validarCategorias(req.body.categories);
+            let { paquete: packageByCode } = await getPackageByCode(valPackage.code);
 
-            console.log('Enviando a insertar paquete');
-            let { id: packageId, message: packageMessage } = await insertPackage(package);
-
-            if(packageId){
-                console.log(`Paquete insertado correctamente con ID: ${packageId}`);
-
-                let packCategoryIds = [];
-                let rollback = false;
-                let packCategory = {
-                    packageId
+            if(messageCategorias.length > 0) errorMessage = errorMessage.concat(messageCategorias);
+            if(messageProductos.length > 0) errorMessage = errorMessage.concat(messageProductos);
+            if(packageByCode) errorMessage.push(`Ya existe un paquete con Codigo ${valPackage.code}`);
+            
+            if(packageByCode && userByEmail.companyId !== packageByCode.companyId){
+                console.info(`Paquete con ID: ${req.params.id} no corresponde con la compania del usuario`);
+                console.info('Preparando response');
+                res.status(500).json({message: `Paquete con ID: ${req.params.id} no corresponde con la compania del usuario`});
+            }
+            else{
+                if(errorMessage.length > 0){
+                    console.info(`Se encontraron ${errorMessage.length} errores de existencia en la request`);
+                    errorMessage.map(err => console.log(err));
+                    console.info('Enviando response')
+                    res.status(400).json({message: errorMessage});
                 }
-                console.log(`Comenzando armado e insercion de PackageCategory para paquete ${packageId}`);
-                let i = 0;
-                let categoriesOk = true;
-                while(i < categories.length && categoriesOk){
-                    
-                    packCategory.categoryId = categories[i].id;
-
-                    console.log('Enviando Query INSERT para PackageCategory');
-                    let { id: packageCategoryId, message: packageCategoryMessage} = await insertPackageCategory(packCategory);
-
-                    if(!packageCategoryId){
-                        console.log(`Fallo insert de PackageCategory con ID: ${packCategory.categoryId}`);
-                        errorMessage.push(packageCategoryMessage);
-                        rollback = true;
-                        categoriesOk = false;
-                    }
-                    else{
-                        console.log(`PackageCategory insertada correctamente con ID: ${packageCategoryId}`);
-                        packCategoryIds.push(packageCategoryId);
-                    }
-                    i++;
-                }
-
-                if(!rollback){
-                    console.log(`Comenzando armado e insercion de PackageProduct para paquete ${packageId}`);
-                    let packProductIds = [];
-                    let productsOk = true;
-                    
-                    let i = 0;
-                    while(i < req.body.productos.length && productsOk){
-
-                        let packageProduct = {
-                            productId: req.body.productos[i].id,
-                            packageId,
-                            quantity: req.body.productos[i].quantity,
+                else{
+                    console.log('Validaciones de existencia exitosas');
+                    let package = {
+                        companyId: userByEmail.companyId,
+                        code: valPackage.code,
+                        name: valPackage.name,
+                        description: valPackage.description,
+                        stock: valPackage.stock,
+                        imageName: valPackage.imageName,
+                        imagePath: valPackage.imagePath,
+                        created: new Date(),
+                    };
+        
+                    console.log('Enviando a insertar paquete');
+                    let { id: packageId, message: packageMessage } = await insertPackage(package);
+        
+                    if(packageId){
+                        console.log(`Paquete insertado correctamente con ID: ${packageId}`);
+        
+                        let packCategoryIds = [];
+                        let rollback = false;
+                        let packCategory = {
+                            packageId
                         }
-                        i++;
+                        console.log(`Comenzando armado e insercion de PackageCategory para paquete ${packageId}`);
+                        let i = 0;
+                        let categoriesOk = true;
+                        while(i < categories.length && categoriesOk){
+                            
+                            packCategory.categoryId = categories[i].id;
 
-                        console.log('Enviando a insertar PackageProduct');
-                        let { id: packageProductId, message: packageProductMessage } = await insertPackageProduct(packageProduct);
+                            console.log('Enviando Query INSERT para PackageCategory');
+                            let { id: packageCategoryId, message: packageCategoryMessage} = await insertPackageCategory(packCategory);
+        
+                            if(!packageCategoryId){
+                                console.log(`Fallo insert de PackageCategory con ID: ${packCategory.categoryId}`);
+                                errorMessage.push(packageCategoryMessage);
+                                rollback = true;
+                                categoriesOk = false;
+                            }
+                            else{
+                                console.log(`PackageCategory insertada correctamente con ID: ${packageCategoryId}`);
+                                packCategoryIds.push(packageCategoryId);
+                            }
+                            i++;
+                        }
+
+                        console.log(`Comenzando armado e insercion de PackageProduct para paquete ${packageId}`);
+                        let packProductIds = [];
+                        let productsOk = true;
                         
-                        if(!packageProductId){
-                            console.log(`Fallo insert de PackageProduct con product ID: ${packageProduct.productId}`);
-                            errorMessage.push(packageProductMessage);
-                            rollback = true;
-                            productsOk = false;
-                        }
-                        else{
-                            console.log(`PackageProduct insertada correctamente con ID: ${packageProductId}`);
-                            packProductIds.push(packageProductId);
-                        }
-                    }
+                        let j = 0;
+                        while(j < req.body.productos.length && productsOk){
 
-                    if(!rollback){
+                            let packageProduct = {
+                                productId: req.body.productos[j].id,
+                                packageId,
+                                quantity: req.body.productos[j].quantity,
+                            }
+                            j++;
+
+                            console.log('Enviando a insertar PackageProduct');
+                            let { id: packageProductId, message: packageProductMessage } = await insertPackageProduct(packageProduct);
+                            
+                            if(!packageProductId){
+                                console.log(`Fallo insert de PackageProduct con product ID: ${packageProduct.productId}`);
+                                errorMessage.push(packageProductMessage);
+                                rollback = true;
+                                productsOk = false;
+                            }
+                            else{
+                                console.log(`PackageProduct insertada correctamente con ID: ${packageProductId}`);
+                                packProductIds.push(packageProductId);
+                            }
+                        }
+
                         let precio = {
                             price: valPackage.price,
                             packageId,
@@ -374,9 +384,15 @@ async function altaPaquete(req, res){
                             res.status(201).json(packageId);
                         }
                         else{
-                            console.log(`Error al insertar price: ${priceMessage}`);
-                            console.log('Ocurrio un error en el proceso de inserts, comenzando rollback');
+                            rollback = true;
+                            productsOk = false;
+                            console.info(`Ocurrio un error al insertar el precio para el paquete ${packageId}`);
+                            errorMessage.push(`Ocurrio un error al insertar el precio para el paquete ${packageId}`);
+                        }
 
+                        if(rollback){
+                            console.log('Ocurrio un error en el proceso de inserts, comenzando rollback');
+                            
                             console.log('Comenzando rollbacks de categorias');
                             for(let id of packCategoryIds){
                                 console.log(`Enviando rollback de PackageCategory ID: ${id}`);
@@ -384,10 +400,11 @@ async function altaPaquete(req, res){
                                 if(rollbackPackageCategory.res) console.log(`Rollback de PackageCategory ${id} realizado correctamente`);
                                 else console.log(`Ocurrio un error en rollback de PackageCategory ${id}`);
                             }
-                            console.log('Comenzando rollbacks de packageProduct');
+
+                            console.log('Comenzando rollbacks de packageProducts');
                             for(let id of packProductIds){
                                 console.log(`Enviando rollback de PackageProduct ID: ${id}`);
-                                let rollbackPackageProduct = await rollbackInsertPackageProduct(id);
+                                let rollbackPackageProduct = await rollbackInsertPackageCategory(id)
                                 if(rollbackPackageProduct.res) console.log(`Rollback de PackageProduct ${id} realizado correctamente`);
                                 else console.log(`Ocurrio un error en rollback de PackageProduct ${id}`);
                             }
@@ -397,54 +414,15 @@ async function altaPaquete(req, res){
                             if(rollbackProduct.res) console.log(`Rollback de Package ${packageId} realizado correctamente`);
                             else console.log(`Ocurrio un error en rollback de Package ${packageId}`);
                         }
-
                     }
                     else{
-                        console.log(`Error al insertar packageProduct: ${packageProductMessage}`);
-                        console.log('Ocurrio un error en el proceso de inserts, comenzando rollback');
-
-                        console.log('Comenzando rollbacks de categorias');
-                        for(let id of packCategoryIds){
-                            console.log(`Enviando rollback de PackageCategory ID: ${id}`);
-                            let rollbackPackageCategory = await rollbackInsertPackageCategory(id)
-                            if(rollbackPackageCategory.res) console.log(`Rollback de PackageCategory ${id} realizado correctamente`);
-                            else console.log(`Ocurrio un error en rollback de PackageCategory ${id}`);
-                        }
-                        console.log('Comenzando rollbacks de packageProduct');
-                        for(let id of packProductIds){
-                            console.log(`Enviando rollback de PackageProduct ID: ${id}`);
-                            let rollbackPackageProduct = await rollbackInsertPackageProduct(id);
-                            if(rollbackPackageProduct.res) console.log(`Rollback de PackageProduct ${id} realizado correctamente`);
-                            else console.log(`Ocurrio un error en rollback de PackageProduct ${id}`);
-                        }
-
-                        console.log('Comenzando rollbacks de package');
-                        let rollbackProduct = await rollbackInsertPackage(packageId);
-                        if(rollbackProduct.res) console.log(`Rollback de Package ${packageId} realizado correctamente`);
-                        else console.log(`Ocurrio un error en rollback de Package ${packageId}`);
+                        console.info('Error en la insercion de paquete');
+                        console.info('Preparando response');
+                        res.status(500).json({message: packageMessage});
                     }
                 }
-                else{
-                    console.log('Ocurrio un error en el proceso de inserts, comenzando rollback');
-                    
-                    console.log('Comenzando rollbacks de categorias');
-                    for(let id of packCategoryIds){
-                        console.log(`Enviando rollback de PackageCategory ID: ${id}`);
-                        let rollbackPackageCategory = await rollbackInsertPackageCategory(id)
-                        if(rollbackPackageCategory.res) console.log(`Rollback de PackageCategory ${id} realizado correctamente`);
-                        else console.log(`Ocurrio un error en rollback de PackageCategory ${id}`);
-                    }
-                    console.log('Comenzando rollbacks de package');
-                    let rollbackProduct = await rollbackInsertPackage(packageId);
-                    if(rollbackProduct.res) console.log(`Rollback de Package ${packageId} realizado correctamente`);
-                    else console.log(`Ocurrio un error en rollback de Package ${packageId}`);
-                }   
             }
-            else{
-                console.log(`Error al insertar producto: ${packageMessage}`);
-                res.status(500).json({message: packageMessage});
-            }
-        }   
+        }
     }
 }
 
@@ -516,535 +494,283 @@ async function modificarPaquete(req, res){
     console.info(`Conexion PUT entrante : /api/package/${req.params.id}`);
 
     console.info(`Comenzando validacion de tipos`);
-    //let { error } = validarId(req.params.id);
+    let { error } = validarId(req.params.id);
 
-    /*if(error){
+    if(error){
         console.info(`Error en la validacion de tipos: ${error.details[0].message}`);
         console.info('Preparando response');
         res.status(400).json({message: error.details[0].message});
     }
-    else{*/
-        console.info('Enviando a validar tipos de datos en request');
-        let categories = JSON.parse('[' + req.body.categories + ']');
-        let valPackage = {
-            description: req.body.description,
-            companyId: req.body.companyId,
-            categories: categories,
-            name: req.body.name,
-            code:req.body.code,
-            stock:req.body.stock,
-            imageName: req.file ? req.file.filename : req.body.imageName,
-            imagePath: req.file ? req.file.path : req.body.imagePath,
-            price: req.body.price,
-            productos: req.body.productos,
-        };
+    else{
+        let { paquete: paqueteById, message: packageMessage } = await getPackageById(req.params.id);
 
-        let valPrice = {
-            priceId: req.body.priceId,
-        }
-        
-        let products = req.body.productos;
-        
-
-        //Inicializo array de errores
-        let errorMessage = [];
-
-        console.info(`Comenzando validacion de tipos`);
-        let { error: errorPackage} = validarPackage(valPackage);
-
-        if(errorPackage) {
-            console.info('Errores encontrados en la validacion de tipos de Package');
-            errorPackage.details.map(e => {
-                console.info(e.message);
-                errorMessage.push(e.message);
-                return;
-            });
-        }
-
-        if(errorMessage.length > 0){
-            console.info(`Se encontraron ${errorMessage.length} errores de tipo en la request`);
-            errorMessage.map(err => console.log(err));
-            console.info('Enviando response');
-            res.status(400).json({message: errorMessage});
+        if(!paqueteById){
+            console.info(`No se encontro paquete con ID: ${req.params.id}`);
+            console.info('Preparando response');
+            res.status(400).json({message: packageMessage});
         }
         else{
-            console.info('Validacion de tipos exitosa');
-            console.info('Comenzando validaciones de existencia');
+            console.info('Paquete encontrado, buscando usuario');
+            let { user: userByEmail } = await getUserByEmail(req.body.userEmail);
 
-            let { company: companyById, message: companyByIdMessage } = await getCompanyById(valPackage.companyId);
-            let { precio:  Precio } = await getPriceById(valPrice.priceId);
-            let { paquete: Package } = await getPackageById(req.params.id);
-            let valProducts = await validarProductos(products);
-            let valCategories = await validarCategorias(categories);
-            console.log(Package);
-
-
-            if(!Precio) errorMessage.push(`No existe un precio con id ${valPrice.priceId}`);
-            if(!Package) errorMessage.push(`No existe un paquete con id ${req.params.id}`);
-            if(!companyById) errorMessage.push(companyByIdMessage);
-            if(valProducts.message) errorMessage.push(valproduct.message);
-            if(valCategories.message) errorMessage.push(valCategories.message);
-
-
-            if(errorMessage.length > 0){
-                console.info(`Se encontraron ${errorMessage.length} errores de existencia en la request`);
-                errorMessage.map(err => console.log(err));
-                console.info('Enviando response');
-                res.status(400).json({message: errorMessage});
+            if(!userByEmail){
+                console.info('Ocurrio un error al buscar el usuario');
+                console.info('Preparando response');
+                res.status(500).json({message: 'Ocurrio un error al procesar la solicitud'});
             }
             else{
-                console.info('Validacion de existencia exitosas');
-
-                console.info('Preparando objeto para update de Package');
-                let package = {
-                    name: valPackage.name,
-                    code: valPackage.code,
-                    imageName: valPackage.imageName,
-                    imagePath: valPackage.imagePath,
-                    description: valPackage.description,
-                    companyId: valPackage.companyId,
-                    stock: valPackage.stock,
-                }
-
-                let { result, message } = await updatePackage(req.params.id, package);
-
-                if(result){
-                    console.info(`Package con ID: ${req.params.id} actualizada correctamente`);
-                    if(Precio.price < valPackage.price || Precio.price > valPackage.price){
-                        
-                        let precio = {
-                            price: valPackage.price,
-                            packageId: req.params.id,
-                            validDateFrom: new Date(),
-
-                        };
-
-                        let price = await insertPrice(precio);
-
-                        if(price.id){
-                          console.log(`Price insertado correctamente con ID: ${price.id}`);
-
-                          let packCategoryIds = [];
-                          let rollback = false;
-                          let packCategory = {
-                           packageId: req.params.id,
-                          }
-                          console.log(`Comenzando armado e insercion de PackageCategory para paquete ${req.params.id}`);
-                            let i = 0;
-                            let categoriesOk = true;
-                            while(i < categories.length && categoriesOk){
-                                let buscarExistencia = await buscarCategoryInPackage(req.params.id,categories[i])
-                                console.log(buscarExistencia);
-                                if(!buscarExistencia.category){
-                        
-                                 packCategory.categoryId = categories[i];
-                        
-                                 console.log('Enviando Query INSERT para PackageCategory');
-                                 let packageCategoryRes = await insertPackageCategory(packCategory);
-
-                                 if(!packageCategoryRes.id){
-                                 console.log(`Fallo insert de PackageCategory con ID: ${packCategory.categoryId}`);
-                                 errorMessage.push(packageCategoryRes.message);
-                                 rollback = true;
-                                 categoriesOk = false;
-                                }
-                                else{
-                                console.log(`PackageCategory insertada correctamente con ID: ${packageCategoryRes.id}`);
-                                packCategoryIds.push(packageCategoryRes.id);
-                                }
-                               }
-                              i++;
-                            }
-                            if(!rollback){
-
-                                let packProductIdsUpdate = [];
-                                let packProductIdsInsert = [];
-                                let packProductsOld =[];
-                                let rollback = false;
-                                let i = 0;
-                                console.log(`Comenzando armado e insercion de PackageProduct para paquete ${req.params.id}`);
-                                let productsOk = true;
-        
-                                while(i < products.length && productsOk){
-                                 let buscarExistencia = await buscarProductInPackage(req.params.id,products[i].productId);
-                                 console.log(buscarExistencia.producto[0].quantity);
-                                 if(buscarExistencia.producto){
-                                     console.log(buscarExistencia.producto[0].quantity , products[i].quantity)
-                                    if(buscarExistencia.producto[0].quantity < products[i].quantity || buscarExistencia.producto[0].quantity > products[i].quantity){
-                                     let PackageProduct = {
-                                      productId:products[i].productId,
-                                      packageId: req.params.id,
-                                      quantity: products[i].quantity,
-                                     }
-
-                                     let PackageProductOld ={
-                                        productId:products[i].productId,
-                                        packageId: req.params.id,
-                                        quantity: buscarExistencia.producto[0].quantity,
-                                     }
-        
-                                    console.log('Enviando update PackageProduct');
-                                    let PackageProductoRes = await updatePackageProduct(buscarExistencia.producto[0].id,PackageProduct);
-                                    console.log(PackageProductoRes);
-                                 
-                                    if(!PackageProductoRes){
-                                    console.log(`Fallo update de PackageProduct con productId: ${PackageProduct.productId}`);
-                                    errorMessage.push(PackageProductoRes.message);
-                                    rollback = true;
-                                    productsOk = false;
-                                    }
-                                    else{
-                                    console.log(`PackageProduct actualizada correctamente con ID: ${PackageProductoRes.result.id}`);
-                                    packProductIdsUpdate.push(PackageProductoRes.id);
-                                    packProductsOld.push(PackageProductOld);
-                                    }
-                                   }
-                                }
-                                else{
-                                    let PackageProduct = {
-                                        productId:products[i].productId,
-                                        packageId: req.params.id,
-                                        quantity: products[i].quantity,
-                                       }
-          
-                                      console.log('Enviando insert PackageProduct');
-                                      let PackageProductoRes = await insertPackageProduct(PackageProduct);
-                                   
-                                      if(!PackageProductoRes.id){
-                                      console.log(`Fallo insert de PackageProduct con ID: ${PackageProduct.id}`);
-                                      errorMessage.push(PackageProductoRes.message);
-                                      rollback = true;
-                                      productsOk = false;
-                                      }
-                                      else{
-                                      console.log(`PackageProduct insertada correctamente con ID: ${PackageProductoRes.id}`);
-                                      packProductIdsInsert.push(PackageProductoRes.id);
-                                      }
-
-                                }
-                                i++;
-                                }
-                                if(rollback){
-                                    console.log(`Error al insertar PackageProduct`);
-                                    
-                                      console.log('Comenzando rollbacks de categorias');
-                                      for(let id of packCategoryIds){
-                                      console.log(`Enviando rollback de PackageCategory ID: ${id}`);
-                                      let rollbackPaqueteCategory = await rollbackInsertPackageCategory(id);
-                                      if(rollbackPaqueteCategory.res) console.log(`Rollback de ProductCategory ${id} realizado correctamente`);
-                                      else console.log(`Ocurrio un error en rollback de ProductCategory ${id}`);
-                                      }
-          
-                                      console.log('Comenzando rollbacks de packageProduct modificados');
-                                      for(let id of packProductIdsUpdate){
-                                      console.log(`Enviando rollback de PackageProduct ID: ${id}`);
-                                      let rollbackPaqueteProduct = await updatePackageProduct(id,packProductsOld[id]);
-                                      if(rollbackPaqueteProduct.res) console.log(`Rollback de PackageProduct update ${id} realizado correctamente`);
-                                      else console.log(`Ocurrio un error en rollback de PackageProduct ${id}`);
-                                      }
-
-                                      console.log('Comenzando rollbacks de packageProduct insertados');
-                                      for(let id of packProductIdsInsert){
-                                      console.log(`Enviando rollback de PackageProduct ID: ${id}`);
-                                      let rollbackPaqueteProduct = await rollbackInsertPackageProduct(id);
-                                      if(rollbackPaqueteProduct.res) console.log(`Rollback de PackageProduct insert ${id} realizado correctamente`);
-                                      else console.log(`Ocurrio un error en rollback de PackageProduct ${id}`);
-                                      }
-
-                                      console.log('Comenzando rollbacks de Precio');
-                                      let rollbackPrecio = await rollbackInsertPrice(price.id);
-                                      if(rollbackPrecio.res) console.log(`Rollback de precio ${price.id} realizado correctamente`);
-                                      else console.log(`Ocurrio un error en rollback de precio ${price.id}`);
-
-                                      console.log('Comenzando rollbacks de Paquete');
-                                      let package = {
-                                        name: Package.name,
-                                        code: Package.code,
-                                        imageName: Package.imageName,
-                                        imagePath: Package.imagePath,
-                                        description: Package.description,
-                                        companyId: Package.companyId,
-                                        stock: Package.stock,
-                                      }
-
-                                      let { result, message } = await updateProduct(req.params.id, package);
-
-                                      if(result){
-                                        console.info(`Package con ID: ${req.params.id} corregida correctamente`);
-                                      }
-                                      else{
-                                        console.info('No se pudo realizar rollbacks de Package');
-                                        console.info('Preparando response');
-                                        res.status(500).json({message: message});
-                                        }
-                                    res.status(500).json({message: message});
-                                }
-                            }
-                            else{
-                                console.log(`Error al insertar PackageCategory`);
-
-                                    
-                                      console.log('Comenzando rollbacks de categorias');
-                                      for(let id of packCategoryIds){
-                                      console.log(`Enviando rollback de PackageCategory ID: ${id}`);
-                                      let rollbackPaqueteCategory = await rollbackInsertPackageCategory(id);
-                                      if(rollbackPaqueteCategory.res) console.log(`Rollback de ProductCategory ${id} realizado correctamente`);
-                                      else console.log(`Ocurrio un error en rollback de ProductCategory ${id}`);
-                                      }
-
-                                      console.log('Comenzando rollbacks de Precio');
-                                      let rollbackPrecio = await rollbackInsertPrice(price.id);
-                                      if(rollbackPrecio.res) console.log(`Rollback de precio ${price.id} realizado correctamente`);
-                                      else console.log(`Ocurrio un error en rollback de precio ${price.id}`);
-
-                                      console.log('Comenzando rollbacks de Paquete');
-                                      let package = {
-                                        name: Package.name,
-                                        code: Package.code,
-                                        imageName: Package.imageName,
-                                        imagePath: Package.imagePath,
-                                        description: Package.description,
-                                        companyId: Package.companyId,
-                                        stock: Package.stock,
-                                      }
-
-                                      let { result, message } = await updateProduct(req.params.id, package);
-
-                                      if(result){
-                                        console.info(`Package con ID: ${req.params.id} corregida correctamente`);
-                                      }
-                                      else{
-                                        console.info('No se pudo realizar rollbacks de Package');
-                                        console.info('Preparando response');
-                                        res.status(500).json({message: message});
-                                        }
-                                    res.status(500).json({message: message});
-                                }
-                        }
-                        else{
-                            console.log(`Error al insertar Precio`);
-
-                              console.log('Comenzando rollbacks de Paquete');
-                              let package = {
-                                name: Package.name,
-                                code: Package.code,
-                                imageName: Package.imageName,
-                                imagePath: Package.imagePath,
-                                description: Package.description,
-                                companyId: Package.companyId,
-                                stock: Package.stock,
-                              }
-
-                              let { result, message } = await updateProduct(req.params.id, package);
-
-                              if(result){
-                                console.info(`Package con ID: ${req.params.id} corregida correctamente`);
-                              }
-                              else{
-                                console.info('No se pudo realizar rollbacks de Package');
-                                console.info('Preparando response');
-                                res.status(500).json({message: message});
-                                }
-                            res.status(500).json({message: price.message});
-                        }  
-                    }
-                    else{
-                        let packCategoryIds = [];
-                          let rollback = false;
-                          let packCategory = {
-                          packageId: req.params.id,
-                          }
-                          console.log(`Comenzando armado e insercion de PackageCategory para paquete ${req.params.id}`);
-                            let i = 0;
-                            let categoriesOk = true;
-                            while(i < categories.length && categoriesOk){
-                                let buscarExistencia = await buscarCategoryInPackage(req.params.id,categories[i])
-                                console.log(buscarExistencia);
-                                if(!buscarExistencia.category){
-                        
-                                 packCategory.categoryId = categories[i];
-                        
-                                 console.log('Enviando Query INSERT para PackageCategory');
-                                 let packageCategoryRes = await insertPackageCategory(packCategory);
-
-                                 if(!packageCategoryRes.id){
-                                 console.log(`Fallo insert de PackageCategory con ID: ${packCategory.categoryId}`);
-                                 errorMessage.push(packageCategoryRes.message);
-                                 rollback = true;
-                                 categoriesOk = false;
-                                }
-                                else{
-                                console.log(`PackageCategory insertada correctamente con ID: ${packageCategoryRes.id}`);
-                                packCategoryIds.push(packageCategoryRes.id);
-                                }
-                               }
-                              i++;
-                            }
-                            if(!rollback){
-
-                                let packProductIdsUpdate = [];
-                                let packProductIdsInsert = [];
-                                let packProductsOld =[];
-                                let rollback = false;
-                                let i = 0;
-                                console.log(`Comenzando armado e insercion de PackageProduct para paquete ${req.params.id}`);
-                                let productsOk = true;
-        
-                                while(i < products.length && productsOk){
-                                 let buscarExistencia = await buscarProductInPackage(req.params.id,products[i].productId);
-                                 console.log(buscarExistencia.producto[0].quantity);
-                                 if(buscarExistencia.producto){
-                                     console.log(buscarExistencia.producto[0].quantity , products[i].quantity)
-                                    if(buscarExistencia.producto[0].quantity < products[i].quantity || buscarExistencia.producto[0].quantity > products[i].quantity){
-                                     let PackageProduct = {
-                                      productId:products[i].productId,
-                                      packageId: req.params.id,
-                                      quantity: products[i].quantity,
-                                     }
-
-                                     let PackageProductOld ={
-                                        productId:products[i].productId,
-                                        packageId: req.params.id,
-                                        quantity: buscarExistencia.producto[0].quantity,
-                                     }
-        
-                                    console.log('Enviando update PackageProduct');
-                                    let PackageProductoRes = await updatePackageProduct(buscarExistencia.producto[0].id,PackageProduct);
-                                    console.log(PackageProductoRes);
-                                 
-                                    if(!PackageProductoRes){
-                                    console.log(`Fallo update de PackageProduct con productId: ${PackageProduct.productId}`);
-                                    errorMessage.push(PackageProductoRes.message);
-                                    rollback = true;
-                                    productsOk = false;
-                                    }
-                                    else{
-                                    console.log(`PackageProduct actualizada correctamente con ID: ${PackageProductoRes.result.id}`);
-                                    packProductIdsUpdate.push(PackageProductoRes.id);
-                                    packProductsOld.push(PackageProductOld);
-                                    }
-                                   }
-                                }
-                                else{
-                                    let PackageProduct = {
-                                        productId:products[i].productId,
-                                        packageId: req.params.id,
-                                        quantity: products[i].quantity,
-                                       }
-          
-                                      console.log('Enviando insert PackageProduct');
-                                      let PackageProductoRes = await insertPackageProduct(PackageProduct);
-                                   
-                                      if(!PackageProductoRes.id){
-                                      console.log(`Fallo insert de PackageProduct con ID: ${PackageProduct.id}`);
-                                      errorMessage.push(PackageProductoRes.message);
-                                      rollback = true;
-                                      productsOk = false;
-                                      }
-                                      else{
-                                      console.log(`PackageProduct insertada correctamente con ID: ${PackageProductoRes.id}`);
-                                      packProductIdsInsert.push(PackageProductoRes.id);
-                                      }
-
-                                }
-                                i++;
-                                }
-                                if(rollback){
-                                    console.log(`Error al insertar PackageProduct`);
-                                    
-                                      console.log('Comenzando rollbacks de categorias');
-                                      for(let id of packCategoryIds){
-                                      console.log(`Enviando rollback de PackageCategory ID: ${id}`);
-                                      let rollbackPaqueteCategory = await rollbackInsertPackageCategory(id);
-                                      if(rollbackPaqueteCategory.res) console.log(`Rollback de ProductCategory ${id} realizado correctamente`);
-                                      else console.log(`Ocurrio un error en rollback de ProductCategory ${id}`);
-                                      }
-          
-                                      console.log('Comenzando rollbacks de packageProduct modificados');
-                                      for(let id of packProductIdsUpdate){
-                                      console.log(`Enviando rollback de PackageProduct ID: ${id}`);
-                                      let rollbackPaqueteProduct = await updatePackageProduct(id,packProductsOld[id]);
-                                      if(rollbackPaqueteProduct.res) console.log(`Rollback de PackageProduct update ${id} realizado correctamente`);
-                                      else console.log(`Ocurrio un error en rollback de PackageProduct ${id}`);
-                                      }
-
-                                      console.log('Comenzando rollbacks de packageProduct insertados');
-                                      for(let id of packProductIdsInsert){
-                                      console.log(`Enviando rollback de PackageProduct ID: ${id}`);
-                                      let rollbackPaqueteProduct = await rollbackInsertPackageProduct(id);
-                                      if(rollbackPaqueteProduct.res) console.log(`Rollback de PackageProduct insert ${id} realizado correctamente`);
-                                      else console.log(`Ocurrio un error en rollback de PackageProduct ${id}`);
-                                      }
-
-                                      console.log('Comenzando rollbacks de Paquete');
-                                      let package = {
-                                        name: Package.name,
-                                        code: Package.code,
-                                        imageName: Package.imageName,
-                                        imagePath: Package.imagePath,
-                                        description: Package.description,
-                                        companyId: Package.companyId,
-                                        stock: Package.stock,
-                                      }
-
-                                      let { result, message } = await updateProduct(req.params.id, package);
-
-                                      if(result){
-                                        console.info(`Package con ID: ${req.params.id} corregida correctamente`);
-                                      }
-                                      else{
-                                        console.info('No se pudo realizar rollbacks de Package');
-                                        console.info('Preparando response');
-                                        res.status(500).json({message: message});
-                                        }
-                                    res.status(500).json({message: message});
-                                }
-                            }
-                            else{
-                                console.log(`Error al insertar PackageCategory`);
-
-                                    
-                                      console.log('Comenzando rollbacks de categorias');
-                                      for(let id of packCategoryIds){
-                                      console.log(`Enviando rollback de PackageCategory ID: ${id}`);
-                                      let rollbackPaqueteCategory = await rollbackInsertPackageCategory(id);
-                                      if(rollbackPaqueteCategory.res) console.log(`Rollback de ProductCategory ${id} realizado correctamente`);
-                                      else console.log(`Ocurrio un error en rollback de ProductCategory ${id}`);
-                                      }
-
-                                      console.log('Comenzando rollbacks de Paquete');
-                                      let package = {
-                                        name: Package.name,
-                                        code: Package.code,
-                                        imageName: Package.imageName,
-                                        imagePath: Package.imagePath,
-                                        description: Package.description,
-                                        companyId: Package.companyId,
-                                        stock: Package.stock,
-                                      }
-
-                                      let { result, message } = await updateProduct(req.params.id, package);
-
-                                      if(result){
-                                        console.info(`Package con ID: ${req.params.id} corregida correctamente`);
-                                      }
-                                      else{
-                                        console.info('No se pudo realizar rollbacks de Package');
-                                        console.info('Preparando response');
-                                        res.status(500).json({message: message});
-                                        }
-                                    res.status(500).json({message: message});
-                            }
-                        }
+                console.info('Usuario encontrado, verificando correspondencia');
+                if(userByEmail.companyId !== paqueteById.companyId){
+                    console.info('Usuario no corresponde con compania dueña del paquete');
+                    console.info('Preparando response');
+                    res.status(400).json({message: 'Usuario no corresponde con compania dueña del paquete'});
                 }
                 else{
-                    console.info('No se pudo modificar Package');
-                    console.info('Preparando response');
-                    res.status(500).json({message: message});
+                    console.info('Usuario y compania corresponden con el paquete');
+                    console.info('Armando paquete para validacion');
+                    let valPackage = {
+                        code: req.body.code,
+                        name: req.body.name,
+                        description: req.body.description,
+                        stock: req.body.stock,
+                        price: req.body.price,
+                        categories: req.body.categories,
+                        productos: req.body.productos,
+                        imageName: req.file ? req.file.filename : req.body.imageName,
+                        imagePath: req.file ? req.file.path : req.body.imagePath,
+                    };
+
+                    let { error } = validarPackage(valPackage);
+
+                    if(error){
+                        console.info('Erorres encontrados en la request');
+                        let errores = error.details.map(e => {
+                            console.info(e.message);
+                            return e.message;
+                        });
+                        res.status(400).json(errores);
+                    }
+                    else{
+                        console.info('Validacion de request exitosa');
+                        console.info('Obteniendo precio actual');
+                        let { price: currentPrice } = await getCurrentPrice(req.params.id);
+
+                        if(!currentPrice){
+                            console.info('Ocurrio un error al buscar el precio');
+                            console.info('Preparando response');
+                            res.status(500).json({message: 'Ocurrio un error al procesar la solicitud'});
+                        }
+                        else {
+                            console.info('Precio obtenido');
+                            let newPriceId = 0, rollback = false, errorMessage = [];
+
+                            console.info('Obteniendo datos del paquete en caso de rollback');
+                            let { paquete: paqueteRollback } = await getPackageRollback(req.params.id);
+                            
+                            if(!paqueteRollback){
+                                console.info('No se pudo obtener el paquete original en caso de rollback');
+                                console.info('Preparando response');
+                                res.status(500).json({message: 'Ocurrio un error con la solicitud'});
+                            }
+                            else{
+                                if(currentPrice.price !== req.body.price){
+                                    console.info('Insertando nuevo precio');
+                                    newPriceId = insertPrice({packageId: req.params.id, price: req.body.price, validDateFrom: new Date()});
+                                }
+                                console.info('Borrando packageProducts viejos');
+                                let { result: packProdsResult, message: delPackProdsMessage } = await deletePackageProducts(req.params.id);
+                                console.info('Borrando packageCategories viejos');
+                                let { result: packCatsResult, message: delPackCatsMessage } = await deletePackageCategories(req.params.id);
+                                let packProductIds = [];
+                                let packCategoriesIds = [];
+    
+                                if(packProdsResult){
+                                    console.info('PackageProducts viejos borrados');
+                                    console.info('Preparandose para insertar nuevos packageProducts');
+                                    let productsOk = true;
+                                    let i = 0;
+                                    while(i < req.body.productos.length && productsOk){
+                                        let packageProduct = {
+                                            productId: req.body.productos[i].productId,
+                                            packageId: req.params.id,
+                                            quantity: req.body.productos[i].quantity,
+                                        };
+    
+                                        console.log('Verificando existencia de productos');
+                                        let {producto: companyProduct, message: companyProductMessage} = await getCompanyProductById(packageProduct.productId);
+    
+                                        if(!companyProduct){
+                                            console.info(`No existe companyProduct con ID: ${packageProduct.productId}`);
+                                            rollback = true;
+                                            productsOk = false;
+                                            errorMessage.push(companyProductMessage);
+                                        }
+                                        else if(companyProduct && companyProduct.companyId === userByEmail.companyId){
+                                            console.info('Enviando insert PackageProduct');
+                                            let { id, message } = await insertPackageProduct(packageProduct);
+    
+                                            if(id){
+                                                console.info(`PackageProduct insertado con ID: ${id}`);
+                                                packProductIds.push(id);
+                                            }
+                                            else{
+                                                console.info(`No se pudo insertar el packageProduct, comienza rollback`);
+                                                console.info(message);
+                                                productsOk = false;
+                                                rollback = true;
+                                                errorMessage.push(`No se pudo insertar el packageProduct con ID: ${packageProduct.productId}`);
+                                            }
+                                        }
+                                        else{
+                                            console.info(`CompanyProduct con ID: ${packageProduct.productId} no corresponde con la compania`);
+                                            rollback = true;
+                                            productsOk = false;
+                                            errorMessage.push(`CompanyProduct con ID: ${packageProduct.productId} no corresponde con la compania`);
+                                        }
+                                        i++;
+                                    }
+                                }
+                                else{
+                                    console.info('Ocurrio un error en el borrado de packageProducts, preparando rollback');
+                                    console.info(delPackProdsMessage);
+                                    rollback = true;
+                                }
+    
+                                if(packCatsResult){
+                                    console.info('PackageCategories viejos borrados');
+                                    console.info('Preparandose para insertar nuevos packageCategories');
+                                    let categoriesOk = true;
+                                    let j = 0;
+                                    while(j < req.body.categories.length && categoriesOk){
+                                        let packCategory = {
+                                            packageId: req.params.id,
+                                            categoryId: req.body.categories[j]
+                                        };
+    
+                                        console.info('Verificando existencia de categorias');
+                                        let { category, message: categoryMessage } = await getCategoryById(packCategory.categoryId);
+    
+                                        if(!category){
+                                            console.info(`No existe categoria con ID: ${packCategory.categoryId}`);
+                                            rollback = true;
+                                            productsOk = false;
+                                            errorMessage.push(categoryMessage);
+                                        }
+                                        else{
+                                            console.log('Enviando insert PackageCategory');
+                                            let { id, message } = await insertPackageCategory(packCategory);
+    
+                                            if(id){
+                                                console.info(`PackageCategory insertado con ID: ${id}`);
+                                                packCategoriesIds.push(id);
+                                            }
+                                            else{
+                                                console.info(`No se pudo insertar el PackageCategory con ID: ${packCategory.categoryId}, comienza rollback`);
+                                                console.info(message);
+                                                categoriesOK = false;
+                                                rollback = true;
+                                                errorMessage.push(`No se pudo insertar el PackageCategory con ID: ${packCategory.categoryId}`);
+                                            }
+                                        }
+                                        j++;
+                                    }
+                                }
+                                else{
+                                    console.info('Ocurrio un error en el borrado de packageCategories, preparando rollback');
+                                    console.info(delPackCatsMessage);
+                                    rollback = true;
+                                }
+    
+                                let package = {
+                                    companyId: userByEmail.companyId,
+                                    code: valPackage.code,
+                                    name: valPackage.name,
+                                    description: valPackage.description,
+                                    stock: valPackage.stock,
+                                    imageName: valPackage.imageName,
+                                    imagePath: valPackage.imagePath
+                                };
+    
+                                let { result: updatePackResult, message: updatePackMessage } = await updatePackage(req.params.id, package);
+    
+                                if(updatePackResult){
+                                    console.info('Paquete modificado con exito');
+                                }
+                                else{
+                                    console.info('Ocurrio un error al actualizar el paquete');
+                                    console.info(updatePackMessage);
+                                    rollback = true;
+                                }
+    
+                                if(rollback){
+                                    console.info('Comenzando rollback');
+                                    console.info(`${errorMessage.length} errores encontrados`);
+                                    errorMessage.map(e => {
+                                        console.info(e);
+                                    });
+    
+                                    console.info('Borrando packageProducts insertados');
+                                    let { result: packProdsResult, message: delPackProdsMessage } = await deletePackageProducts(req.params.id);
+                                    console.info('Borrando packageCategories insertados');
+                                    let { result: packCatsResult, message: delPackCatsMessage } = await deletePackageCategories(req.params.id);
+                                    
+    
+                                    console.log('ver si es iterable');
+                                    console.log('paqueteRollback', paqueteRollback);
+                                    console.log('productos');
+                                    console.log(paqueteRollback.productos);
+                                    console.log('categorias');
+                                    console.log(paqueteRollback.categorias);
+    
+                                    for(let p of paqueteRollback.productos){
+                                        let prod = {
+                                            packageId: p.packageId,
+                                            productId: p.productId,
+                                            quantity: p.quantity
+                                        };
+    
+                                        let { id, message } = await insertPackageProduct(prod);
+    
+                                    }
+    
+                                    for(let c of paqueteRollback.categorias){
+                                        let cat = {
+                                            packageId: c.packageId,
+                                            categoryId: c.categoryId
+                                        };
+    
+                                        let { id, message } = await insertPackageCategory(cat);
+    
+                                    }
+    
+                                    let package = {
+                                        code: paqueteRollback.code,
+                                        name: paqueteRollback.name,
+                                        description: paqueteRollback.description,
+                                        companyId: paqueteRollback.companyId,
+                                        stock: paqueteRollback.stock,
+                                        imagePath: paqueteRollback.imagePath,
+                                        imageName: paqueteRollback.imageName,
+                                        deleted: paqueteRollback.deleted,
+                                        created: paqueteRollback.created
+                                    }
+    
+                                    let { result, message } = await updatePackage(req.params.id, package);
+    
+                                    res.status(500).json({message: errorMessage});
+                                }
+                                else{
+                                    console.info('Modificacion terminada');
+                                    console.info('Preparando response');
+                                    res.status(200).json('Modificacion completada');
+                                }
+                            }
+                        }
+                    }
                 }
             }
         }
-    //}
+    }
 }
 
 async function eliminarPaquete(req, res){
@@ -1069,21 +795,82 @@ async function eliminarPaquete(req, res){
             res.status(400).json({message});
         }
         else{
-            console.info('Enviando request para eliminacion');
-            let { result, message } = await deletePackage(req.params.id, new Date());
+
+            let { user, message: userMessage } = await getUserByEmail(req.body.userEmail);
             
-            if(result){
-                console.info(`Package eliminado correctamente con ID: ${req.params.id}`);
-                console.info('Preparando response');
-                res.status(201).json({message});
+            if(!user){
+                console.info('Ocurrio un error buscando el usuario');
+                console.info('Preparando request');
+                res.status(500).json({message: 'Ocurrio un error al procesar la solicitud'});
+            }
+            else if(user.companyId === paquete.companyId){
+                console.info('Enviando request para eliminacion');
+                let { result, message } = await deletePackage(req.params.id, new Date());
+                
+                if(result){
+                    console.info(`Package eliminado correctamente con ID: ${req.params.id}`);
+                    console.info('Preparando response');
+                    res.status(201).json({message});
+                }
+                else{
+                    console.info('No se pudo eliminar Package');
+                    console.info('Preparando response');
+                    res.status(500).json({message: message});
+                }
             }
             else{
-                console.info('No se pudo eliminar Package');
-                console.info('Preparando response');
-                res.status(500).json({message: message});
+                console.info('Paquete no corresponde con la compania del usuario');
+                console.info('Preparando responde');
+                res.status(400).json({message: 'Paquete no corresponde con la compania del usuario'});
             }
         }
     }
+}
+
+async function armarPackage(paquete){
+    console.info(`Comenzando armado de paquete con ID: ${paquete.id}`);
+
+    let categories = [], message = '', flag = true;
+
+    
+    paquete.imagePath = paquete.imagePath.replace(/\\/g, '/');
+
+    let { company } = await getCompanyById(paquete.companyId);
+    if(company) paquete.companyName = company.name;
+    else {
+        flag = false;
+        message = 'Ocurrio un error al obtener los productos';
+        console.info('Ocurrio un error obteniendo la company del producto');
+    }
+
+    let { price } = await getCurrentPrice(paquete.id);
+    if(price){
+        paquete.priceId = price.id;
+        paquete.price = price.price;
+    }
+    else{
+        flag = false;
+        message = 'Ocurrio un error al obtener los paquetes';
+        console.info('Ocurrio un error al obtener el precio del paquete');
+    }
+    
+    let { categorias: categoriesIds } = await getPackageCategories(paquete.id);
+    if(categoriesIds){
+        for(let c of categoriesIds){
+            let { category } = await getCategoryById(c.categoryId);
+            categories.push(category);
+        }
+        paquete.categories = categories;
+    }
+    else{
+        flag = false;
+        message = 'Ocurrio un problema al buscar los paquetes';
+        console.info('Ocurrio un problema al buscar las categorias del paquete');
+    }
+    //productos
+
+    if(flag) return { paquete, message };
+    else return { message };
 }
 
 async function getPackages(){
@@ -1092,10 +879,21 @@ async function getPackages(){
     let paquetes = await queries
                         .packages
                         .getPackages()
-                        .then(data => {
+                        .then(async data => {
                             if(data){
                                 console.info('Informacion de paquetes obtenida');
-                                return data;
+                                let flag = true;
+                                for(let p of data){
+                                    let { paquete, message: packageMessage } = await armarPackage(p);
+                                    if(paquete) p = paquete;
+                                    else{
+                                        message = packageMessage;
+                                        flag = false;
+                                    }
+                                }
+
+                                if(flag) return data;
+                                else return null;
                             }
                             else{
                                 console.info('No existen paquetes registrados en la BD');
@@ -1117,10 +915,21 @@ async function getAllPackages(){
     let paquetes = await queries
                         .packages
                         .getAll()
-                        .then(data => {
+                        .then(async data => {
                             if(data){
                                 console.info('Informacion de paquetes obtenida');
-                                return data;
+                                let flag = true;
+                                for(let p of data){
+                                    let { paquete, message: packageMessage } = await armarPackage(p);
+                                    if(paquete) p = paquete;
+                                    else{
+                                        message = packageMessage;
+                                        flag = false;
+                                    }
+                                }
+
+                                if(flag) return data;
+                                else return null;
                             }
                             else{
                                 console.info('No existen paquetes registrados en la BD');
@@ -1172,10 +981,21 @@ async function getDeletedPackages(){
     let paquetes = await queries
                         .packages
                         .getDeleted()
-                        .then(data => {
+                        .then(async data => {
                             if(data){
-                                console.info('Informacion de paquetes borrados obtenida');
-                                return data;
+                                console.info('Informacion de paquetes obtenida');
+                                let flag = true;
+                                for(let p of data){
+                                    let { paquete, message: packageMessage } = await armarPackage(p);
+                                    if(paquete) p = paquete;
+                                    else{
+                                        message = packageMessage;
+                                        flag = false;
+                                    }
+                                }
+
+                                if(flag) return data;
+                                else return null;
                             }
                             else{
                                 console.info('No existen paquetes borrados registrados en la BD');
@@ -1197,10 +1017,21 @@ async function getPackagesByCompany(id){
     let companyPackages = await queries
                         .packages
                         .getByCompany(id)
-                        .then(data => {
+                        .then(async data => {
                             if(data){
                                 console.info(`Informacion de paquetes habilitados de la compania con id : ${id},  obtenida`);
-                                return data;
+                                let flag = true;
+                                for(let p of data.rows){
+                                    let { paquete, message: packageMessage } = await armarPackage(p);
+                                    if(paquete) p = paquete;
+                                    else{
+                                        message = packageMessage;
+                                        flag = false;
+                                    }
+                                }
+
+                                if(flag) return data.rows;
+                                else return null;
                             }
                             else{
                                 console.info(`No existen paquetes habilitados para la compania con id : ${id}, registrados en la BD`);
@@ -1252,10 +1083,21 @@ async function getAllPackagesByCompany(id){
     let companyPackages = await queries
                         .packages
                         .getAllByCompany(id)
-                        .then(data => {
+                        .then(async data => {
                             if(data){
                                 console.info(`Informacion de paquetes de la compania con id : ${id},  obtenida`);
-                                return data;
+                                let flag = true;
+                                for(let p of data){
+                                    let { paquete, message: packageMessage } = await armarPackage(p);
+                                    if(paquete) p = paquete;
+                                    else{
+                                        message = packageMessage;
+                                        flag = false;
+                                    }
+                                }
+
+                                if(flag) return data;
+                                else return null;
                             }
                             else{
                                 console.info(`No existen paquetes para la compania con id : ${id}, registrados en la BD`);
@@ -1307,10 +1149,21 @@ async function getDeletedPackagesByCompany(id){
     let companyPackages = await queries
                         .packages
                         .getDeleteByCompany(id)
-                        .then(data => {
+                        .then(async data => {
                             if(data){
                                 console.info(`Informacion de paquetes eliminados de la compania con id : ${id},  obtenida`);
-                                return data;
+                                let flag = true;
+                                for(let p of data){
+                                    let { paquete, message: packageMessage } = await armarPackage(p);
+                                    if(paquete) p = paquete;
+                                    else{
+                                        message = packageMessage;
+                                        flag = false;
+                                    }
+                                }
+
+                                if(flag) return data;
+                                else return null;
                             }
                             else{
                                 console.info(`No existen paquetes eliminados para la compania con id : ${id}, registrados en la BD`);
@@ -1362,10 +1215,64 @@ async function getPackageById(id){
     let paquete = await queries
                     .packages
                     .getOneById(id)
-                    .then(data => {
+                    .then(async data => {
                         if(data){
-                            console.info(`Paquete con ID: ${id} encontrado`);
-                            return data;
+                            console.info('Informacion de paquete obtenida');
+                            let flag = true;
+                            let { paquete, message: packageMessage } = await armarPackage(data);
+                            if(paquete) data = paquete;
+                            else{
+                                message = packageMessage;
+                                flag = false;
+                            }
+
+                            if(flag) return data;
+                            else return null;
+                        }
+                        else{
+                            console.info(`No existe paquete con ID: ${id}`);
+                            message = `No existe un paquete con ID ${id}`;
+                            return null;
+                        }
+                    })
+                    .catch(err => {
+                        console.error(`Error en Query SELECT de Package : ${err}`);
+                        message = 'Ocurrio un error al obtener el paquete';
+                        return null;
+                    });
+    return { paquete, message };
+}
+
+async function getPackageRollback(id){
+    console.info(`Buscando paquete con id: ${id} para rollback`);
+    let message = '';
+    let paquete = await queries
+                    .packages
+                    .getOneById(id)
+                    .then(async package => {
+                        if(package){
+                            console.info(`Paquete con ID: ${id} encontrado, armando`);
+                            let { productos, message: prodMessage } = await getAllProductsByPackage(id);
+                            let { categorias, message: catMessage } = await getPackageCategories(id);
+
+                            if(productos && productos.length > 0){
+                                package.productos = productos;
+                            }
+                            else{
+                                message = prodMessage;
+                                return null;
+                            }
+
+                            if(categorias && categorias.length > 0){
+                                package.categorias = categorias;
+                            }
+                            else{
+                                message = catMessage;
+                                return null;
+                            }
+
+                            console.info("package", package);
+                            return package;
                         }
                         else{
                             console.info(`No existe paquete con ID: ${id}`);
@@ -1417,10 +1324,19 @@ async function getPackageByCode(code){
     let paquete = await queries
                     .packages
                     .getOneByCode(code)
-                    .then(data => {
+                    .then(async data => {
                         if(data){
                             console.info(`Paquete con Codigo: ${code} encontrado`);
-                            return data;
+                            let flag = true;
+                            let { paquete, message: packageMessage } = await armarPackage(data);
+                            if(paquete) data = paquete;
+                            else{
+                                message = packageMessage;
+                                flag = false;
+                            }
+
+                            if(flag) return data;
+                            else return null;
                         }
                         else{
                             console.info(`No existe paquete con codigo: ${code}`);
@@ -1466,7 +1382,7 @@ async function getPackageByCode(code){
 //     return { paquete, message };
 // }
 
-async function getAllProductByPackage (id){
+async function getAllProductsByPackage (id){
     console.info(`Buscando productos del paquete con id: ${id}`);
     let message = '';
 
@@ -1491,6 +1407,31 @@ async function getAllProductByPackage (id){
                     });
     return { productos, message };
 };
+
+async function getPackageCategories(id){
+    console.info(`Buscando categorias del paquete con id: ${id}`);
+    let message = '';
+    let categorias = await queries
+                    .packCategory
+                    .getByPackageId(id)
+                    .then(categories => {
+                        if(categories){
+                            console.info(`Categorias del paquete con id: ${id} encontrado`);
+                            return categories;
+                        }
+                        else{
+                            console.info(`No existe productos para el paquete con id: ${id}`);
+                            message = `No existe productos para el paquete con id: ${id}`;
+                            return null;
+                        }
+                    })
+                    .catch(err => {
+                        console.error(`Error en Query SELECT de PackageProduct : ${err}`);
+                        message = 'Ocurrio un error al obtener los productos  del paquete';
+                        return null;
+                    });
+    return { categorias, message };
+}
 
 async function insertPackage(paquete){
     console.info('Comenzando insert de Package');
@@ -1576,6 +1517,7 @@ async function insertPrice(price){
                         .prices
                         .insert(price)
                         .then(id => {
+                            console.log('insertprice', id);
                             if(id){
                                 console.info(`Insert de Price existoso con ID: ${id[0]}`);
                                 return id[0];
@@ -1603,7 +1545,7 @@ async function updatePackage(id, paquete){
                 .modify(id, paquete)
                 .then(res => {
                     if(res){
-                        console.info(`Update de Package con ID: ${id} existoso}`);
+                        console.info(`Update de Package con ID: ${id} existoso`);
                         return res;
                     }
                     else{
@@ -1666,6 +1608,60 @@ async function deletePackage(id, date){
                 .catch(err => {
                     console.error(`Error en Query Delete de Package: ${err}`);
                     message = 'Ocurrio un error al intertar eliminar el Package';
+                    return 0;
+                });
+    return { result, message };
+}
+
+async function deletePackageProducts(id){
+    console.info(`Comenzando delete de PackageProducts para el package ${id}`);
+    let message = '';
+    let result = await queries
+                .packageProduct
+                .deleteByPackage(id)
+                .then(res => {
+                    console.log('resdeletepackageproducts', res);
+                    if(res){
+                        console.info(`Delete de PackageProducts existoso para el package ID: ${id}`);
+                        message = `PackageProducts para paquete ${id} eliminados correctamente`;
+                        return res;
+                    }
+                    else{
+                        console.info('Ocurrio un error');
+                        message = 'Ocurrio un error al intertar eliminar los packageProducts';
+                        return 0;
+                    }
+                })
+                .catch(err => {
+                    console.error(`Error en Query Delete de PackageProducts: ${err}`);
+                    message = 'Ocurrio un error al intertar eliminar los packageProducts';
+                    return 0;
+                });
+    return { result, message };
+}
+
+async function deletePackageCategories(id){
+    console.info(`Comenzando delete de PackageCategories para el package ${id}`);
+    let message = '';
+    let result = await queries
+                .packCategory
+                .deleteByPackage(id)
+                .then(res => {
+                    console.log('resdeletepackagecategories', res);
+                    if(res){
+                        console.info(`Delete de PackageCategories existoso para el package ID: ${id}`);
+                        message = `PackageCategories para paquete ${id} eliminados correctamente`;
+                        return res;
+                    }
+                    else{
+                        console.info('Ocurrio un error');
+                        message = 'Ocurrio un error al intertar eliminar los PackageCategories';
+                        return 0;
+                    }
+                })
+                .catch(err => {
+                    console.error(`Error en Query Delete de PackageCategory: ${err}`);
+                    message = 'Ocurrio un error al intertar eliminar los PackageCategories';
                     return 0;
                 });
     return { result, message };
@@ -1807,7 +1803,7 @@ async function getPriceById(id){
 }
 
 async function getCurrentPrice(id){
-    console.info(`Buscando precio con ID: ${id}`);
+    console.info(`Buscando precio actual para paquete con ID: ${id}`);
     let message = '';
     let price = await queries
                 .prices
@@ -1815,7 +1811,7 @@ async function getCurrentPrice(id){
                 .then(data => {
                     if(data) {
                         console.info(`Precio con ID: ${id} encontrado`);
-                        return data;
+                        return data.rows[0];
                     }
                     else{
                         console.info(`No existe precio con ID: ${id}`);
@@ -1897,14 +1893,15 @@ async function validarCategorias(categorias){
     let categories = [];
 
     for(let cat of categorias){
-        let { category, message: categoryMessage } = await getCategoryById(cat)
+        let { category, message: categoryMessage } = await getCategoryById(cat);
+
         if(categoryMessage.length > 0) message.push(categoryMessage);
         else categories.push(category);
     };
     return { categories, message };
 }
 
-async function validarProductos(products){
+async function validarProductos(products, companyId){
     console.log('Iniciando validacion de productos');
     
     let message = [];
@@ -1913,7 +1910,8 @@ async function validarProductos(products){
     for(let prod of products){
         let { producto, message: productMessage } = await getCompanyProductById(prod.id);
 
-        if(productMessage.length > 0) message.push(productMessage);
+        if(!producto) message.push(productMessage);
+        else if(Number(producto.companyId) !== Number(companyId)) message.push(`Producto ${producto.id} no corresponde con compania ${companyId}`);
         else productos.push({'productId': producto.id, 'quantity': prod.quantity});
     };
     return { productos, message };
@@ -2294,7 +2292,6 @@ async function getPackage(packageId){
 
 function validarPackage(body) {
     const schema = {
-        companyId: Joi.number().required(),
         code: Joi.string().required(),
         name: Joi.string().min(3).max(30).required(),
         description: Joi.string().min(3).max(30).required(),

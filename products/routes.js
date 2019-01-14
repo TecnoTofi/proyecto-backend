@@ -75,6 +75,43 @@ async function obtenerDeletedCompanyProducts(req, res){
     }
 }
 
+async function obtenerCompanyProductsByProduct(req, res){
+    console.info(`Conexion GET entrante : /api/product/${req.params.id}/companies`);
+
+    console.info(`Comenzando validacion de tipos`);
+    let { error } = validarId(req.params.id);
+
+    if(error){
+        console.info(`Error en la validacion de tipos: ${error.details[0].message}`);
+        console.info('Preparando response');
+        res.status(400).json({message: error.details[0].message});
+    }
+    else{
+        console.info(`Comprobando existencia de product ${req.params.id}`);
+        let { producto, message: productMessage } = await getProductById(req.params.id);
+
+        if(!producto){
+            console.info(`No existe producto con ID: ${req.params.id}`);
+            console.info('Preparando response');
+            res.status(400).json({message: productMessage});
+        }
+        else{
+            let { companyProducts, message } = await getCompanyProductsByProduct(req.params.id);
+
+            if(companyProducts){
+                console.info(`${companyProducts.length} productos encontrados`);
+                console.info('Preparando response');
+                res.status(200).json(companyProducts);
+            }
+            else{
+                console.info('No se encontraron productos');
+                console.info('Preparando response');
+                res.status(200).json({message});
+            }
+        }
+    }
+}
+
 async function obtenerCompanyProductsByCompany(req, res){
     console.info(`Conexion GET entrante : /api/product/company/${req.params.id}`);
 
@@ -496,7 +533,7 @@ async function altaProductoVal(req, res){
 async function altaProducto(body, file){
     // console.log('Conexion POST entrante : /api/product');
 
-    // let categories = JSON.parse('[' + req.body.categories + ']');
+    // let categories = JSON.parse('[' + body.categories + ']');
     
     let valProduct = {
         name: body.name,
@@ -802,7 +839,6 @@ async function asociarProducto(body, file){
                 if(!company) errorMessage.push(companyMessage);
                 if(companyProductByProduct) errorMessage.push(`La compania ya tiene asociado este producto`);
 
-
                 if(errorMessage.length > 0){
                     console.info(`Se encontraron ${errorMessage.length} errores de existencia en la request`);
                     errorMessage.map(err => console.log(err));
@@ -888,6 +924,8 @@ async function asociarProducto(body, file){
 
 async function altaAsociacionProducto(req, res){
     console.log('Conexion POST entrante : /api/product/company');
+
+    req.body.categories = JSON.parse('[' + req.body.categories + ']');
 
     let { status: altaStatus, message: altaMessage, product, categories } = await altaProducto(req.body, req.file);
 
@@ -1016,7 +1054,7 @@ async function modificarProducto(req, res){
                 let { result, message: updateMessage } = await updateProduct(req.params.productId, product);
 
                 if(result){
-                    console.info(`Company con ID: ${req.params.productId} actualizada correctamente`);
+                    console.info(`CompanyProduct con ID: ${req.params.productId} actualizada correctamente`);
                     if(precioActual.price !== valCompanyProduct.price){
                         
                         let precio = {
@@ -1107,7 +1145,7 @@ async function eliminarProducto(req, res){
                     if(result){
                         console.info(`CompanyProduct con ID: ${req.params.id} eliminado correctamente`);
                         console.info('Preparando response');
-                        res.status(201).json('Borrado exitoso');
+                        res.status(201).json({message: 'Borrado exitoso'});
                     }
                     else{
                         console.info('No se pudo eliminar CompanyProduct');
@@ -1346,6 +1384,59 @@ async function getCompanyProductsByCompany(id){
                         .catch(err => {
                             console.error(`Error en Query SELECT de CompanyProduct : ${err}`);
                             message = 'Ocurrio un error al obtener los productos hanilitados de la compania';
+                            return null;
+                        });
+    return { companyProducts , message };
+}
+
+async function getCompanyProductsByProduct(id){
+    console.info(`Buscando todos los companyProduct para el producto: ${id}`);
+    let message ='';
+    let companyProducts = await queries
+                        .companyProduct
+                        .getByProduct(id)
+                        .then(async data => {
+                            if(data){
+                                console.info(`Informacion de companyProducts de producto con ID : ${id},  obtenida`);
+                                let flag = true;
+                                for(let p of data.rows){
+                                    let categories = [];
+                                    p.imagePath = p.imagePath.replace(/\\/g, '/');
+                                    
+                                    let { company } = await getCompanyById(p.companyId);
+                                    if(company) p.companyName = company.name;
+                                    else {
+                                        flag = false;
+                                        console.info('Ocurrio un error obteniendo la company del producto');
+                                        message = 'Ocurrio un error al obtener los productos';
+                                    }
+                                    
+                                    let { categorias: categoriesIds } = await getProductCategoryByProduct(p.productId);
+                                    if(categoriesIds){
+                                        for(let c of categoriesIds){
+                                            let { category } = await getCategoryById(c.categoryId);
+                                            categories.push(category);
+                                        }
+                                        p.categories = categories;
+                                    }
+                                    else{
+                                        console.info('Ocurrio un error obteniendo las categorias del producto');
+                                        message = 'Ocurrio un error al obtener los productos';
+                                        flag = false;
+                                    }
+                                }
+                                if(flag) return data.rows;
+                                else return null;
+                            }
+                            else{
+                                console.info(`No existen companyProduct para el producto con ID : ${id}, registrados en la BD`);
+                                message = `No existen companyProduct para el producto con ID : ${id}, registrados en la BD`;
+                                return null;
+                            }
+                        })
+                        .catch(err => {
+                            console.error(`Error en Query SELECT de CompanyProduct : ${err}`);
+                            message = 'Ocurrio un error al obtener los companyProducts para el producto';
                             return null;
                         });
     return { companyProducts , message };
@@ -1610,14 +1701,15 @@ async function getCompanyProductByProduct(idComp, idProd){
                     .companyProduct
                     .getOneByProductByCompany(idComp, idProd)
                     .then(data => {
-                        if(data){
+                        console.log('data', data);
+                        if(data.rows.length > 0){
                             console.info(`CompanyProduct con productId: ${idProd} para compania ${idComp} encontrado`);
                             let regex = /\\/g;
                             // const productos = Promise.all(data.map(async prod => {
-                                data.imagePath = data.imagePath.replace(regex, '/');
+                                data.rows[0].imagePath = data.rows[0].imagePath.replace(regex, '/');
                                 // return prod;
                             // }));
-                            return data;
+                            return data.rows[0];
                         }
                         else{
                             console.info(`No existe CompanyProduct con productId: ${idProd} para la compania ${idComp}`);
@@ -1819,7 +1911,7 @@ async function updateProduct(id, producto){
                 .modify(id, producto)
                 .then(res => {
                     if(res){
-                        console.info(`Update de CompanyProduct con ID: ${id} existoso}`);
+                        console.info(`Update de CompanyProduct con ID: ${id} existoso`);
                         return res;
                     }
                     else{
@@ -2118,6 +2210,7 @@ module.exports = {
     obtenerCompanyProductsByCompany,
     obtenerAllCompanyProductsByCompany,
     obtenerDeletedCompanyProductsByCompany,
+    obtenerCompanyProductsByProduct,
     obtenerProductById,
     obtenerCompanyProductById,
     obtenerProductByCode,

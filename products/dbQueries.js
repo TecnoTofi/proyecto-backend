@@ -23,7 +23,7 @@ module.exports ={
     },
     products: {
         getAll: function(){
-            return knex.select().table('Product');
+            return knex.select().table('Product').where('deleted', null);
         },
         getOneById: function(id){
             return knex.select().table('Product').where('id', id).first();
@@ -111,7 +111,8 @@ module.exports ={
             [id]);
         },
         getByProduct: function(id){
-            return knex.select().table('CompanyProduct').where('productId', id);
+            return knex.raw('select pc.id, p.id "productId", p.code, pc."companyId", pc.name, pc.description, pc.stock, pc."imagePath", pc."imageName", pc.created, pc.deleted, (select price from "ProductPrice" where "productId" = pc.id order by "validDateFrom" desc limit 1) "price", (select id from "ProductPrice" where "productId" = pc.id order by "validDateFrom" desc limit 1) "priceId" from "Product" p , "CompanyProduct" pc where pc."productId" = p.id and p.id = ? and pc.deleted is null',
+            [id]);
         },
         getByName: function(name){
             return knex.select().table('CompanyProduct').where('name', name);
@@ -144,7 +145,7 @@ module.exports ={
             [id]);
         },
         getOneByProductByCompany: function(idComp, idProd){
-            return knex.raw('select pc.id, pc."companyId", pc.name, pc.description, pc.stock, pc."imagePath", pc."imageName", pc.created, pc.deleted from "Product" p  , "CompanyProduct" pc where pc."companyId" = ? and  pc."productId" =? and p.id = pc."productId"',
+            return knex.raw('select pc.id, p.code, pc."companyId", p.id "productId", pc.name, pc.description, pc.stock, pc."imagePath", pc."imageName", pc.created, pc.deleted from "Product" p, "CompanyProduct" pc where pc."companyId" = ? and  pc."productId" = ? and p.id = pc."productId"',
             [idComp,idProd]);
         },
         insert: function(product){
@@ -152,7 +153,7 @@ module.exports ={
         },
         modify: function(id, product){
             // return knex.raw(`update "CompanyProduct" set "companyId" = ${product.companyId}, "productId" = ${product.productId}, "name" = ${product.name}, description = ${product.description}, price = ${product.price}, stock = ${product.stock}, "imagePath" = ${product.imagePath}, "imageName" = ${product.imageName} where id = ${id};`);
-            return knex('CompanyProduct').where('id', id).update({stock: product.stock});
+            return knex('CompanyProduct').where('id', id).update(product);
         },
         delete: function(id, date){
             console.log(`Enviando Query DELETE a companyProduct`);

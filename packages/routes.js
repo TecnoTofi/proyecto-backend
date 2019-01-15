@@ -867,7 +867,29 @@ async function armarPackage(paquete){
         message = 'Ocurrio un problema al buscar los paquetes';
         console.info('Ocurrio un problema al buscar las categorias del paquete');
     }
-    //productos
+    
+    let { productos } = await getAllProductsByPackage(paquete.id);
+    let products = [];
+    if(productos){
+        for(let p of productos){
+            let { producto } = await getCompanyProductById(p.productId);
+            if(producto){
+                producto.quantity = p.quantity;
+                products.push(producto);
+            }
+            else{
+                flag = false;
+                message = 'Ocurrio un problema al buscar los paquetes';
+                console.info('Ocurrio un problema al buscar los productos del paquete');
+            }
+        }
+        paquete.products = products;
+    }
+    else{
+        flag = false;
+        message = 'Ocurrio un problema al buscar los paquetes';
+        console.info('Ocurrio un problema al buscar los productos del paquete');
+    }
 
     if(flag) return { paquete, message };
     else return { message };

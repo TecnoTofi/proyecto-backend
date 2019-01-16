@@ -3,6 +3,7 @@ const queries = require('./dbQueries');
 const { getCompanyById } = require('../companies/routes');
 const { getUserByEmail } = require('../users/routes');
 const { getCategoryById, validarId } = require('../helpers/routes');
+const { getPackageProductsByPackageNonDeleted } = require('../packages/routes');
 
 async function obtenerProducts(req, res){
     console.info('Conexion GET entrante : /api/product/');
@@ -311,7 +312,7 @@ async function obtenerCompanyProductById(req, res){
                     console.log(producto);
     
                     if(producto){
-                        console.info(`${producto.length} productos encontrados`);
+                        console.info(`Producto encontrado`);
                         console.info('Preparando response');
                         res.status(200).json(producto);
                     }
@@ -994,8 +995,8 @@ async function modificarProducto(req, res){
             description: req.body.description,
             price: Number(req.body.price),
             stock: req.body.stock,
-            imageName: req.file ? req.file.filename : req.body.imageName,
-            imagePath: req.file ? req.file.path : req.body.imagePath
+            imageName: req.file ? req.file.filename : null,
+            imagePath: req.file ? req.file.path : null
         };
 
         //Inicializo array de errores
@@ -1047,8 +1048,8 @@ async function modificarProducto(req, res){
                     name: valCompanyProduct.name,
                     description: valCompanyProduct.description,
                     stock: valCompanyProduct.stock,
-                    imageName: valCompanyProduct.imageName,
-                    imagePath: valCompanyProduct.imagePath,
+                    imageName: valCompanyProduct.imageName ? valCompanyProduct.imageName : productById.imageName,
+                    imagePath: valCompanyProduct.imagePath ? valCompanyProduct.imagePath : productById.imagePath
                 };
 
                 let { result, message: updateMessage } = await updateProduct(req.params.productId, product);
@@ -1087,7 +1088,7 @@ async function modificarProducto(req, res){
                             let { result: resultUpdateRollback, message: updateRollbackMessage } = await updateProduct(req.params.productId, productRollback);
 
                             if(resultUpdateRollback){
-                                console.info(`Company con ID: ${req.params.id} corregida correctamente`);
+                                console.info(`CompanyProduct con ID: ${req.params.productId} corregido correctamente`);
                             }
                             else{
                                 console.info('No se pudo realizar rollbacks de companyProduct');
@@ -1098,8 +1099,11 @@ async function modificarProducto(req, res){
                         }
                     }
                     else{
+                        console.info('Modificacion termianda');
+                        let { producto: prod, message: prodMessage } = await getCompanyProductById(req.params.productId);
+                        console.log(prod);
                         console.info('Preparando response');
-                        res.status(200).json({message: 'Modificacion exitosa'});
+                        res.status(200).json({message: 'Modificacion exitosa', product: prod});
                     }
                 }
                 else{
@@ -1139,19 +1143,29 @@ async function eliminarProducto(req, res){
 
             if(user){
                 if(user.companyId === producto.companyId){
-                    console.info('Enviando request para eliminacion');
-                    let { result, message: deleteMessage } = await deleteCompanyProduct(req.params.id, new Date());
-                    
-                    if(result){
-                        console.info(`CompanyProduct con ID: ${req.params.id} eliminado correctamente`);
+
+                    let { packageProducts } = await getPackageProductsByPackageNonDeleted(req.params.id, user.companyId);
+
+                    if(packageProducts){
+                        console.info('Existen paquetes no borrados que utilizan este producto');
                         console.info('Preparando response');
-                        res.status(201).json({message: 'Borrado exitoso'});
+                        res.status(400).json({message: 'Existen paquetes no borrados que utilizan este producto'});
                     }
                     else{
-                        console.info('No se pudo eliminar CompanyProduct');
-                        console.info('Preparando response');
-                        res.status(500).json({message: deleteMessage});
-                    }
+                        console.info('Enviando request para eliminacion');
+                        let { result, message: deleteMessage } = await deleteCompanyProduct(req.params.id, new Date());
+                        
+                        if(result){
+                            console.info(`CompanyProduct con ID: ${req.params.id} eliminado correctamente`);
+                            console.info('Preparando response');
+                            res.status(201).json({message: 'Borrado exitoso'});
+                        }
+                        else{
+                            console.info('No se pudo eliminar CompanyProduct');
+                            console.info('Preparando response');
+                            res.status(500).json({message: deleteMessage});
+                        }
+                    }                    
                 }
                 else{
                     console.info('Usuario no corresponde con la empresa del producto');
@@ -1652,14 +1666,14 @@ async function getCompanyProductById(id){
                             console.info(`CompanyProduct con id: ${id} encontrado`);
                             let flag = true;
                             let categories = [];
-                            data.imagePath = data.imagePath.replace(/\\/g, '/');
-                            let { categorias: categoriesIds } = await getProductCategoryByProduct(data.productId);
+                            data.rows[0].imagePath = data.rows[0].imagePath.replace(/\\/g, '/');
+                            let { categorias: categoriesIds } = await getProductCategoryByProduct(data.rows[0].productId);
                             if(categoriesIds){
                                 for(let c of categoriesIds){
                                     let { category } = await getCategoryById(c.categoryId);
                                     categories.push(category);
                                 }
-                                data.categories = categories;
+                                data.rows[0].categories = categories;
                             }
                             else{
                                 console.info('Ocurrio un error obteniendo las categorias del producto');
@@ -1667,17 +1681,7 @@ async function getCompanyProductById(id){
                                 flag = false;
                             }
 
-                            console.info(`Buscando precio para producto ${data.productId}`)
-                            let {price, message} = await getCurrentPrice(data.productId);
-
-                            if(price) data.price = price;
-                            else{
-                                console.info(`No se encontro precio para producto ${data.productId}`);
-                                message = `No se encontro precio para producto ${data.productId}`;
-                                flag = false;
-                            }
-
-                            if(flag) return data;
+                            if(flag) return data.rows[0];
                             else return null;
                         }
                         else{

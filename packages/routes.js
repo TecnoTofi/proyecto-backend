@@ -80,12 +80,12 @@ async function obtenerPackagesByCompany(req, res){
             let { companyPackages, message } = await getPackagesByCompany(req.params.id);
 
             if(companyPackages){
-                console.info(`${companyPackages.length} productos encontrados`);
+                console.info(`${companyPackages.length} paquetes encontrados`);
                 console.info('Preparando response');
                 res.status(200).json(companyPackages);
             }
             else{
-                console.info('No se encontraron productos');
+                console.info('No se encontraron paquetes');
                 console.info('Preparando response');
                 res.status(200).json({message});
             }
@@ -492,6 +492,7 @@ async function agregarPackageProduct(req, res){
 
 async function modificarPaquete(req, res){
     console.info(`Conexion PUT entrante : /api/package/${req.params.id}`);
+    console.info('request', req.body)
 
     console.info(`Comenzando validacion de tipos`);
     let { error } = validarId(req.params.id);
@@ -535,9 +536,9 @@ async function modificarPaquete(req, res){
                         stock: req.body.stock,
                         price: req.body.price,
                         categories: req.body.categories,
-                        productos: req.body.productos,
-                        imageName: req.file ? req.file.filename : req.body.imageName,
-                        imagePath: req.file ? req.file.path : req.body.imagePath,
+                        productos: req.body.products,
+                        imageName: req.file ? req.file.filename : paqueteById.imageName,
+                        imagePath: req.file ? req.file.path : paqueteById.imagePath,
                     };
 
                     let { error } = validarPackage(valPackage);
@@ -589,11 +590,11 @@ async function modificarPaquete(req, res){
                                     console.info('Preparandose para insertar nuevos packageProducts');
                                     let productsOk = true;
                                     let i = 0;
-                                    while(i < req.body.productos.length && productsOk){
+                                    while(i < req.body.products.length && productsOk){
                                         let packageProduct = {
-                                            productId: req.body.productos[i].productId,
+                                            productId: req.body.products[i].productId,
                                             packageId: req.params.id,
-                                            quantity: req.body.productos[i].quantity,
+                                            quantity: req.body.products[i].quantity,
                                         };
     
                                         console.log('Verificando existencia de productos');
@@ -713,14 +714,6 @@ async function modificarPaquete(req, res){
                                     let { result: packProdsResult, message: delPackProdsMessage } = await deletePackageProducts(req.params.id);
                                     console.info('Borrando packageCategories insertados');
                                     let { result: packCatsResult, message: delPackCatsMessage } = await deletePackageCategories(req.params.id);
-                                    
-    
-                                    console.log('ver si es iterable');
-                                    console.log('paqueteRollback', paqueteRollback);
-                                    console.log('productos');
-                                    console.log(paqueteRollback.productos);
-                                    console.log('categorias');
-                                    console.log(paqueteRollback.categorias);
     
                                     for(let p of paqueteRollback.productos){
                                         let prod = {
@@ -761,8 +754,9 @@ async function modificarPaquete(req, res){
                                 }
                                 else{
                                     console.info('Modificacion terminada');
+                                    let { paquete: paq, message: paqMessage } = await getPackageById(req.params.id);
                                     console.info('Preparando response');
-                                    res.status(200).json('Modificacion completada');
+                                    res.status(200).json({message: 'Modificacion completada', package: paq});
                                 }
                             }
                         }
@@ -872,7 +866,10 @@ async function armarPackage(paquete){
     let products = [];
     if(productos){
         for(let p of productos){
+            console.info('entre', p)
+            console.info(paquete)
             let { producto } = await getCompanyProductById(p.productId);
+            console.info('producto', producto)
             if(producto){
                 producto.quantity = p.quantity;
                 products.push(producto);
@@ -1429,6 +1426,31 @@ async function getAllProductsByPackage (id){
                     });
     return { productos, message };
 };
+
+async function getPackageProductsByPackageNonDeleted(packageId, companyId){
+    console.info(`Buscando packageProducts de paquete con ID: ${packageId}`);
+    let message = '';
+    let packageProducts = await queries
+                    .packages
+                    .getByPackageNonDeleted(packageId, companyId)
+                    .then(async data => {
+                        if(data){
+                            console.info('Informacion de packageProducts obtenida');
+                            return data;
+                        }
+                        else{
+                            console.info(`No existe paquete con ID: ${packageId}`);
+                            message = `No existe un paquete con ID ${packageId}`;
+                            return null;
+                        }
+                    })
+                    .catch(err => {
+                        console.error(`Error en Query SELECT de Package : ${err}`);
+                        message = 'Ocurrio un error al obtener el paquete';
+                        return null;
+                    });
+    return { packageProducts, message };
+}
 
 async function getPackageCategories(id){
     console.info(`Buscando categorias del paquete con id: ${id}`);
@@ -2343,7 +2365,6 @@ module.exports = {
     obtenerPackagesByCompany,
     obtenerAllPackagesByCompany,
     obtenerDeletedPackagesByCompany,
-    //
     obtenerPaqueteById,
     obtenerPaqueteByCode,
     obtenerAllProductsByPackage,
@@ -2354,5 +2375,6 @@ module.exports = {
     getPriceById,
     getCurrentPrice,
     getLastPrices,
+    getPackageProductsByPackageNonDeleted,
     reducirStock,
 };

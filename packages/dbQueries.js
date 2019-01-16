@@ -84,6 +84,10 @@ module.exports = {
             return knex.raw('select p.id, p."packageId", p."productId", p.quantity from "PackageProduct" p where p."packageId" = ? and p."productId" = ?',
             [idpack,idProd]);
         },
+        getByPackageNonDeleted(packageId, companyId){
+            return knex.raw('select * from "PackageProduct" where "productId" = ? and "packageId" in (select id from "Package" where "companyId" = ? and deleted is null)',
+            [packageId, companyId]);
+        },
         insert: function(packageProd){
             return knex('PackageProduct').insert(packageProd).returning('id');
         },

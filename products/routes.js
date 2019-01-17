@@ -3,7 +3,7 @@ const queries = require('./dbQueries');
 const { getCompanyById } = require('../companies/routes');
 const { getUserByEmail } = require('../users/routes');
 const { getCategoryById, validarId } = require('../helpers/routes');
-const { getPackageProductsByPackageNonDeleted } = require('../packages/routes');
+// const { getPackageProductsByPackageNonDeleted } = require('../packages/routes');
 
 async function obtenerProducts(req, res){
     console.info('Conexion GET entrante : /api/product/');
@@ -1144,14 +1144,14 @@ async function eliminarProducto(req, res){
             if(user){
                 if(user.companyId === producto.companyId){
 
-                    let { packageProducts } = await getPackageProductsByPackageNonDeleted(req.params.id, user.companyId);
+                    // let { packageProducts } = await getPackageProductsByPackageNonDeleted(req.params.id, user.companyId);
 
-                    if(packageProducts){
-                        console.info('Existen paquetes no borrados que utilizan este producto');
-                        console.info('Preparando response');
-                        res.status(400).json({message: 'Existen paquetes no borrados que utilizan este producto'});
-                    }
-                    else{
+                    // if(packageProducts){
+                    //     console.info('Existen paquetes no borrados que utilizan este producto');
+                    //     console.info('Preparando response');
+                    //     res.status(400).json({message: 'Existen paquetes no borrados que utilizan este producto'});
+                    // }
+                    // else{
                         console.info('Enviando request para eliminacion');
                         let { result, message: deleteMessage } = await deleteCompanyProduct(req.params.id, new Date());
                         
@@ -1165,7 +1165,7 @@ async function eliminarProducto(req, res){
                             console.info('Preparando response');
                             res.status(500).json({message: deleteMessage});
                         }
-                    }                    
+                    // }                    
                 }
                 else{
                     console.info('Usuario no corresponde con la empresa del producto');
@@ -2231,7 +2231,8 @@ module.exports = {
     getCompanyProductsByCompany,
     getAllCompanyProductsByCompany,
     getDeletedProductsByCompany,
-    getProductById,getProductByCode,
+    getProductById,
+    getProductByCode,
     getProductByName,
     getCompanyProductById,
     getProductsByCategory,

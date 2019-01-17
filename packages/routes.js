@@ -2,11 +2,13 @@ const Joi = require('joi');
 const queries = require('./dbQueries');
 const { getCompanyById } = require('../companies/routes');
 const { getUserByEmail } = require('../users/routes');
-const { getCompanyProductById } = require('../products/routes');
 const { validarId, getCategoryById } = require('../helpers/routes');
+const { getCompanyProductById } = require('../products/routes');
 
 async function obtenerPackages(req, res){
     console.info('Conexion GET entrante : /api/package/');
+    let test = await getProductById(14);
+    console.log(test);
 
     let { paquetes, message } = await getPackages();
 
@@ -964,36 +966,6 @@ async function getAllPackages(){
     return { paquetes , message };
 }
 
-// async function getAllPackages(){
-//     console.info('Buscando todos los paquetes');
-//     let message ='';
-//     let paquetes = await queries
-//                         .packages
-//                         .getAllForList()
-//                         .then(data => {
-//                             if(data.rows){
-//                                 console.info(`Informacion de paquetes obtenida`);
-//                                 let regex = /\\/g;
-//                                 const paquetes = Promise.all(data.rows.map(async paq => {
-//                                     paq.imagePath = paq.imagePath.replace(regex, '/');
-//                                     return paq;
-//                                 }));
-//                                 return paquetes;
-//                             }
-//                             else{
-//                                 console.info('No existen paquetes registrados en la BD');
-//                                 message = 'No existen paquetes registrados en la BD';
-//                                 return null;
-//                             }
-//                         })
-//                         .catch(err => {
-//                             console.error(`Error en Query SELECT de Package : ${err}`);
-//                             message = 'Ocurrio un error al obtener los paquetes';
-//                             return null;
-//                         });
-//     return { paquetes , message };
-// }
-
 async function getDeletedPackages(){
     console.info('Buscando todos los paquetes borrados');
     let message ='';
@@ -1066,36 +1038,6 @@ async function getPackagesByCompany(id){
     return { companyPackages , message };
 }
 
-// async function getPackagesByCompanyList(id){
-//     console.info(`Buscando todos los paquetes habilitados de la compania con id : ${id}`);
-//     let message ='';
-//     let CompanyPackages = await queries
-//                         .packages
-//                         .getForListHabilitadosByCompany(id)
-//                         .then(data => {
-//                             if(data.rows){
-//                                 console.info(`Informacion de paquetes habilitados de la compania con id : ${id},  obtenida`);
-//                                 let regex = /\\/g;
-//                                 const paquetes = Promise.all(data.rows.map(async paq => {
-//                                     paq.imagePath = paq.imagePath.replace(regex, '/');
-//                                     return paq;
-//                                 }));
-//                                 paquetes                            
-//                             }
-//                             else{
-//                                 console.info(`No existen paquetes habilitados para la compania con id : ${id}, registrados en la BD`);
-//                                 message = `No existen paquetes habilitados para la compania con id : ${id}, registrados en la BD`;
-//                                 return null;
-//                             }
-//                         })
-//                         .catch(err => {
-//                             console.error(`Error en Query SELECT de Package : ${err}`);
-//                             message = 'Ocurrio un error al obtener los paquetes habilitados de la compania';
-//                             return null;
-//                         });
-//     return { CompanyPackages , message };
-// }
-
 async function getAllPackagesByCompany(id){
     console.info(`Buscando todos los paquetes de la compania con id : ${id}`);
     let message ='';
@@ -1132,36 +1074,6 @@ async function getAllPackagesByCompany(id){
     return { companyPackages , message };
 }
 
-// async function getAllPackagesByCompanyList(id){
-//     console.info(`Buscando todos los paquetes de la compania con id : ${id}`);
-//     let message ='';
-//     let CompanyPackages = await queries
-//                         .packages
-//                         .getAllForListByCompany(id)
-//                         .then(data => {
-//                             if(data.rows){
-//                                 console.info(`Informacion de paquetes de la compania con id : ${id},  obtenida`);
-//                                 let regex = /\\/g;
-//                                 const paquetes = Promise.all(data.rows.map(async paq => {
-//                                     paq.imagePath = paq.imagePath.replace(regex, '/');
-//                                     return paq;
-//                                 }));
-//                                 paquetes                            
-//                             }
-//                             else{
-//                                 console.info(`No existen paquetes para la compania con id : ${id}, registrados en la BD`);
-//                                 message = `No existen paquetes para la compania con id : ${id}, registrados en la BD`;
-//                                 return null;
-//                             }
-//                         })
-//                         .catch(err => {
-//                             console.error(`Error en Query SELECT de Package : ${err}`);
-//                             message = 'Ocurrio un error al obtener los paquetes de la compania';
-//                             return null;
-//                         });
-//     return { CompanyPackages , message };
-// }
-
 async function getDeletedPackagesByCompany(id){
     console.info(`Buscando todos los paquetes eliminados de la compania con id : ${id}`);
     let message ='';
@@ -1197,36 +1109,6 @@ async function getDeletedPackagesByCompany(id){
                         });
     return { companyPackages , message };
 }
-
-// async function getDeletedPackagesByCompanyList(id){
-//     console.info(`Buscando todos los paquetes eliminados de la compania con id : ${id}`);
-//     let message ='';
-//     let CompanyPackages = await queries
-//                         .packages
-//                         .getForDeleteListByCompany(id)
-//                         .then(data => {
-//                             if(data.rows){
-//                                 console.info(`Informacion de paquetes eliminados de la compania con id : ${id},  obtenida`);
-//                                 let regex = /\\/g;
-//                                 const paquetes = Promise.all(data.rows.map(async paq => {
-//                                     paq.imagePath = paq.imagePath.replace(regex, '/');
-//                                     return paq;
-//                                 }));
-//                                 paquetes                            
-//                             }
-//                             else{
-//                                 console.info(`No existen paquetes eliminados para la compania con id : ${id}, registrados en la BD`);
-//                                 message = `No existen paquetes eliminados para la compania con id : ${id}, registrados en la BD`;
-//                                 return null;
-//                             }
-//                         })
-//                         .catch(err => {
-//                             console.error(`Error en Query SELECT de Package : ${err}`);
-//                             message = 'Ocurrio un error al obtener los paquetes eliminados de la compania';
-//                             return null;
-//                         });
-//     return { CompanyPackages , message };
-// }
 
 async function getPackageById(id){
     console.info(`Buscando paquete con id: ${id}`);
@@ -1307,36 +1189,6 @@ async function getPackageRollback(id){
     return { paquete, message };
 }
 
-// async function getPackageByIdList(id){
-//     console.info(`Buscando paquete con id: ${id}`);
-//     let message = '';
-//     let paquete = await queries
-//                     .packages
-//                     .getOneByIdList(id)
-//                     .then(data => {
-//                         if(data.rows){
-//                             console.info(`paquete con ID: ${id} encontrado`);
-//                             let regex = /\\/g;
-//                             const paquetes = Promise.all(data.rows.map(async paq => {
-//                                 paq.imagePath = paq.imagePath.replace(regex, '/');
-//                                 return paq;
-//                             }));
-//                             paquetes                            
-//                         }
-//                         else{
-//                             console.info(`No existe paquete con id: ${id}`);
-//                             message = `No existe un paquete con id ${id}`;
-//                             return null;
-//                         }
-//                     })
-//                     .catch(err => {
-//                         console.error(`Error en Query SELECT de Package : ${err}`);
-//                         message = 'Ocurrio un error al obtener el paquete';
-//                         return null;
-//                     });
-//     return { paquete, message };
-// }
-
 async function getPackageByCode(code){
     console.info(`Buscando paquete con codigo: ${code}`);
     let message = '';
@@ -1370,36 +1222,6 @@ async function getPackageByCode(code){
                     });
     return { paquete, message };
 }
-
-// async function getPackageByCodeList(code){
-//     console.info(`Buscando paquete con codigo: ${code}`);
-//     let message = '';
-//     let paquete = await queries
-//                     .packages
-//                     .getOneByCode(code)
-//                     .then(data => {
-//                         if(data,rows){
-//                             console.info(`Paquete con Codigo: ${code} encontrado`);
-//                             let regex = /\\/g;
-//                             const paquetes = Promise.all(data.rows.map(async paq => {
-//                                 paq.imagePath = paq.imagePath.replace(regex, '/');
-//                                 return paq;
-//                             }));
-//                             paquetes                            
-//                         }
-//                         else{
-//                             console.info(`No existe paquete con codigo: ${code}`);
-//                             message = `No existe un paquete con codigo ${code}`;
-//                             return null;
-//                         }
-//                     })
-//                     .catch(err => {
-//                         console.error(`Error en Query SELECT de Package : ${err}`);
-//                         message = 'Ocurrio un error al obtener el paquete';
-//                         return null;
-//                     });
-//     return { paquete, message };
-// }
 
 async function getAllProductsByPackage (id){
     console.info(`Buscando productos del paquete con id: ${id}`);
@@ -1984,355 +1806,6 @@ async function validarProducto(id){
                         });
     return { producto, message };
 }
-
-/*
-const getAllPackages = (req, res) => {
-    console.log('Conexion GET entrante : /api/packages');
-
-    queries
-        .packages
-        .getAll()
-        .then(data => {
-            console.log('Informaicon de Package obtenida');
-            res.status(200).json(data);
-            })
-        .catch(err =>{
-            console.log(`Error en Query SELECT a Packages : ${err}`);
-            res.status(500).json({message: err});
-        });
-};
-
-const getAllPackagesByCompany = (req, res) => {
-    console.log(`Conexion GET entrante : /api/package/${req.params.id}`);
-    // let idCompany= req.params.idComp;
-
-    queries
-        .packages
-        .getByCompanyId(req.params.id)
-        .then(data => {
-            //agregar revision de undefined
-            console.log('Informacion de Package de comapany obtenida');
-            res.status(200).json(data);
-            })
-        .catch(err =>{
-            console.log(`Error en Query SELECT a Packages : ${err}`);
-            res.status(500).json({message: err});
-        });
-};
-
-const getAllProductByPackage = (req, res) => {
-    console.log('Conexion GET entrante : /api/packages');
-    let idPackage= req.params.id;
-
-    queries
-        .packagesProduct
-        .getAllById(idPackage)
-        .then(data => {
-            console.log('Informacion de productos de un packages obtenida');
-            res.status(200).json(data);
-            })
-        .catch(err =>{
-            console.log(`Error en Query SELECT a Packages : ${err}`);
-            res.status(500).json({message: err});
-        });
-};
-
-//POST /api/Packages
-async function insertPackages(req, res){
-    console.log('Conexion POST entrante : /api/insert/package');
-
-    let valPackage = {
-        price: req.body.price,
-        description: req.body.description,
-        companyId:req.body.idCompany
-    }
-
-    let {error} = await validarRegistroPackage(valPackage);
-
-    if(!error){
-
-            packageId = await queries
-                            .packages
-                            .insert(valPackage)
-                            .then(id => {
-                                console.log('Paquete insertado correctamente');
-                                return id;
-                            })
-                            .catch(err => {
-                                console.log(`Error en Query INSERT de Product : ${err}`);
-                                res.status(500).json({message: err});
-                            });
-
-            if(packageId){
-                res.status(201).json({message: 'insertado correctamente'});
-            }
-            else{
-                console.log(`Error inesperado`);
-                res.status(500).json({message: 'Error inesperado'});
-            }
-    }
-    else{
-        console.log(`Error en la validacion de tipos de dato : ${error.details[0].message}`);
-        res.status(400).json({message: error.details[0].message});
-    }
-    
-};
-
-async function updatePackage(req, res){
-    console.log('Conexion POST entrante : /api/package/update');
-    let idPackage= req.params.idPack;
-    console.log('idPackage', idPackage);
-
-    let valPackage = {
-        companyId: req.body.companyId,
-        description: req.body.description,
-        price: req.body.price,
-        /*imageName: req.file.filename,
-        imagePath: req.file.path
-    }
-
-    console.log(valPackage);
-
-    let {error} = await validarRegistroPackage(valProduct);
-
-    if(!error){
-
-            queries
-                .packages
-                .modify(idPackage ,valPackage)
-                .then(packageId => {
-                    console.log('package modificado correctamente');
-                    res.status(201).json(packageId);
-                })
-                .catch(err => {
-                    console.log(`Error en Query Update de package : ${err}`);
-                    res.status(500).json({message: err});
-                });
-        }
-    else{
-        console.log(`Error en la validacion de tipos de dato : ${error.details[0].message}`);
-        res.status(400).json({message: error.details[0].message});
-    }
-};
-
-async function deletePackage(req, res){
-    console.log('Conexion POST entrante : /api/package/delete');
-    
-    let idPackage= req.params.idPack;
-    
-    console.log('idPackage', idPackage);
-
-            queries
-                .packages
-                .delete(idPackage)
-                .then(packageId => {
-                    console.log('Package eliminado correctamente');
-                    res.status(201).json(packageId);
-                })
-                .catch(err => {
-                    console.log(`Error en Query delete de package : ${err}`);
-                    res.status(500).json({message: err});
-                });
-};
-
-async function insertPackageProduct(req, res){
-    console.log('Conexion POST entrante : /api/insert/package/product');
-
-    let valPackageProduct = {
-        packageId: req.body.packageId,
-        productId: req.body.productId,
-        quantity:req.body.quantity
-    }
-
-    let {error} = await validarRegistroPackageProduct(valPackageProduct);
-
-    if(!error){
-
-            packageProductId = await queries
-                            .packagesProduct
-                            .insert(valPackageProduct)
-                            .then(id => {
-                                console.log('Producto insertado correctamente en paquete');
-                                return id;
-                            })
-                            .catch(err => {
-                                console.log(`Error en Query INSERT de packageProduct : ${err}`);
-                                res.status(500).json({message: err});
-                            });
-
-            if(packageProductId){
-                res.status(201).json({message: 'insertado correctamente'});
-            }
-            else{
-                console.log(`Error inesperado`);
-                res.status(500).json({message: 'Error inesperado'});
-            }
-    }
-    else{
-        console.log(`Error en la validacion de tipos de dato : ${error.details[0].message}`);
-        res.status(400).json({message: error.details[0].message});
-    }
-    
-};
-
-async function updatePackageProduct(req, res){
-    console.log('Conexion POST entrante : /api/package/product/update');
-    let idPackageProduct= req.params.idPacProd;
-    console.log('idProductPackage', idPackageProduct);
-
-    let valPackageProduct = {
-        packageId: req.body.packageId,
-        productId: req.body.productId,
-        quantity:req.body.quantity
-    }
-
-    console.log(valPackageProduct);
-
-    let {error} = await validarRegistroPackageProduct(valPackageProduct);
-
-    if(!error){
-
-            queries
-                .packagesProduct
-                .modify(idPackageProduct ,valPackageProduct)
-                .then(id => {
-                    console.log('packageProduct modificado correctamente');
-                    res.status(201).json(id);
-                })
-                .catch(err => {
-                    console.log(`Error en Query Update de packageProduct : ${err}`);
-                    res.status(500).json({message: err});
-                });
-        }
-    else{
-        console.log(`Error en la validacion de tipos de dato : ${error.details[0].message}`);
-        res.status(400).json({message: error.details[0].message});
-    }
-};
-
-async function deletePackageProduct(req, res){
-    console.log('Conexion POST entrante : /api/package/product/delete');
-    let idPackageProduct= req.params.idPacProd;
-    console.log('idProductPackage', idPackageProduct);
-
-            queries
-                .packagesProduct
-                .delete(idPackageProduct)
-                .then(id => {
-                    console.log('PackageProduct eliminado correctamente');
-                    res.status(201).json(id);
-                })
-                .catch(err => {
-                    console.log(`Error en Query delete de packageProduct : ${err}`);
-                    res.status(500).json({message: err});
-                });
-};
-
-async function insertPackagesCompleto(req, res){
-    console.log('Conexion POST entrante : /api/package');
-
-    console.log(req.body);
-    // console.log(req.body.products[0]);
-
-    let i = 0;
-    while(i < req.body.products.length){
-        console.log(req.body.products[i]);
-        i++;
-    }
-
-    // let valPackage = {
-    //     price: req.body.price,
-    //     description: req.body.description,
-    //     companyId:req.body.companyId,
-    //     imageName: req.file.filename,
-    //     imagePath: req.file.path
-    // }
-
-    // let products = JSON.parse('[' + '{' + req.body.products + '}' + ']');
-    // console.log(products);
-
-    // let {error} = await validarRegistroPackage(valPackage);
-
-    // if(!error){
-
-    //     // let {error} = await validarRegistroPackageProduct(valPackageProduct);
-
-    //     if(!error){
-    //         packageId = await packageQueries
-    //                         .package
-    //                         .insert(valPackage)
-    //                         .then(id => {
-    //                             console.log('Paquete insertado correctamente');
-    //                             return id[0];
-    //                         })
-    //                         .catch(err => {
-    //                             console.log(`Error en Query INSERT de Product : ${err}`);
-    //                             res.status(500).json({message: err});
-    //                         })                
-    //         let contadorOk = 0;
-
-    //         for(let prod in products){
-                
-    //             let valPackageProduct = {
-    //                 packageId: packageId,
-    //                 productId: products[prod].id,
-    //                 quantity: products[prod].cantidad
-    //             }
-    //             console.log(valPackageProduct);
-    //             await packageQueries
-    //                 .packageProduct
-    //                 .insert(valPackageProduct)
-    //                 .then(id => {
-    //                     console.log('Producto insertado correctamente en paquete');
-    //                     if(id[0]) contadorOk++;
-    //                 })
-    //                 .catch(err => {
-    //                     console.log(`Error en Query INSERT de packageProduct : ${err}`);
-    //                     res.status(500).json({message: err});
-    //                 });
-    //             }
-
-    //         if(contadorOk === req.body.products.length){
-    //             res.status(201).json({message: 'insertado correctamente'});
-    //         }
-    //         else{
-    //             console.log(`Error en insert de linea de paquete`);
-    //             res.status(500).json({message: 'Error en insert de linea de paquete'});
-    //         }
-    //     }
-    //     else{
-    //         console.log(`Error en la validacion de tipos de dato de linea de paquete : ${error.details[0].message}`);
-    //         res.status(400).json({message: error.details[0].message});
-    //     }
-    // }
-    // else{
-    //     console.log(`Error en la validacion de tipos de dato : ${error.details[0].message}`);
-    //     res.status(400).json({message: error.details[0].message});
-    // }
-};
-
-async function getPackage(packageId){
-    console.log(`Buscando paquete con id: ${packageId}`);
-    let message = '';
-    let package = await queries
-                            .packages
-                            .getOneById(packageId)
-                            .then(data => {
-                                //undefined si no existe
-                                if(!data) {
-                                    console.log(`No existe paquete con id: ${packageId}`);
-                                    message += `No existe un paquete con id ${packageId}`;
-                                }
-                                else console.log(`Paquete con ID: ${packageId} encontrado`);
-                                return data;
-                            })
-                            .catch(err => {
-                                console.log('Error en Query SELECT de Package: ', err);
-                                message += `Error en Query SELECT de Package: ${err}`;
-                            });
-    return { package, message };
-}
-*/
 
 function validarPackage(body) {
     const schema = {

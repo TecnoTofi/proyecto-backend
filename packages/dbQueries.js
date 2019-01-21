@@ -69,7 +69,7 @@ module.exports = {
             return knex('Package').where('id', id).del();
         },
         delete: function(id,date){
-            console.log(`Enviando Query DELETE a companyProduct`);
+            console.log(`Enviando Query DELETE a package`);
             return knex('Package').where('id', id).update('deleted', date);
         },
     },

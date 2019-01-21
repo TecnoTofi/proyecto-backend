@@ -7,8 +7,6 @@ const { getCompanyProductById } = require('../products/routes');
 
 async function obtenerPackages(req, res){
     console.info('Conexion GET entrante : /api/package/');
-    let test = await getProductById(14);
-    console.log(test);
 
     let { paquetes, message } = await getPackages();
 
@@ -234,7 +232,9 @@ async function altaPaquete(req, res){
     console.info('Conexion POST entrante : /api/package');
     console.info(req.body);
 
-    // let categories = JSON.parse('[' + req.body.categories + ']');
+    req.body.categories = JSON.parse('[' + req.body.categories + ']');
+    // console.log('categorias', req.body.categories)
+    // console.log('productos', req.body.productos)
 
     let valPackage = {
         code: req.body.code,
@@ -352,7 +352,7 @@ async function altaPaquete(req, res){
                             let packageProduct = {
                                 productId: req.body.productos[j].id,
                                 packageId,
-                                quantity: req.body.productos[j].quantity,
+                                quantity: req.body.productos[j].cantidad,
                             }
                             j++;
 
@@ -379,11 +379,11 @@ async function altaPaquete(req, res){
 
                         let { id: priceId, message: priceMessage } = await insertPrice(precio);
 
-                        if(priceId){
+                        if(priceId && !rollback){
                             console.log(`Price insertado correctamente con ID: ${priceId}`);
 
                             console.log('Paquete finalizado exitosamente');
-                            res.status(201).json(packageId);
+                            res.status(201).json({message: 'Paquete creado con exito', id: packageId});
                         }
                         else{
                             rollback = true;
@@ -868,10 +868,9 @@ async function armarPackage(paquete){
     let products = [];
     if(productos){
         for(let p of productos){
-            console.info('entre', p)
-            console.info(paquete)
+            
             let { producto } = await getCompanyProductById(p.productId);
-            console.info('producto', producto)
+
             if(producto){
                 producto.quantity = p.quantity;
                 products.push(producto);
@@ -1126,7 +1125,7 @@ async function getPackageById(id){
                                 message = packageMessage;
                                 flag = false;
                             }
-
+                            console.log('packageById', paquete)
                             if(flag) return data;
                             else return null;
                         }
@@ -1693,15 +1692,15 @@ async function getCurrentPrice(id){
 }
 
 async function getLastPrices(id){
-    console.info(`Buscando precio con ID: ${id}`);
+    console.info(`Buscando ultimos 2 precios para paquete con ID: ${id}`);
     let message = '';
     let prices = await queries
                 .prices
                 .getLast(id)
                 .then(data => {
                     if(data) {
-                        console.info(`Precio con ID: ${id} encontrado`);
-                        return data;
+                        console.info(`Precios para paquete ${id} encontrados`);
+                        return data.rows;
                     }
                     else{
                         console.info(`No existe precio con ID: ${id}`);
@@ -1719,31 +1718,43 @@ async function getLastPrices(id){
 async function reducirStock(id, cantidad){
     console.log(`Comenzando reduccion de stock para paquete con ID: ${id}, cantidad a reducir: ${cantidad}`);
 
-    let busPack = await getPackageById(id);
+    let { paquete } = await getPackageById(id);
 
-    if(!busPack.package){
+    if(!paquete){
         console.log('Error al obtener paquete para reducir');
         return false;
     }
+    else{
+        console.log('Reduciendo cantidad');
+        let pack = {
+            code: paquete.code,
+            companyId: paquete.companyId,
+            name: paquete.name,
+            description: paquete.description,
+            stock: paquete.stock - cantidad,
+            imageName: paquete.imageName,
+            imagePath: paquete.imagePath,
+            created: paquete.created,
+            deleted: paquete.deleted
+        }
 
-    console.log('Reduciendo cantidad');
-    busPack.package.stock = busPack.package.stock - cantidad;
-    let reducido = false;
-    console.log('Enviando Query UPDATE');
-    await queries
-        .packages
-        .modify(id, busPack.package)
-        .then(data => {
-            if(data){
-                reducido = true;
-                console.log('Query UPDATE exitosa');
-            }
-        })
-        .catch(err => {
-            console.log(`Error en Query UPDATE de Package: ${err}`);
-        });
-        
-    return reducido;
+        let reducido = false;
+        console.log('Enviando Query UPDATE');
+        await queries
+            .packages
+            .modify(id, pack)
+            .then(data => {
+                if(data){
+                    reducido = true;
+                    console.log('Query UPDATE exitosa');
+                }
+            })
+            .catch(err => {
+                console.log(`Error en Query UPDATE de Package: ${err}`);
+            });
+            
+        return reducido;
+    }
 }
 
 function validarCode(code){
@@ -1845,6 +1856,7 @@ module.exports = {
     agregarPackageProduct,
     modificarPaquete,
     eliminarPaquete,
+    getPackageById,
     getPriceById,
     getCurrentPrice,
     getLastPrices,

@@ -1,7 +1,7 @@
 const Joi = require('joi');
 const queries = require('./dbQueries');
 const { validarId } = require('../helpers/routes');
-const { getUserById, getUserByCompanyId } = require('../users/routes');
+const { getUserById, getUserByCompanyId, getUserByEmail } = require('../users/routes');
 const { getCompanyById } = require('../companies/routes');
 const {
     reducirStock: reducirStockProd, 
@@ -11,10 +11,16 @@ const {
 } = require('../products/routes');
 const {
     reducirStock: reducirStockPack, 
-    getPackage,
+    getPackageById,
     getLastPrices: getLastPricesPackages,
     getPriceById: getPriceByIdPackage
 } = require('../packages/routes');
+const {
+    getVoucherByCode,
+    validacionVoucher,
+    reducirStock: reducirStockVoucher,
+    insertVoucherCompany
+} = require('../vouchers/routes');
 
 async function obtenerPedidos(req, res){
     console.info('Conexion GET entrante : /api/pedido');
@@ -279,12 +285,241 @@ async function obtenerDeliveryByPedido(req, res){
     
 }
 
+async function obtenerPedidosByDateByUserBySeller(req, res){
+    console.info(`Conexion GET entrante : /api/pedido/user/${req.params.id}/date`);
+
+    console.info(`Comenzando validacion de tipos`);
+    let { error } = validarId(req.params.id);
+
+    if(error){
+        console.info(`Error en la validacion de tipos: ${error.details[0].message}`);
+        console.info('Preparando response');
+        res.status(400).json({message: error.details[0].message});
+    }
+    else{
+        console.info('Comenzando validacion de tipos');
+        let fechas = {
+            dateFrom: new Date(req.body.dateFrom).toUTCString(),
+            dateTo: new Date(req.body.dateTo).toUTCString()
+        };
+
+        let { error: errorFechas } = validarFechas(fechas);
+
+        if(errorFechas){
+            console.info('Erorres encontrados en la request');
+            let errores = errorFechas.details.map(e => {
+                console.info(e.message);
+                return e.message;
+            });
+            console.info('Preparando response');
+            res.status(400).json({message: errores});
+        }
+        else{
+
+            let { user, message: userMessage } = await getUserById(req.params.id);
+
+            if(user){
+                let { pedidos, message } = await getPedidosByDateByUserBySeller(req.params.id, fechas.dateFrom, fechas.dateTo,req.body.sellerId);
+
+                if(pedidos){
+                    let pedidosRet = pedidos.filter(ped => {
+                        if(ped.transactions[0] !== null)return ped;
+                    });
+                    console.info(`${pedidosRet.length} pedidos encontrados`);
+                    console.info('Preparando response');
+                    res.status(200).json(pedidosRet);
+                }
+                else{
+                    console.info('No se encontraron pedidos');
+                    console.info('Preparando response');
+                    res.status(200).json({message});
+                }
+            }
+            else{
+                console.info(`No se encontro el usuario ${req.params.id}`);
+                console.info('Preparando response');
+                res.status(400).json({message: userMessage});
+            }
+        }
+    }
+}
+
+async function obtenerPedidosByDateByUserBySellerEstimados(req, res){
+    console.info(`Conexion GET entrante : /api/pedido/user/${req.params.id}/${req.params.sellerId}/date/estimados`);
+
+    console.info(`Comenzando validacion de tipos`);
+    let { error } = validarId(req.params.id);
+
+    if(error){
+        console.info(`Error en la validacion de tipos: ${error.details[0].message}`);
+        console.info('Preparando response');
+        res.status(400).json({message: error.details[0].message});
+    }
+    else{
+        console.info('Comenzando validacion de tipos');
+        let fechas = {
+            dateFrom: new Date(req.body.dateFrom).toUTCString(),
+            dateTo: new Date(req.body.dateTo).toUTCString()
+        };
+
+        let { error: errorFechas } = validarFechas(fechas);
+
+        if(errorFechas){
+            console.info('Erorres encontrados en la request');
+            let errores = errorFechas.details.map(e => {
+                console.info(e.message);
+                return e.message;
+            });
+            console.info('Preparando response');
+            res.status(400).json({message: errores});
+        }
+        else{
+
+            let { user, message: userMessage } = await getUserById(req.params.id);
+
+            if(user){
+                let { pedidos, message } = await getPedidosByDateByUserBySellerEstimados(req.params.id, fechas.dateFrom, fechas.dateTo,req.body.sellerId);
+
+                if(pedidos){
+                    console.info(`${pedidos.length} pedidos encontrados`);
+                    console.info('Preparando response');
+                    res.status(200).json(pedidos);
+                }
+                else{
+                    console.info('No se encontraron pedidos');
+                    console.info('Preparando response');
+                    res.status(200).json({message});
+                }
+            }
+            else{
+                console.info(`No se encontro el usuario ${req.params.id}`);
+                console.info('Preparando response');
+                res.status(400).json({message: userMessage});
+            }
+        }
+    }
+}
+
+async function obtenerCincoProductosMasVendidos(req, res){
+    console.info(`Conexion GET entrante : /api/pedido/top+/${req.params.id}`);
+    
+    console.info('Comenzando validacion de tipos');
+    let fechas = {
+        dateFrom: new Date(req.body.dateFrom).toUTCString(),
+        dateTo: new Date(req.body.dateTo).toUTCString()
+    };
+
+    let { error } = validarFechas(fechas);
+
+    if(error){
+        console.info('Erorres encontrados en la request');
+        let errores = error.details.map(e => {
+            console.info(e.message);
+            return e.message;
+        });
+        console.info('Preparando response');
+        res.status(400).json({message: errores});
+    }
+    else{
+
+        console.info(`Comenzando validacion de tipos`);
+        let { error } = validarId(req.params.id);
+
+        if(error){
+            console.info(`Error en la validacion de tipos: ${error.details[0].message}`);
+            console.info('Preparando response');
+            res.status(400).json({message: error.details[0].message});
+        }   
+        else{
+            console.info(`Comprobando existencia de compania ${req.params.id}`);
+            let { company, message: companyMessage } = await getCompanyById(req.params.id);
+
+            if(!company){
+                console.info(`No existe company con ID: ${req.params.id}`);
+                console.info('Preparando response');
+                res.status(400).json({message: companyMessage});
+            }
+            else{
+                let { productos, message } = await getCincoMasVendidos(req.params.id,fechas.dateFrom);
+
+                if(productos){
+                    console.info(`${productos.length} productos encontrados`);
+                    console.info('Preparando response');
+                    res.status(200).json(productos);
+                }
+                else{
+                    console.info('No se encontraron productos');
+                    console.info('Preparando response');
+                    res.status(200).json({message});
+                }
+            }   
+        }
+    }
+}
+
+async function obtenerCincoProductosMenosVendidos(req, res){
+    console.info(`Conexion GET entrante : /api/pedido/top-/${req.params.id}`);
+    
+    console.info('Comenzando validacion de tipos');
+    let fechas = {
+        dateFrom: new Date(req.body.dateFrom).toUTCString(),
+        dateTo: new Date(req.body.dateTo).toUTCString()
+    };
+
+    let { error } = validarFechas(fechas);
+
+    if(error){
+        console.info('Erorres encontrados en la request');
+        let errores = error.details.map(e => {
+            console.info(e.message);
+            return e.message;
+        });
+        console.info('Preparando response');
+        res.status(400).json({message: errores});
+    }
+    else{
+
+        console.info(`Comenzando validacion de tipos`);
+        let { error } = validarId(req.params.id);
+
+        if(error){
+            console.info(`Error en la validacion de tipos: ${error.details[0].message}`);
+            console.info('Preparando response');
+            res.status(400).json({message: error.details[0].message});
+        }   
+        else{
+            console.info(`Comprobando existencia de compania ${req.params.id}`);
+            let { company, message: companyMessage } = await getCompanyById(req.params.id);
+
+            if(!company){
+                console.info(`No existe company con ID: ${req.params.id}`);
+                console.info('Preparando response');
+                res.status(400).json({message: companyMessage});
+            }
+            else{
+                let { productos, message } = await getCincoMenosVendidos(req.params.id,fechas.dateFrom);
+
+                if(productos){
+                    console.info(`${productos.length} productos encontrados`);
+                    console.info('Preparando response');
+                    res.status(200).json(productos);
+                }
+                else{
+                    console.info('No se encontraron productos');
+                    console.info('Preparando response');
+                    res.status(200).json({message});
+                }
+            }   
+        }
+    }
+}
+
 async function calcularTotal(req, res){
     console.info('Conexion POST entrante : /api/pedido/calcular');
 
     let validar = {
         contenido: req.body.contenido,
-        specialDiscount: req.body.specialDiscount
+        voucher: req.body.voucher
     };
     
     let { error } = validarCalculo(validar);
@@ -300,25 +535,35 @@ async function calcularTotal(req, res){
     }
     else{
         console.info('Validaciones Joi exitosas');
-        console.info('Analizando contenido');
-        let { armado, sumaProds, sumaPacks, errorMessage } = await analizarContenido(req.body.contenido);
 
-        if(errorMessage.length > 0 && armado){
-            console.info('Contenido analizado');
-            let total = sumaProds + sumaPacks;
+        let { user, message: userMessage } = await getUserByEmail(req.body.userEmail);
 
-            console.info('Verificando special discount');
-            if(req.body.specialDiscount !== 0) total -= total * (req.body.specialDiscount / 100);
-
-            console.info(`Total calculado $${total}`);
+        if(!user){
+            console.info('Hubo un problema al obtener el usuario');
+            console.info(userMessage);
             console.info('Preparando response');
-            res.status(200).json({ total, sumaProds, sumaPacks });
+            res.status(500).json({message: 'Ocurrio un problema al procesar la solicitud'})
         }
         else{
-            console.info(`Se encontraron ${errorMessage.length} errores al analizar el contenido`);
-            errorMessage.map(err => console.log(err));
-            console.info('Enviando response')
-            res.status(400).json({message: errorMessage});
+            console.info('Analizando contenido');
+            let { armado, sumaProds, sumaPacks, errorMessage, voucher } = await analizarContenido(req.body.contenido, req.body.voucher, user.companyId);
+
+            if(errorMessage.length === 0){
+                console.info('Contenido analizado');
+                let total = sumaProds + sumaPacks;
+                if(voucher && voucher.type === 'valor') total = total - voucher.value;
+                if(voucher && voucher.type === 'porcentaje') total -= total * (voucher.value / 100);
+
+                console.info(`Total calculado $${total}`);
+                console.info('Preparando response');
+                res.status(200).json({ total, sumaProds, sumaPacks });
+            }
+            else{
+                console.info(`Se encontraron ${errorMessage.length} errores al analizar el contenido`);
+                errorMessage.map(err => console.log(err));
+                console.info('Enviando response')
+                res.status(400).json({message: errorMessage});
+            }
         }
     }
 }
@@ -333,7 +578,7 @@ async function realizarPedido(req, res){
         userId: req.body.userId,
         buyerId: req.body.buyerId,
         amount: req.body.amount,
-        specialDiscount: req.body.specialDiscount,
+        voucher: req.body.voucher,
         deliveryType: req.body.deliveryType,
         contenido: req.body.contenido
     };
@@ -374,7 +619,7 @@ async function realizarPedido(req, res){
                 errorMessage.push('El usuario ingresado no corresponde con la empresa ingresada');
 
             console.info('Analizamos contenido para validar existencias');
-            let { armado, sumaProds, sumaPacks, errorMessage: errores } = await analizarContenido(req.body.contenido);
+            let { armado, sumaProds, sumaPacks, errorMessage: errores, voucher } = await analizarContenido(req.body.contenido, req.body.voucher, userById.companyId);
             req.body.contenido = armado;
             errorMessage.concat(errores);
 
@@ -390,11 +635,8 @@ async function realizarPedido(req, res){
 
                 //Validamos que el total recibido sea la suma correcta
                 let total = sumaProds + sumaPacks;
-                console.info('sumaProds', sumaProds);
-                console.info('sumaPacks', sumaPacks);
-                console.info('total', total);
-                // taotal * (specialDiscount / 100) = total a descontar
-                if(req.body.specialDiscount !== 0) total -= total * (req.body.specialDiscount / 100);
+                if(voucher && voucher.type === 'valor') total = total - voucher.value;
+                if(voucher && voucher.type === 'porcentaje') total -= total * (voucher.value / 100);
 
                 //Si el amount no es igual, damos error
                 if(req.body.amount === total){
@@ -407,7 +649,7 @@ async function realizarPedido(req, res){
                         userId: req.body.userId,
                         timestamp: new Date(),
                         amount: total,
-                        specialDiscount: req.body.specialDiscount
+                        voucher: voucher ? voucher.id : null
                     };
                     console.log('Enviando Query INSERT para Pedido');
                     let pedidoRes = await insertPedido(pedido);
@@ -415,6 +657,27 @@ async function realizarPedido(req, res){
                     // Armar transacciones, una por cada seller
                     if(pedidoRes.id){
                         console.log(`Pedido insertado correctamente, ID: ${pedidoRes.id}`);
+                        let voucherCompanyId;
+
+                        if(voucher){
+                            let voucherReducido = reducirStockVoucher(voucher.id, 1);
+                            if(voucherReducido) console.info("Stock de vaucher reducido correctamente");
+                            else{
+                                rollback = true;
+                                console.info('No se pudo reducir el stock del voucher');
+                            }
+
+                            let { id, message } = await insertVoucherCompany({companyId: userById.companyId, voucherId: voucher.id});
+                            if(!id){
+                                rollback = true;
+                                console.info('No se pudo insertar VoucherCompany');
+                            }
+                            else{
+                                voucherCompanyId = id;
+                                console.info('VoucherCompany insertado correctamente');
+                            }
+                        }
+
                         let transactionsOk = true, productsOk = true, packagesOk = true, pedidoTransactionOK = true, deliveriesOK = true;
                         let transactionsIds = [], pedidoTransactionsIds = [], deliveriesIds = [], productsIds = [], packagesIds = [];
                         let seller = {};
@@ -627,6 +890,9 @@ async function realizarPedido(req, res){
                                 else console.log(`Ocurrio un error en rollback de transaction ${id}`);
                             }
 
+                            console.log('Comenzando rollback de Voucher');
+                            //hacer esto
+
                             console.log('Comenzando rollbacks de pedido');
                             let rollbackPed = await rollbackPedido(pedidoRes.id);
                             if(rollbackPed.result) console.log(`Rollback de pedido ${pedidoRes.id} realizado correctamente`);
@@ -715,7 +981,8 @@ async function armarTransaction(transaction){
     
     console.info('Obteniendo paquetes');
     let { paquetes } = await getTransactionPackagesByTransaction(transaction.id);
-
+    console.log('------------------------------------------------------------------------------------------------------------------------------------------------')
+    console.log('paquetes', paquetes)
     if(!productos && !paquetes){
         console.info(`Ocurrio un error buscando los productos y paquetes de la transaccion ${transaction.id}`);
         return null;
@@ -728,6 +995,7 @@ async function armarTransaction(transaction){
         }
 
         if(paquetes){
+            console.log('entro')
             transaction.packages = paquetes;
         }
 
@@ -1118,14 +1386,14 @@ async function getTransactionPackagesByTransaction(id){
                                 console.info(`Se encontraron ${data.length} paquetes para la transaccion ${id}`);
                                 let flag = true;
                                 let res = await Promise.all(data.map(async pack => {
-                                    let { package } = await getPackage(pack.packageId);
-                                    if(package){
+                                    let { paquete } = await getPackageById(pack.packageId);
+                                    if(paquete){
                                         let { price } = await getPriceByIdPackage(pack.priceId);
 
                                         if(price){
-                                            package.priceId = pack.priceId;
-                                            package.quantity = pack.quantity;
-                                            return package;
+                                            paquete.priceId = pack.priceId;
+                                            paquete.quantity = pack.quantity;
+                                            return paquete;
                                         }
                                         else{
                                             flag = false;
@@ -1178,6 +1446,144 @@ console.info(`Buscando el delivery de la transaccion ${id}`);
                             return null;
                         });
     return { delivery, message };
+}
+
+async function getPedidosByDateByUserBySeller(id, dateFrom, dateTo, sellerId){
+    //ver tema fechas y user
+    console.info(`Buscando todos los pedido del usuario ${id} entre ${dateFrom} y ${dateTo}`);
+    let message = '';
+    let pedidos = await queries
+                        .pedidos
+                        .getByDateByUser(id, dateFrom, dateTo)
+                        .then(async data => {
+                            if(data){
+                                let flag = true;
+                                console.info('Informacion de pedidos obtenida');
+                                let res = await Promise.all(data.map(async p => {
+                                    let pedido = await armarPedido(p,sellerId);
+                                    if(pedido){
+                                        return pedido;
+                                    }
+                                    else{
+                                        flag = false;
+                                        return null;
+                                    }
+                                }));
+                                if(flag) return res;
+                                else return null;
+                            }
+                            else{
+                                console.info(`No existen pedidos registrados en la BD para el usuario ${id}`);
+                                message = `No existen pedidos registrados en la BD para el usuario ${id}`;
+                                return null;
+                            }
+                        })
+                        .catch(err => {
+                            console.error(`Error en Query SELECT de Pedido : ${err}`);
+                            message = 'Ocurrio un error al obtener los pedidos';
+                            return null;
+                        });
+    return { pedidos, message };
+}
+
+async function getPedidosByDateByUserBySellerEstimados(id, dateFrom, dateTo, sellerId){
+    //ver tema fechas y user
+    console.info(`Buscando todos los pedido del usuario ${id} entre ${dateFrom} y ${dateTo}`);
+    let message = '';
+    let pedidos =   await queries
+                        .consultas
+                        .getRecomendacionPedidoEstimadoByCompany(dateFrom, dateTo, id,sellerId)
+                        .then(async data => {
+                            if(data.rows){
+                                console.info('Informacion de productos obtenida');
+                                return data.rows;
+                            }
+                            else{
+                                console.info(`No existe productos registrados en la BD para la compania ${id}`);
+                                message = `No existe productos registrados en la BD para la compania ${id}`;
+                                return null;
+                            }
+                            //if(data){
+                                /*let flag = true;
+                                console.info('Informacion de pedidos obtenida');
+                                let res = await Promise.all(data.map(async p => {
+                                    let pedido = await armarPedido2(p,sellerId);
+                                    if(pedido){
+                                        return pedido;
+                                    }
+                                    else{
+                                        flag = false;
+                                        return null;
+                                    }
+                                }));
+                                if(flag) return res;
+                                else return null;*/
+                                /*return data;
+                                
+                            }
+                            else{
+                                console.info(`No existen pedidos registrados en la BD para el usuario ${id}`);
+                                message = `No existen pedidos registrados en la BD para el usuario ${id}`;
+                                return null;
+                            }*/
+                        })
+                        .catch(err => {
+                            console.error(`Error en Query SELECT de Pedido : ${err}`);
+                            message = 'Ocurrio un error al obtener los pedidos';
+                            return null;
+                        });
+                        console.log(pedidos);
+    return { pedidos, message };
+}
+
+async function getCincoMasVendidos(id,fecha){
+    console.info(`Buscando cinco productos mas vendidos para la compania con id ${id}`);
+        let message = '';
+        let productos = await queries
+                            .consultas
+                            .getTop5MasVendidosByCompany(id,fecha)
+                            .then(data => {
+                                if(data.rows){
+                                    console.info('Informacion de productos obtenida');
+                                    return data.rows;
+                                }
+                                else{
+                                    console.info(`No existe productos registrados en la BD para la compania ${id}`);
+                                    message = `No existe productos registrados en la BD para la compania ${id}`;
+                                    return null;
+                                }
+                            })
+                            .catch(err => {
+                                console.error(`Error en Query SELECT de Consultas : ${err}`);
+                                message = 'Ocurrio un error al obtener los productos';
+                                return null;
+                            });
+        return { productos, message };
+}
+
+async function getCincoMenosVendidos(id,fecha){
+    console.info(`Buscando cinco productos menos vendidos para la compania con id ${id}`);
+        let message = '';
+        let productos = await queries
+                            .consultas
+                            .getTop5MenosVendidosByCompany(id,fecha)
+                            .then(data => {
+                                if(data.rows){
+                                    console.info('Informacion de productos obtenida');
+                                    return data.rows;
+                                }
+                                else{
+                                    console.info(`No existe productos registrados en la BD para la compania ${id}`);
+                                    message = `No existe productos registrados en la BD para la compania ${id}`;
+                                    return null;
+                                }
+                            })
+                            .catch(err => {
+                                console.error(`Error en Query SELECT de Consultas : ${err}`);
+                                message = 'Ocurrio un error al obtener los productos';
+                                return null;
+                            });
+        return { productos, message };
 }
 
 async function insertPedido(pedido){
@@ -1438,7 +1844,7 @@ function validarPedido(body){
         userId: Joi.number().required(),
         buyerId: Joi.number().required(),
         amount: Joi.number().required(),
-        specialDiscount: Joi.number().required(),
+        voucher: Joi.string().allow('').allow(null),
         deliveryType: Joi.string().required(),
         contenido: Joi.array().required()
     });
@@ -1460,14 +1866,21 @@ function validarCalculo(validar){
     console.info('Comenzando validacion Joi de calculo');
     const schema = Joi.object().keys({
         contenido: Joi.array().required(),
-        specialDiscount: Joi.number().required()
+        voucher: Joi.string().allow('').allow(null)
     });
     console.info('Finalizando validacion Joi de calculo');
     return Joi.validate(validar, schema);
 }
 
-async function analizarContenido(contenido){
+async function analizarContenido(contenido, codigoVoucher, userCompanyId){
     let sumaProds = 0, sumaPacks = 0, errorMessage = [];
+    let voucher = null;
+    if(codigoVoucher !== null) voucherRes = await getVoucherByCode(codigoVoucher);
+    let fecha = new Date();
+    let valido = false;
+    if(voucherRes.voucher) {
+        valido = await validacionVoucher(voucherRes.voucher.id, fecha, userCompanyId);
+    }
 
     let armado = await Promise.all(contenido.map(async seller => {
         let sumaProdsSeller = 0, sumaPacksSeller = 0;
@@ -1479,7 +1892,11 @@ async function analizarContenido(contenido){
                 for(let prod of seller.productos){
                     let { producto: product, message: productMessage } = await getCompanyProductById(prod.id);
                     if(!product) errorMessage.push(productMessage);
-                    else if(Number(product.companyId) !== seller.sellerId){
+                    else if(product.companyId !== seller.sellerId){
+                        console.log('product.companyId', product.companyId)
+                        console.log('product.companyId', typeof product.companyId)
+                        console.log('seller.sellerId', seller.sellerId)
+                        console.log('seller.sellerId', typeof seller.sellerId)
                         errorMessage.push(`Producto con ID: ${prod.id} no corresponde a empresa con ID: ${seller.sellerId}`);
                     }
                     else{
@@ -1488,14 +1905,13 @@ async function analizarContenido(contenido){
                         let { prices: lastPrices, message: currentMessage } = await getLastPricesProducts(product.id);
                         let { price: cartPrice, message: cartMessage} = await getPriceByIdProduct(prod.priceId);
 
-                        let currentPrice = lastPrices.rows[0];
-                        let lastPrice = lastPrices.rows[1];
+                        let currentPrice = lastPrices[0];
+                        let lastPrice = lastPrices[1];
                         prod.timestamp = new Date(prod.timestamp);
 
                         if(lastPrices && cartPrice){
                             console.info('Precios encontrados');
                             if(currentPrice.id === cartPrice.id){
-                                console.info(`IDs de precios coinciden: ${cartPrice.id}`);
                                 if(currentPrice.price === prod.price && prod.timestamp > currentPrice.validDateFrom){
                                     console.info('Precios y fechas coinciden, el precio es correcto');
                                     sumaProds += currentPrice.price * prod.quantity;
@@ -1550,7 +1966,7 @@ async function analizarContenido(contenido){
 
             if(seller.paquetes && seller.paquetes.length > 0){
                 for(let pack of seller.paquetes){
-                    let { package, message: packageMessage } = await getPackage(pack.id);
+                    let { paquete: package, message: packageMessage } = await getPackageById(pack.id);
                     if(!package) errorMessage.push(packageMessage);
                     else if(package.companyId !== seller.sellerId){
                         errorMessage.push(`Paquete con ID: ${pack.id} no corresponde a empresa con ID: ${seller.sellerId}`);
@@ -1558,17 +1974,17 @@ async function analizarContenido(contenido){
                     else{
                         console.info(`Buscando precios para comparar, paquete: ${package.id}`);
                         //revisar desde aca ya que debo ver como congelar los precios y comparar que todo este bien y tomar los valores mostrados en el carrito
-                        let { price: lastPrices, message: currentMessage } = await getLastPricesPackages(package.id);
+                        let { prices: lastPrices, message: currentMessage } = await getLastPricesPackages(package.id);
                         let { price: cartPrice, message: cartMessage} = await getPriceByIdPackage(pack.priceId);
 
                         let currentPrice = lastPrices[0];
                         let lastPrice = lastPrices[1];
+                        pack.timestamp = new Date(pack.timestamp);
 
                         if(currentPrice && cartPrice){
                             console.info('Precios encontrados');
                             if(currentPrice.id === cartPrice.id){
-                                console.info(`IDs de precios coinciden: ${cartPrice.id}`);
-                                if(currentPrice.price === prod.price && prod.timestamp > currentPrice.validDateFrom){
+                                if(currentPrice.price === pack.price && pack.timestamp > currentPrice.validDateFrom){
                                     console.info('Precios y fechas coinciden, el precio es correcto');
                                     sumaPacks += currentPrice.price * pack.quantity;
                                     sumaPacksSeller += currentPrice.price * pack.quantity;
@@ -1623,8 +2039,8 @@ async function analizarContenido(contenido){
             return seller;
         }
     }));
-
-    return { armado, sumaProds, sumaPacks, errorMessage };
+    if(valido) return { armado, sumaProds, sumaPacks, errorMessage, voucher: valido };
+    else return { armado, sumaProds, sumaPacks, errorMessage };
 }
 
 module.exports = {
@@ -1641,6 +2057,10 @@ module.exports = {
     obtenerTransactionProductsByTransaction,
     obtenerTransactionPackagesByTransaction,
     obtenerDeliveryByPedido,
+    obtenerPedidosByDateByUserBySeller,
+    obtenerPedidosByDateByUserBySellerEstimados,
+    obtenerCincoProductosMasVendidos,
+    obtenerCincoProductosMenosVendidos,
     calcularTotal,
     realizarPedido,
 }

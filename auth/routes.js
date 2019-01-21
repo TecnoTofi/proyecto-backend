@@ -99,10 +99,6 @@ async function login(req, res){
                 console.info('Usuario no se encuentra bloqueado');
                 //Procedemos a comparar la contraseña encriptada
                 console.info('Comenzando comparacion de contraseña encriptada');
-                console.log('userPassword', userPassword);
-                console.log('userPassword', typeof userPassword);
-                console.log('user.password', user.password);
-                console.log('user.password', typeof user.password);
                 const comparacionPass = await bcrypt.compare(userPassword, user.password)
                                                     .then(result => result)
                                                     .catch(err => {

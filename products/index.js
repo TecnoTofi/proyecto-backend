@@ -48,6 +48,7 @@ router.get('/category/:id' , ProductRoutes.obtenerProductsByCategory);
 router.get('/company/deleted' , ProductRoutes.obtenerDeletedCompanyProducts);
 router.get(/^\/company\/all/, ProductRoutes.obtenerAllCompanyProducts);
 router.get('/company/:id' , ProductRoutes.obtenerCompanyProductsByCompany);
+router.get('/company/:id/notassociated' , ProductRoutes.obtenerNotAssociatedProductsByCompany);
 router.get('/company/:id/all' , ProductRoutes.obtenerAllCompanyProductsByCompany);
 router.get('/company/:id/deleted/' , ProductRoutes.obtenerDeletedCompanyProductsByCompany);
 router.get('/company/:companyId/product/:productId', verifyToken, ProductRoutes.obtenerCompanyProductById);

@@ -399,6 +399,43 @@ async function obtenerProductsByCategory(req, res){
     }
 }
 
+async function obtenerNotAssociatedProductsByCompany(req, res){
+    console.info(`Conexion GET entrante : /api/product/company/${req.params.id}/notassociated`);
+
+    console.info(`Comenzando validacion de tipos`);
+    let { error } = validarId(req.params.id);
+
+    if(error){
+        console.info(`Error en la validacion de tipos: ${error.details[0].message}`);
+        console.info('Preparando response');
+        res.status(400).json({message: error.details[0].message});
+    }
+    else{
+        console.info(`Comprobando existencia de company ${req.params.id}`);
+        let { company, message: companyMessage } = await getCompanyById(req.params.id);
+
+        if(!company){
+            console.info(`No existe company con ID: ${req.params.id}`);
+            console.info('Preparando response');
+            res.status(400).json({message: companyMessage});
+        }
+        else{
+            let { productos, message } = await getNotAssociatedProductsByCompany(req.params.id);
+
+            if(productos){
+                console.info(`${productos.length} productos encontrados`);
+                console.info('Preparando response');
+                res.status(200).json(productos);
+            }
+            else{
+                console.info('No se encontraron productos');
+                console.info('Preparando response');
+                res.status(200).json({message});
+            }
+        }
+    }
+}
+
 async function altaProductoVal(req, res){
     console.log('Conexion POST entrante : /api/product');
 
@@ -1403,6 +1440,50 @@ async function getCompanyProductsByCompany(id){
     return { companyProducts , message };
 }
 
+async function getNotAssociatedProductsByCompany(id){
+    console.info(`Buscando todos los productos no associados a la compania con ID: ${id}`);
+    let message ='';
+    let productos = await queries
+                        .products
+                        .getNotAssociated(id)
+                        .then(async data => {
+                            if(data){
+                                console.info(`Informacion de productos no asociados a la compania con ID : ${id},  obtenida`);
+                                let flag = true;
+                                for(let p of data.rows){
+                                    let categories = [];
+                                    p.imagePath = p.imagePath.replace(/\\/g, '/');
+                                    let { categorias: categoriesIds } = await getProductCategoryByProduct(p.id);
+                                    if(categoriesIds){
+                                        for(let c of categoriesIds){
+                                            let { category } = await getCategoryById(c.categoryId);
+                                            categories.push(category);
+                                        }
+                                        p.categories = categories;
+                                    }
+                                    else{
+                                        console.info('Ocurrio un error obteniendo las categorias del producto');
+                                        message = 'Ocurrio un error al obtener los productos';
+                                        flag = false;
+                                    }
+                                }
+                                if(flag) return data.rows;
+                                else return null;
+                            }
+                            else{
+                                console.info(`No existen productos habilitados para la compania con id : ${id}, registrados en la BD`);
+                                message = `No existen productos habilitados para la compania con id : ${id}, registrados en la BD`;
+                                return null;
+                            }
+                        })
+                        .catch(err => {
+                            console.error(`Error en Query SELECT de CompanyProduct : ${err}`);
+                            message = 'Ocurrio un error al obtener los productos hanilitados de la compania';
+                            return null;
+                        });
+    return { productos , message };
+}
+
 async function getCompanyProductsByProduct(id){
     console.info(`Buscando todos los companyProduct para el producto: ${id}`);
     let message ='';
@@ -1705,7 +1786,7 @@ async function getCompanyProductByProduct(idComp, idProd){
                     .companyProduct
                     .getOneByProductByCompany(idComp, idProd)
                     .then(data => {
-                        console.log('data', data);
+                        // console.log('data', data);
                         if(data.rows.length > 0){
                             console.info(`CompanyProduct con productId: ${idProd} para compania ${idComp} encontrado`);
                             let regex = /\\/g;
@@ -2072,7 +2153,7 @@ async function getLastPrices(id){
                 .then(data => {
                     if(data) {
                         console.info(`Precios para producto ${id} encontrados`);
-                        return data;
+                        return data.rows;
                     }
                     else{
                         console.info(`No existe precio con ID: ${id}`);
@@ -2099,13 +2180,24 @@ const reducirStock = async (id, cantidad) => {
     }
     else{
         console.log('Reduciendo cantidad');
-        producto.stock = producto.stock - cantidad;
+
+        let prod = {
+            companyId: producto.companyId,
+            productId: producto.productId,
+            name: producto.name,
+            description: producto.description,
+            stock: producto.stock - cantidad,
+            imagePath: producto.imagePath,
+            imageName: producto.imageName,
+            created: producto.created,
+            deleted: producto.deleted
+        }
 
         let reducido = false;
         console.log('Enviando Query UPDATE');
         await queries
                 .companyProduct
-                .modify(id, producto)
+                .modify(id, prod)
                 .then(data => {
                     if(data){
                         reducido = true;
@@ -2213,6 +2305,7 @@ module.exports = {
     obtenerDeletedCompanyProducts,
     obtenerCompanyProductsByCompany,
     obtenerAllCompanyProductsByCompany,
+    obtenerNotAssociatedProductsByCompany,
     obtenerDeletedCompanyProductsByCompany,
     obtenerCompanyProductsByProduct,
     obtenerProductById,

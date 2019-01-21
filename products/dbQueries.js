@@ -34,11 +34,13 @@ module.exports ={
         getByName: function(name){
             return knex.select().table('Product').where('name', name).first();
         },
-        getAllForGenericList: function(){
-            return knex.raw('select p.id, p.code, p."name", p."imageName", p."imagePath", pc."categoryId", c."name" from "Product" p, "ProdCategory" pc, "ProductCategory" c where p.id = pc."productId" and pc."categoryId" = c.id order by p.id');
-        },
         getByCategoryId(categoryId){
-            return knex.raw('select p.id, p.code, p.name , p."imagePath", p."imageName", p.deleted, p.created from "Product" p , "ProductCategory" c where c."categoryId" = ? and c."productId" = p.id',[categoryId]);
+            return knex.raw('select p.id, p.code, p.name , p."imagePath", p."imageName", p.deleted, p.created from "Product" p , "ProductCategory" c where c."categoryId" = ? and c."productId" = p.id',
+            [categoryId]);
+        },
+        getNotAssociated: function(id){
+            return knex.raw('select p.id, p.code, p.name , p."imagePath", p."imageName", p.created, p.deleted from "Product" p where p.id not in (select "productId" from "CompanyProduct" where "companyId" = ?)',
+            [id]);
         },
         insert: function(product){
             return knex('Product').insert(product).returning('id');

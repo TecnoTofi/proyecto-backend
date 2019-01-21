@@ -107,6 +107,33 @@ module.exports = {
         },
         delete: function(id){
             return knex('Delivery').where('id', id).del();
+        },
+        consultas:{
+            getTop5MasVendidosByCompany: function(idCompany,fecha){
+                return knex.raw('SELECT tp."productId", c.name ,SUM(quantity) FROM "TransactionProduct" tp, "Transaction" t, "CompanyProduct" c WHERE tp."transactionId" = t.id and c.id = tp."productId" and t."sellerId" = ? and t."timestamp" > ? group by tp."productId", c.name  order by SUM desc limit 5',
+                [idCompany,fecha]);
+            },
+            getTop5MenosVendidosByCompany: function(idCompany,fecha){
+                return knex.raw('SELECT tp."productId", c.name ,SUM(quantity) FROM "TransactionProduct" tp, "Transaction" t, "CompanyProduct" c WHERE tp."transactionId" = t.id and c.id = tp."productId" and t."sellerId" = ? and t."timestamp" > ? group by tp."productId", c.name  order by SUM asc limit 1',
+                [idCompany,fecha]);
+            },
+            getRecomendacionPedidosPorFecha: function(fecha1,fecha2,userId){
+                return knex.raw('SELECT cp.id, cp."companyId", cp."productId", cp.name, cp.description, cp.stock, cp.deleted, tp.quantity, tp."priceId",t.amount, t."sellerId",p."timestamp",p. "specialDiscount" FROM "TransactionProduct" tp, "Transaction" t,  "PedidoTransaction" pt, "Pedido" p,"CompanyProduct" cp , "ProductPrice" pp Where p.id = pt."pedidoId" and pt."transactionId" = t.id and t.id = tp."transactionId" and tp."productId" = cp.id and tp."priceId" = pp.id and p."userId" = ? and t."timestamp" > ? and p."timestamp" > ? and t."timestamp" < ? and p."timestamp" < ?',
+                [userId,fecha1,fecha1,fecha2,fecha2]);
+            },
+            getRecomendacionPedidosPorFechaByCompany: function(fecha1,fecha2,userId,sellerId){
+                return knex.raw('SELECT cp.id, cp."companyId", cp."productId", cp.name, cp.description, cp.stock, cp.deleted, tp.quantity, tp."priceId",t.amount, t."sellerId",p."timestamp",p. "specialDiscount" FROM "TransactionProduct" tp, "Transaction" t,  "PedidoTransaction" pt, "Pedido" p,"CompanyProduct" cp , "ProductPrice" pp Where p.id = pt."pedidoId" and pt."transactionId" = t.id and t.id = tp."transactionId" and tp."productId" = cp.id and tp."priceId" = pp.id and p."userId" = ? and t."sellerId" = ? and t."timestamp" > ? and p."timestamp" > ? and t."timestamp" < ? and p."timestamp" < ?',
+                [userId,sellerId,fecha1,fecha1,fecha2,fecha2]);
+            },
+            getRecomendacionPedidoEstimadoByCompany: function(fecha1,fecha2,userId,sellerId){
+                return knex.raw('SELECT cp.id, cp."companyId", cp."productId", cp.name, cp.description, cp.stock, cp.deleted, SUM(tp.quantity), tp."priceId", t."sellerId" FROM "TransactionProduct" tp, "Transaction" t,  "PedidoTransaction" pt, "Pedido" p,"CompanyProduct" cp , "ProductPrice" pp Where p.id = pt."pedidoId" and pt."transactionId" = t.id and t.id = tp."transactionId" and tp."productId" = cp.id and tp."priceId" = pp.id and p."userId" = ? and t."sellerId" = ? and t."timestamp" > ? and p."timestamp" > ? and t."timestamp" < ? and p."timestamp" < ? group by cp.id, cp."companyId", cp."productId", cp.name, cp.description, cp.stock, cp.deleted,tp."priceId", t."sellerId"',
+                [userId,sellerId,fecha1,fecha1,fecha2,fecha2]);
+            },
+            getRecomendacionPedidoEstimado: function(fecha1,fecha2,userId){
+                console.log(fecha1,fecha2,userId)
+                 return knex.raw('SELECT cp.id, cp."companyId", cp."productId", cp.name, cp.description, cp.stock, cp.deleted, SUM(tp.quantity), tp."priceId", t."sellerId" FROM "TransactionProduct" tp, "Transaction" t,  "PedidoTransaction" pt, "Pedido" p,"CompanyProduct" cp , "ProductPrice" pp Where p.id = pt."pedidoId" and pt."transactionId" = t.id and t.id = tp."transactionId" and tp."productId" = cp.id and tp."priceId" = pp.id and p."userId" = ? and t."timestamp" > ? and t."timestamp" < ? group by cp.id, cp."companyId", cp."productId", cp.name, cp.description, cp.stock, cp.deleted,tp."priceId", t."sellerId"',
+                 [userId,fecha1,fecha2]);
+            },
         }
     }
 };

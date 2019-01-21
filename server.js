@@ -22,6 +22,8 @@ const productsRoutes = require('./products/index');
 const pedidosRoutes = require('./pedidos/index');
 //Incluimos ruteo de paquetes
 const packageRoutes = require('./packages/index');
+//Incluimos ruteo de vouchers
+const voucherRoutes = require('./vouchers/index');
 
 //Inicializamos APP
 const app = express();
@@ -58,6 +60,7 @@ app.use('/api/company', companiesRoutes);
 app.use('/api/product', productsRoutes);
 app.use('/api/package',packageRoutes);
 app.use('/api/pedido', pedidosRoutes);
+app.use('/api/voucher', voucherRoutes);
 
 //Mensaje de bienvenida a /
 app.get('/', (req, res) => {

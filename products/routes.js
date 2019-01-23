@@ -2169,8 +2169,8 @@ async function getLastPrices(id){
     return { prices, message };
 }
 
-const reducirStock = async (id, cantidad) => {
-    console.info(`Comenzando reduccion de stock para producto con ID: ${id}, cantidad a reducir: ${cantidad}`);
+const ajustarStock = async (id, cantidad, tipo) => {
+    console.info(`Comenzando ajuste de stock para producto con ID: ${id}, cantidad a ${tipo}: ${cantidad}`);
 
     let { producto } = await getCompanyProductById(id);
 
@@ -2179,14 +2179,14 @@ const reducirStock = async (id, cantidad) => {
         return false;
     }
     else{
-        console.log('Reduciendo cantidad');
+        console.log(`Procediendo a ${tipo} la cantidad`);
 
         let prod = {
             companyId: producto.companyId,
             productId: producto.productId,
             name: producto.name,
             description: producto.description,
-            stock: producto.stock - cantidad,
+            stock: tipo === 'reducir' ? producto.stock - cantidad : producto.stock + cantidad,
             imagePath: producto.imagePath,
             imageName: producto.imageName,
             created: producto.created,
@@ -2332,5 +2332,5 @@ module.exports = {
     getPriceById,
     getCurrentPrice,
     getLastPrices,
-    reducirStock,
+    ajustarStock,
 };

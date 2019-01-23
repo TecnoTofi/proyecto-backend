@@ -834,8 +834,8 @@ function validarCode(code){
     return Joi.validate(code, schema);
 }
 
-const reducirStock = async (id, cantidad) => {
-    console.info(`Comenzando reduccion de stock para voucher con ID: ${id}, cantidad a reducir: ${cantidad}`);
+const ajustarStock = async (id, cantidad, tipo) => {
+    console.info(`Comenzando ajuste de stock para voucher con ID: ${id}, cantidad a ${tipo}: ${cantidad}`);
 
     let { voucher } = await getVoucherById(id);
 
@@ -844,8 +844,8 @@ const reducirStock = async (id, cantidad) => {
         return false;
     }
     else{
-        console.log('Reduciendo cantidad');
-        voucher.cantidad = voucher.cantidad - cantidad;
+        console.log('Procediendo a ${tipo} la cantidad');
+        voucher.cantidad = tipo === 'reducir' ? voucher.cantidad - cantidad : voucher.cantidad + cantidad;
 
         let reducido = false;
         console.log('Enviando Query UPDATE');
@@ -877,7 +877,7 @@ module.exports = {
     obtenerVoucherCompanyByCompanyIdByVoucher,
     altaVoucherVal,
     altaVoucherCompanyVal,
-    reducirStock,
+    ajustarStock,
     getVoucherByCode,
     insertVoucherCompany,
     validacionVoucher

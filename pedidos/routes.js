@@ -4,13 +4,13 @@ const { validarId } = require('../helpers/routes');
 const { getUserById, getUserByCompanyId, getUserByEmail } = require('../users/routes');
 const { getCompanyById } = require('../companies/routes');
 const {
-    reducirStock: reducirStockProd, 
+    ajustarStock: ajustarStockProd, 
     getCompanyProductById,
     getLastPrices: getLastPricesProducts,
     getPriceById: getPriceByIdProduct
 } = require('../products/routes');
 const {
-    reducirStock: reducirStockPack, 
+    ajustarStock: ajustarStockPack, 
     getPackageById,
     getLastPrices: getLastPricesPackages,
     getPriceById: getPriceByIdPackage
@@ -18,7 +18,7 @@ const {
 const {
     getVoucherByCode,
     validacionVoucher,
-    reducirStock: reducirStockVoucher,
+    ajustarStock: ajustarStockVoucher,
     insertVoucherCompany
 } = require('../vouchers/routes');
 
@@ -286,7 +286,7 @@ async function obtenerDeliveryByPedido(req, res){
 }
 
 async function obtenerPedidosByDateByUserBySeller(req, res){
-    console.info(`Conexion GET entrante : /api/pedido/user/${req.params.id}/date`);
+    console.info(`Conexion GET entrante : /api/pedido/user/${req.params.id}/seller/${req.params.sellerId}/date`);
 
     console.info(`Comenzando validacion de tipos`);
     let { error } = validarId(req.params.id);
@@ -319,11 +319,16 @@ async function obtenerPedidosByDateByUserBySeller(req, res){
             let { user, message: userMessage } = await getUserById(req.params.id);
 
             if(user){
-                let { pedidos, message } = await getPedidosByDateByUserBySeller(req.params.id, fechas.dateFrom, fechas.dateTo,req.body.sellerId);
+                let { pedidos, message } = await getPedidosByDateByUserBySeller(req.params.id, fechas.dateFrom, fechas.dateTo, req.params.sellerId);
 
                 if(pedidos){
                     let pedidosRet = pedidos.filter(ped => {
-                        if(ped.transactions[0] !== null)return ped;
+                        let transactions = ped.transactions.filter(tran => {
+                            if(tran.sellerId === req.params.sellerId) return tran;
+                        })
+                        ped.transactions = transactions;
+                        if(ped.transactions.length === 0) return null;
+                        else return ped;
                     });
                     console.info(`${pedidosRet.length} pedidos encontrados`);
                     console.info('Preparando response');
@@ -345,7 +350,7 @@ async function obtenerPedidosByDateByUserBySeller(req, res){
 }
 
 async function obtenerPedidosByDateByUserBySellerEstimados(req, res){
-    console.info(`Conexion GET entrante : /api/pedido/user/${req.params.id}/${req.params.sellerId}/date/estimados`);
+    console.info(`Conexion GET entrante : /api/pedido/user/${req.params.id}/seller/${req.params.sellerId}/date/estimado`);
 
     console.info(`Comenzando validacion de tipos`);
     let { error } = validarId(req.params.id);
@@ -378,7 +383,7 @@ async function obtenerPedidosByDateByUserBySellerEstimados(req, res){
             let { user, message: userMessage } = await getUserById(req.params.id);
 
             if(user){
-                let { pedidos, message } = await getPedidosByDateByUserBySellerEstimados(req.params.id, fechas.dateFrom, fechas.dateTo,req.body.sellerId);
+                let { pedidos, message } = await getPedidosByDateByUserBySellerEstimados(req.params.id, fechas.dateFrom, fechas.dateTo, req.params.sellerId);
 
                 if(pedidos){
                     console.info(`${pedidos.length} pedidos encontrados`);
@@ -401,15 +406,12 @@ async function obtenerPedidosByDateByUserBySellerEstimados(req, res){
 }
 
 async function obtenerCincoProductosMasVendidos(req, res){
-    console.info(`Conexion GET entrante : /api/pedido/top+/${req.params.id}`);
+    console.info(`Conexion GET entrante : /api/pedido//company/${req.params.id}/masVendido`);
     
     console.info('Comenzando validacion de tipos');
-    let fechas = {
-        dateFrom: new Date(req.body.dateFrom).toUTCString(),
-        dateTo: new Date(req.body.dateTo).toUTCString()
-    };
+        let dateFrom = new Date(req.body.dateFrom).toUTCString()
 
-    let { error } = validarFechas(fechas);
+    let { error } = validarFecha(dateFrom);
 
     if(error){
         console.info('Erorres encontrados en la request');
@@ -440,7 +442,7 @@ async function obtenerCincoProductosMasVendidos(req, res){
                 res.status(400).json({message: companyMessage});
             }
             else{
-                let { productos, message } = await getCincoMasVendidos(req.params.id,fechas.dateFrom);
+                let { productos, message } = await getCincoMasVendidos(req.params.id, dateFrom);
 
                 if(productos){
                     console.info(`${productos.length} productos encontrados`);
@@ -458,7 +460,7 @@ async function obtenerCincoProductosMasVendidos(req, res){
 }
 
 async function obtenerCincoProductosMenosVendidos(req, res){
-    console.info(`Conexion GET entrante : /api/pedido/top-/${req.params.id}`);
+    console.info(`Conexion GET entrante : /api/pedido//company/${req.params.id}/menosVendido`);
     
     console.info('Comenzando validacion de tipos');
     let fechas = {
@@ -660,7 +662,7 @@ async function realizarPedido(req, res){
                         let voucherCompanyId;
 
                         if(voucher){
-                            let voucherReducido = reducirStockVoucher(voucher.id, 1);
+                            let voucherReducido = ajustarStockVoucher(voucher.id, 1, 'reducir');
                             if(voucherReducido) console.info("Stock de vaucher reducido correctamente");
                             else{
                                 rollback = true;
@@ -732,11 +734,14 @@ async function realizarPedido(req, res){
                                     else{
                                         console.log(`TransaccionProduct de seller ${seller.sellerId} insertada correctamente con ID: ${prodRes.id}`);
                                         sellerProductsIds.push(prodRes.id);
-                                        productsIds.push(prodRes.id);
-                                        let prodReducido = await reducirStockProd(producto.id, producto.quantity);
+                                        let prodReducido = await ajustarStockProd(producto.id, producto.quantity, 'reducir');
                                         if(!prodReducido){
+                                            productsIds.push({id: prodRes.id});
                                             productsOk = false;
                                             rollback = true;
+                                        }
+                                        else{
+                                            productsIds.push({id: prodRes.id, cantidad: producto.quantity});
                                         }
                                     }
                                 }
@@ -767,13 +772,15 @@ async function realizarPedido(req, res){
                                     else{
                                         console.log(`TransaccionProduct de seller ${seller.sellerId} insertada correctamente con ID: ${packRes.id}`);
                                         sellerPackagesIds.push(packRes.id);
-                                        packagesIds.push(packRes.id);
-                                        let packReducido = await reducirStockPack(paquete.id, paquete.quantity);
+                                        let packReducido = await ajustarStockPack(paquete.id, paquete.quantity, 'reducir');
                                         if(!packReducido){
+                                            packagesIds.push({id: packRes.id});
                                             packagesOk = false;
                                             rollback = true;
                                         }
-                                            
+                                        else{
+                                            packagesIds.push({id: packRes.id, cantidad: paquete.quantity});
+                                        }
                                     }
                                 }
 
@@ -859,19 +866,25 @@ async function realizarPedido(req, res){
                             }
 
                             console.log('Comenzando rollbacks de transactionPackages');
-                            for(let id of packagesIds){
-                                console.log(`Enviando rollback de transactionPackage ID: ${id}`);
-                                let rollbackPackage = await rollbackTransactionPackage(id);
-                                if(rollbackPackage.result) console.log(`Rollback de transactionPackage ${id} realizado correctamente`);
-                                else console.log(`Ocurrio un error en rollback de transactionPackage ${id}`);
+                            for(let paq of packagesIds){
+                                console.log(`Enviando rollback de transactionPackage ID: ${paq.id}`);
+                                let rollbackPackage = await rollbackTransactionPackage(paq.id);
+                                if(rollbackPackage.result) console.log(`Rollback de transactionPackage ${paq.id} realizado correctamente`);
+                                else console.log(`Ocurrio un error en rollback de transactionPackage ${paq.id}`);
+                                let packAjustado = await ajustarStockPack(paq.id, paq.cantidad, 'aumentar');
+                                if(packAjustado) console.info(`Stock de paquete con ID: ${paq.id} reajustado`);
+                                else console.info(`Ocurrio un error en reajuste de stock de paquete ${paq.id}`)
                             }
 
                             console.log('Comenzando rollbacks de transactionProducts');
-                            for(let id of productsIds){
-                                console.log(`Enviando rollback de transactionProduct ID: ${id}`);
-                                let rollbackProduct = await rollbackTransactionProduct(id);
-                                if(rollbackProduct.result) console.log(`Rollback de transactionProduct ${id} realizado correctamente`);
-                                else console.log(`Ocurrio un error en rollback de transactionProduct ${id}`);
+                            for(let prod of productsIds){
+                                console.log(`Enviando rollback de transactionProduct ID: ${prod.id}`);
+                                let rollbackProduct = await rollbackTransactionProduct(prod.id);
+                                if(rollbackProduct.result) console.log(`Rollback de transactionProduct ${prod.id} realizado correctamente`);
+                                else console.log(`Ocurrio un error en rollback de transactionProduct ${prod.id}`);
+                                let prodAjustado = await ajustarStockProd(prod.id, prod.cantidad, 'aumentar');
+                                if(prodAjustado) console.info(`Stock de producto con ID: ${prod.id} reajustado`);
+                                else console.info(`Ocurrio un error en reajuste de stock de producto ${prod.id}`)
                             }
 
                             console.log('Comenzando rollbacks de pedidoTransaction');
@@ -890,8 +903,15 @@ async function realizarPedido(req, res){
                                 else console.log(`Ocurrio un error en rollback de transaction ${id}`);
                             }
 
-                            console.log('Comenzando rollback de Voucher');
-                            //hacer esto
+                            if(pedido.voucher){
+                                console.log('Comenzando rollback de Voucher');
+                                let rollbackVoucherRes = await rollbackVoucherCompany(pedido.voucher);
+                                if(rollbackVoucherRes.result) console.log(`Rollback de voucher ${pedido.voucher} realizado correctamente`);
+                                else console.log(`Ocurrio un error en rollback de voucher ${pedido.voucher}`);
+                                let voucherAjustado = await ajustarStockVoucher(pedido.voucher, 1, 'aumentar');
+                                if(voucherAjustado) console.info(`Stock de voucher con ID: ${pedido.voucher} reajustado`);
+                                else console.info(`Ocurrio un error en reajuste de stock de voucher ${pedido.voucher}`)
+                            }
 
                             console.log('Comenzando rollbacks de pedido');
                             let rollbackPed = await rollbackPedido(pedidoRes.id);
@@ -919,7 +939,7 @@ async function realizarPedido(req, res){
     }
 }
 
-async function armarPedido(pedido){
+async function armarPedido(pedido, sellerId){
     console.info(`Comenzando armado de pedido ${pedido.id}`);
 
     console.info('Obteniendo transacciones');
@@ -928,18 +948,33 @@ async function armarPedido(pedido){
     let flag = true;
     if(transactionIds){
         let transactions = await Promise.all(transactionIds.map(async id => {
-            console.log('ID: ', id)
             let { transaction: tran } = await getTransactionById(id);
-
             if(tran){
-                let transaction =  await armarTransaction(tran);
+                if(sellerId && tran.sellerId === sellerId){
+                    let transaction =  await armarTransaction(tran);
 
-                if(!transaction){
-                    flag = false;
-                    return null;
+                    if(!transaction){
+                        flag = false;
+                        return null;
+                    }
+                    else{
+                        return transaction;
+                    }
+                }
+                else if(sellerId && tran.sellerId !== sellerId){
+                    let transaction = tran;
+                    return transaction;
                 }
                 else{
-                    return transaction;
+                    let transaction =  await armarTransaction(tran);
+
+                    if(!transaction){
+                        flag = false;
+                        return null;
+                    }
+                    else{
+                        return transaction;
+                    }
                 }
             }
             else{
@@ -981,8 +1016,7 @@ async function armarTransaction(transaction){
     
     console.info('Obteniendo paquetes');
     let { paquetes } = await getTransactionPackagesByTransaction(transaction.id);
-    console.log('------------------------------------------------------------------------------------------------------------------------------------------------')
-    console.log('paquetes', paquetes)
+    
     if(!productos && !paquetes){
         console.info(`Ocurrio un error buscando los productos y paquetes de la transaccion ${transaction.id}`);
         return null;
@@ -1460,7 +1494,7 @@ async function getPedidosByDateByUserBySeller(id, dateFrom, dateTo, sellerId){
                                 let flag = true;
                                 console.info('Informacion de pedidos obtenida');
                                 let res = await Promise.all(data.map(async p => {
-                                    let pedido = await armarPedido(p,sellerId);
+                                    let pedido = await armarPedido(p, sellerId);
                                     if(pedido){
                                         return pedido;
                                     }
@@ -1536,12 +1570,12 @@ async function getPedidosByDateByUserBySellerEstimados(id, dateFrom, dateTo, sel
     return { pedidos, message };
 }
 
-async function getCincoMasVendidos(id,fecha){
+async function getCincoMasVendidos(id, fecha){
     console.info(`Buscando cinco productos mas vendidos para la compania con id ${id}`);
         let message = '';
         let productos = await queries
                             .consultas
-                            .getTop5MasVendidosByCompany(id,fecha)
+                            .getTop5MasVendidosByCompany(id, fecha)
                             .then(data => {
                                 if(data.rows){
                                     console.info('Informacion de productos obtenida');
@@ -1853,13 +1887,20 @@ function validarPedido(body){
 }
 
 function validarFechas(fechas){
-    console.info('Comenzando validacion Joi de Fecha');
+    console.info('Comenzando validacion Joi de Fechas');
     const schema = Joi.object().keys({
         dateFrom: Joi.date().required(),
         dateTo: Joi.date().required()
     });
-    console.info('Finalizando validacion Joi de Fecha');
+    console.info('Finalizando validacion Joi de Fechas');
     return Joi.validate(fechas, schema);
+}
+
+function validarFecha(fecha){
+    console.info('Comenzando validacion Joi de Fecha');
+    const schema = Joi.date().required()
+    console.info('Finalizando validacion Joi de Fecha');
+    return Joi.validate(fecha, schema);
 }
 
 function validarCalculo(validar){

@@ -1715,8 +1715,8 @@ async function getLastPrices(id){
     return { prices, message };
 }
 
-async function reducirStock(id, cantidad){
-    console.log(`Comenzando reduccion de stock para paquete con ID: ${id}, cantidad a reducir: ${cantidad}`);
+async function ajustarStock(id, cantidad, tipo){
+    console.log(`Comenzando ajuste de stock para paquete con ID: ${id}, cantidad a ${tipo}: ${cantidad}`);
 
     let { paquete } = await getPackageById(id);
 
@@ -1725,13 +1725,13 @@ async function reducirStock(id, cantidad){
         return false;
     }
     else{
-        console.log('Reduciendo cantidad');
+        console.log(`Procediendo a ${tipo} la cantidad`);
         let pack = {
             code: paquete.code,
             companyId: paquete.companyId,
             name: paquete.name,
             description: paquete.description,
-            stock: paquete.stock - cantidad,
+            stock: tipo === 'reducir' ? paquete.stock - cantidad : paquete.stock + cantidad,
             imageName: paquete.imageName,
             imagePath: paquete.imagePath,
             created: paquete.created,
@@ -1861,5 +1861,5 @@ module.exports = {
     getCurrentPrice,
     getLastPrices,
     getPackageProductsByPackageNonDeleted,
-    reducirStock,
+    ajustarStock,
 };

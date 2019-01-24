@@ -19,8 +19,11 @@ const {
     getVoucherByCode,
     validacionVoucher,
     ajustarStock: ajustarStockVoucher,
-    insertVoucherCompany
+    insertVoucherCompany,
+    rollbackVoucherCompany
 } = require('../vouchers/routes');
+
+const { realizarPago } = require('../payment/routes');
 
 async function obtenerPedidos(req, res){
     console.info('Conexion GET entrante : /api/pedido');
@@ -409,7 +412,7 @@ async function obtenerCincoProductosMasVendidos(req, res){
     console.info(`Conexion GET entrante : /api/pedido//company/${req.params.id}/masVendido`);
     
     console.info('Comenzando validacion de tipos');
-        let dateFrom = new Date(req.body.dateFrom).toUTCString()
+    let dateFrom = new Date(req.body.dateFrom).toUTCString();
 
     let { error } = validarFecha(dateFrom);
 
@@ -442,17 +445,31 @@ async function obtenerCincoProductosMasVendidos(req, res){
                 res.status(400).json({message: companyMessage});
             }
             else{
-                let { productos, message } = await getCincoMasVendidos(req.params.id, dateFrom);
+                let { productos, message: productsMessage } = await getCincoProductosMasVendidos(req.params.id, dateFrom);
+                let { paquetes, message: packagesMessage } = await getCincoPaquetesMasVendidos(req.params.id, dateFrom);
 
-                if(productos){
+                if(productos && paquetes){
                     console.info(`${productos.length} productos encontrados`);
+                    console.info(`${paquetes.length} productos encontrados`);
                     console.info('Preparando response');
-                    res.status(200).json(productos);
+                    res.status(200).json({productos, paquetes});
+                }
+                else if(productos && !paquetes){
+                    console.info(`${productos.length} productos encontrados`);
+                    console.info(`No se encontraron paquetes`);
+                    console.info('Preparando response');
+                    res.status(200).json({productos, packagesMessage});
+                }
+                else if(!productos && paquetes){
+                    console.info(`${paquetes.length} paquetes encontrados`);
+                    console.info(`No se encontraron productos`);
+                    console.info('Preparando response');
+                    res.status(200).json({paquetes, productsMessage});
                 }
                 else{
-                    console.info('No se encontraron productos');
+                    console.info('No se encontraron productos ni paquetes');
                     console.info('Preparando response');
-                    res.status(200).json({message});
+                    res.status(200).json({productsMessage, packagesMessage});
                 }
             }   
         }
@@ -463,12 +480,9 @@ async function obtenerCincoProductosMenosVendidos(req, res){
     console.info(`Conexion GET entrante : /api/pedido//company/${req.params.id}/menosVendido`);
     
     console.info('Comenzando validacion de tipos');
-    let fechas = {
-        dateFrom: new Date(req.body.dateFrom).toUTCString(),
-        dateTo: new Date(req.body.dateTo).toUTCString()
-    };
+    let dateFrom = new Date(req.body.dateFrom).toUTCString();
 
-    let { error } = validarFechas(fechas);
+    let { error } = validarFecha(dateFrom);
 
     if(error){
         console.info('Erorres encontrados en la request');
@@ -499,17 +513,31 @@ async function obtenerCincoProductosMenosVendidos(req, res){
                 res.status(400).json({message: companyMessage});
             }
             else{
-                let { productos, message } = await getCincoMenosVendidos(req.params.id,fechas.dateFrom);
+                let { productos, message: productsMessage } = await getCincoProductosMenosVendidos(req.params.id, dateFrom);
+                let { paquetes, message: packagesMessage } = await getCincoPaquetesMenosVendidos(req.params.id, dateFrom);
 
-                if(productos){
+                if(productos && paquetes){
                     console.info(`${productos.length} productos encontrados`);
+                    console.info(`${paquetes.length} productos encontrados`);
                     console.info('Preparando response');
-                    res.status(200).json(productos);
+                    res.status(200).json({productos, paquetes});
+                }
+                else if(productos && !paquetes){
+                    console.info(`${productos.length} productos encontrados`);
+                    console.info(`No se encontraron paquetes`);
+                    console.info('Preparando response');
+                    res.status(200).json({productos, packagesMessage});
+                }
+                else if(!productos && paquetes){
+                    console.info(`${paquetes.length} paquetes encontrados`);
+                    console.info(`No se encontraron productos`);
+                    console.info('Preparando response');
+                    res.status(200).json({paquetes, productsMessage});
                 }
                 else{
-                    console.info('No se encontraron productos');
+                    console.info('No se encontraron productos ni paquetes');
                     console.info('Preparando response');
-                    res.status(200).json({message});
+                    res.status(200).json({productsMessage, packagesMessage});
                 }
             }   
         }
@@ -659,266 +687,281 @@ async function realizarPedido(req, res){
                     // Armar transacciones, una por cada seller
                     if(pedidoRes.id){
                         console.log(`Pedido insertado correctamente, ID: ${pedidoRes.id}`);
-                        let voucherCompanyId;
 
-                        if(voucher){
-                            let voucherReducido = ajustarStockVoucher(voucher.id, 1, 'reducir');
-                            if(voucherReducido) console.info("Stock de vaucher reducido correctamente");
-                            else{
-                                rollback = true;
-                                console.info('No se pudo reducir el stock del voucher');
-                            }
+                        //realizar pago
+                        let pagoRes = await realizarPago(pedidoRes.id, pedido.amount, req.body.contenido);
 
-                            let { id, message } = await insertVoucherCompany({companyId: userById.companyId, voucherId: voucher.id});
-                            if(!id){
-                                rollback = true;
-                                console.info('No se pudo insertar VoucherCompany');
-                            }
-                            else{
-                                voucherCompanyId = id;
-                                console.info('VoucherCompany insertado correctamente');
-                            }
-                        }
-
-                        let transactionsOk = true, productsOk = true, packagesOk = true, pedidoTransactionOK = true, deliveriesOK = true;
-                        let transactionsIds = [], pedidoTransactionsIds = [], deliveriesIds = [], productsIds = [], packagesIds = [];
-                        let seller = {};
-
-                        console.log('Comenzando armado e insercion de transacciones');
-
-                        let j = 0;
-                        while(j < req.body.contenido.length && transactionsOk && productsOk && packagesOk && pedidoTransactionOK && deliveriesOK && !rollback){
-                            let sellerProductsIds = [], sellerPackagesIds = [];
-                            seller = req.body.contenido[j];
-                            j++;
-
-                            //Armamos la transaccion
-                            console.log(`Armando transaccion de seller ${seller.sellerId}`);
-                            let transaction = {
-                                amount: seller.amount,
-                                sellerId: seller.sellerId,
-                                buyerId: req.body.buyerId,
-                                timestamp: new Date()
-                            }
-
-                            console.log(`Enviando para insercion transaccion de seller ${seller.sellerId}`);
-                            let transactionRes = await insertTransaction(transaction);
-
-                            if(transactionRes.id){
-                                console.log(`Transaccion de seller ${seller.sellerId} insertada correctamente con ID: ${transactionRes.id}`);
-                                transactionsIds.push(transactionRes.id);
-
-                                console.log(`Comenzando armado e insercion de transactionProducts para seller ${seller.sellerId}`);
-                                let i = 0;
-                                while(i < seller.productos.length && productsOk){
-                                    let producto = seller.productos[i];
-                                    i++;
-
-                                    console.log(`Armando producto con ID: ${producto.id} para insercion de transactionProduct`);
-                                    let prod = {
-                                        transactionId: transactionRes.id,
-                                        productId: producto.id,
-                                        quantity: producto.quantity,
-                                        priceId: producto.priceId
-                                    }
-
-                                    console.log(`Enviando producto con ID: ${producto.id} para insercion transaccionProduct de seller ${seller.sellerId}`);
-                                    let prodRes = await insertTransactionProduct(prod);
-
-                                    if(!prodRes.id){
-                                        console.log(`Fallo insert de transactionProduct con ID: ${producto.id}`);
-                                        errorMessage.push(prodRes.message);
-                                        productsOk = false;
-                                        rollback = true;
-                                    }
-                                    else{
-                                        console.log(`TransaccionProduct de seller ${seller.sellerId} insertada correctamente con ID: ${prodRes.id}`);
-                                        sellerProductsIds.push(prodRes.id);
-                                        let prodReducido = await ajustarStockProd(producto.id, producto.quantity, 'reducir');
-                                        if(!prodReducido){
-                                            productsIds.push({id: prodRes.id});
-                                            productsOk = false;
-                                            rollback = true;
-                                        }
-                                        else{
-                                            productsIds.push({id: prodRes.id, cantidad: producto.quantity});
-                                        }
-                                    }
-                                }
-
-                                console.log(`Comenzando armado e insercion de transactionPackages para seller ${seller.sellerId}`);
-                                let x = 0;
-                                while(x< seller.paquetes.length && packagesOk){
-                                    let paquete = seller.paquetes[x];
-                                    x++;
-
-                                    console.log(`Armando paquete con ID: ${paquete.id} para insercion de transactionPackage`);
-                                    let pack = {
-                                        transactionId: transactionRes.id,
-                                        packageId: paquete.id,
-                                        quantity: paquete.quantity,
-                                        priceId: paquete.priceId
-                                    }
-
-                                    console.log(`Enviando paquete con ID: ${paquete.id} para insercion transaccionPackage de seller ${seller.sellerId}`);
-                                    let packRes = await insertTransactionPackage(pack);
-
-                                    if(!packRes.id){
-                                        console.log(`Fallo insert de transactionPackage con ID: ${paquete.id}`);
-                                        errorMessage.push(packRes.message);
-                                        packagesOk = false;
-                                        rollback = true;
-                                    }
-                                    else{
-                                        console.log(`TransaccionProduct de seller ${seller.sellerId} insertada correctamente con ID: ${packRes.id}`);
-                                        sellerPackagesIds.push(packRes.id);
-                                        let packReducido = await ajustarStockPack(paquete.id, paquete.quantity, 'reducir');
-                                        if(!packReducido){
-                                            packagesIds.push({id: packRes.id});
-                                            packagesOk = false;
-                                            rollback = true;
-                                        }
-                                        else{
-                                            packagesIds.push({id: packRes.id, cantidad: paquete.quantity});
-                                        }
-                                    }
-                                }
-
-                                //Valido que todos los inserts de este seller esten bien para poder insertar pedidoTransaction
-                                if(sellerProductsIds.length === seller.productos.length && sellerPackagesIds.length === seller.paquetes.length && transactionsOk && productsOk && packagesOk){
-                                    console.log(`Transaction, TransactionProducts y TransactionPackages insertados correctamente para seller ${seller.sellerId}`);
-
-                                    console.log(`Armando PedidoTransaction para pedido ${pedidoRes.id} y transaction ${transactionRes.id}`);
-                                    let pedTran = {
-                                        pedidoId: pedidoRes.id,
-                                        transactionId: transactionRes.id
-                                    }
-
-                                    console.log('Enviando para insercion pedidoTransaction');
-                                    let pedidoTransactionRes = await insertPedidoTransaction(pedTran);
-                
-                                    if(pedidoTransactionRes.id){
-                                        console.log(`PedidoTransaction insertado correctamente con ID: ${pedidoTransactionRes.id}`);
-                                        pedidoTransactionsIds.push(pedidoTransactionRes.id);
-                                        // insert de delivery
-
-                                        //Falta hacer logica de tabla Delivery
-                                        let despachador = 0;
-                                        if(req.body.deliveryType === 'Comprador') despachador = req.body.buyerId;
-                                        else despachador = seller.sellerId;
-
-                                        let delivery = {
-                                            type: req.body.deliveryType,
-                                            transactionId: transactionRes.id,
-                                            companyId: despachador,
-                                            userId: req.body.userId,
-                                            timestamp: new Date(),
-                                            status: 'Pendiente'
-                                        }
-
-                                        let deliveryRes = await insertDelivery(delivery);
-
-                                        if(deliveryRes.id){
-                                            console.log(`Delivery insertado correctamente con ID: ${deliveryRes.id}`);
-                                            deliveriesIds.push(deliveryRes.id);
-                                        }
-                                        else{
-                                            console.log(`Error en insert Delivery para transaction ${transactionRes.id}`);
-                                            errorMessage.push(deliveryRes.message);
-                                            deliveriesOK = false;
-                                            rollback = true;
-                                        }
-
-                                    }
-                                    else{
-                                        console.log(`Error en insert PedidoTransaction para pedido ${pedidoRes.id} y transaction ${transactionRes.id}`);
-                                        pedidoTransactionOK = false;
-                                        rollback = true;
-                                    }
-                                }//fin if todo salio bien para esa transaccion
-                                else{
-                                    console.log(`Ocurrio un error al finalizar los inserts de la transacccion ${transactionRes.id}`);
-                                    transactionsOk = false;
-                                    rollback = true;
-                                }
-                            }//fin if transaction se inserto correctamente
-                            else{
-                                console.log(`Error en insert transaccion de seller ${transaction.sellerId}, con error: ${transactionRes.message}`);
-                                errorMessage.push(transactionRes.message);
-                                transactionsOk = false;
-                                rollback = true;
-                            }
-                        }//end while de transactions
-                        //Terminaron todos los inserts, verificamos que todo este ok o damos rollback
-                        if(!rollback && transactionsIds.length === req.body.contenido.length && pedidoTransactionsIds.length === req.body.contenido.length && deliveriesIds.length === req.body.contenido.length){
-                            console.log('Pedido finalizado exitosamente');
-                            res.status(201).json(pedidoRes.id);
-                        }
-                        else{
-                            console.log('Ocurrio un error en el proceso de inserts, comenzando rollback');
-
-                            console.log('Comenzando rollbacks de deliveries');
-                            for(let id of deliveriesIds){
-                                console.log(`Enviando rollback de delivery ID: ${id}`);
-                                let rollackDelivery = await rollbackDelivery(id);
-                                if(rollackDelivery.result) console.log(`Rollback de delivery ${id} realizado correctamente`);
-                                else console.log(`Ocurrio un error en rollback de delivery ${id}`);
-                            }
-
-                            console.log('Comenzando rollbacks de transactionPackages');
-                            for(let paq of packagesIds){
-                                console.log(`Enviando rollback de transactionPackage ID: ${paq.id}`);
-                                let rollbackPackage = await rollbackTransactionPackage(paq.id);
-                                if(rollbackPackage.result) console.log(`Rollback de transactionPackage ${paq.id} realizado correctamente`);
-                                else console.log(`Ocurrio un error en rollback de transactionPackage ${paq.id}`);
-                                let packAjustado = await ajustarStockPack(paq.id, paq.cantidad, 'aumentar');
-                                if(packAjustado) console.info(`Stock de paquete con ID: ${paq.id} reajustado`);
-                                else console.info(`Ocurrio un error en reajuste de stock de paquete ${paq.id}`)
-                            }
-
-                            console.log('Comenzando rollbacks de transactionProducts');
-                            for(let prod of productsIds){
-                                console.log(`Enviando rollback de transactionProduct ID: ${prod.id}`);
-                                let rollbackProduct = await rollbackTransactionProduct(prod.id);
-                                if(rollbackProduct.result) console.log(`Rollback de transactionProduct ${prod.id} realizado correctamente`);
-                                else console.log(`Ocurrio un error en rollback de transactionProduct ${prod.id}`);
-                                let prodAjustado = await ajustarStockProd(prod.id, prod.cantidad, 'aumentar');
-                                if(prodAjustado) console.info(`Stock de producto con ID: ${prod.id} reajustado`);
-                                else console.info(`Ocurrio un error en reajuste de stock de producto ${prod.id}`)
-                            }
-
-                            console.log('Comenzando rollbacks de pedidoTransaction');
-                            for(let id of pedidoTransactionsIds){
-                                console.log(`Enviando rollback de pedidoTransaction ID: ${id}`);
-                                let rollbackPedTran = await rollbackPedidoTransaction(id);
-                                if(rollbackPedTran.result) console.log(`Rollback de pedidoTransaction ${id} realizado correctamente`);
-                                else console.log(`Ocurrio un error en rollback de pedidoTransaction ${id}`);
-                            }
-
-                            console.log('Comenzando rollbacks de transactions');
-                            for(let id of transactionsIds){
-                                console.log(`Enviando rollback de transaction ID: ${id}`);
-                                let rollbackTran = await rollbackTransaction(id);
-                                if(rollbackTran.result) console.log(`Rollback de transaction ${id} realizado correctamente`);
-                                else console.log(`Ocurrio un error en rollback de transaction ${id}`);
-                            }
-
-                            if(pedido.voucher){
-                                console.log('Comenzando rollback de Voucher');
-                                let rollbackVoucherRes = await rollbackVoucherCompany(pedido.voucher);
-                                if(rollbackVoucherRes.result) console.log(`Rollback de voucher ${pedido.voucher} realizado correctamente`);
-                                else console.log(`Ocurrio un error en rollback de voucher ${pedido.voucher}`);
-                                let voucherAjustado = await ajustarStockVoucher(pedido.voucher, 1, 'aumentar');
-                                if(voucherAjustado) console.info(`Stock de voucher con ID: ${pedido.voucher} reajustado`);
-                                else console.info(`Ocurrio un error en reajuste de stock de voucher ${pedido.voucher}`)
-                            }
-
+                        if(!pagoRes){
+                            console.log('Fallo pago de factura');
                             console.log('Comenzando rollbacks de pedido');
                             let rollbackPed = await rollbackPedido(pedidoRes.id);
                             if(rollbackPed.result) console.log(`Rollback de pedido ${pedidoRes.id} realizado correctamente`);
                             else console.log(`Ocurrio un error en rollback de pedido ${pedidoRes.id}`);
-
+                            
                             res.status(500).json({message: 'No se pudo completar el pedido'});
+                        }
+                        else{
+                            let voucherCompanyId;
+
+                            if(voucher){
+                                let voucherReducido = ajustarStockVoucher(voucher.id, 1, 'reducir');
+                                if(voucherReducido) console.info("Stock de vaucher reducido correctamente");
+                                else{
+                                    rollback = true;
+                                    console.info('No se pudo reducir el stock del voucher');
+                                }
+
+                                let { id, message } = await insertVoucherCompany({companyId: userById.companyId, voucherId: voucher.id});
+                                if(!id){
+                                    rollback = true;
+                                    console.info('No se pudo insertar VoucherCompany');
+                                }
+                                else{
+                                    voucherCompanyId = id;
+                                    console.info('VoucherCompany insertado correctamente');
+                                }
+                            }
+
+                            let transactionsOk = true, productsOk = true, packagesOk = true, pedidoTransactionOK = true, deliveriesOK = true;
+                            let transactionsIds = [], pedidoTransactionsIds = [], deliveriesIds = [], productsIds = [], packagesIds = [];
+                            let seller = {};
+
+                            console.log('Comenzando armado e insercion de transacciones');
+
+                            let j = 0;
+                            while(j < req.body.contenido.length && transactionsOk && productsOk && packagesOk && pedidoTransactionOK && deliveriesOK && !rollback){
+                                let sellerProductsIds = [], sellerPackagesIds = [];
+                                seller = req.body.contenido[j];
+                                j++;
+
+                                //Armamos la transaccion
+                                console.log(`Armando transaccion de seller ${seller.sellerId}`);
+                                let transaction = {
+                                    amount: seller.amount,
+                                    sellerId: seller.sellerId,
+                                    buyerId: req.body.buyerId,
+                                    timestamp: new Date()
+                                }
+
+                                console.log(`Enviando para insercion transaccion de seller ${seller.sellerId}`);
+                                let transactionRes = await insertTransaction(transaction);
+
+                                if(transactionRes.id){
+                                    console.log(`Transaccion de seller ${seller.sellerId} insertada correctamente con ID: ${transactionRes.id}`);
+                                    transactionsIds.push(transactionRes.id);
+
+                                    console.log(`Comenzando armado e insercion de transactionProducts para seller ${seller.sellerId}`);
+                                    let i = 0;
+                                    while(i < seller.productos.length && productsOk){
+                                        let producto = seller.productos[i];
+                                        i++;
+
+                                        console.log(`Armando producto con ID: ${producto.id} para insercion de transactionProduct`);
+                                        let prod = {
+                                            transactionId: transactionRes.id,
+                                            productId: producto.id,
+                                            quantity: producto.quantity,
+                                            priceId: producto.priceId
+                                        }
+
+                                        console.log(`Enviando producto con ID: ${producto.id} para insercion transaccionProduct de seller ${seller.sellerId}`);
+                                        let prodRes = await insertTransactionProduct(prod);
+
+                                        if(!prodRes.id){
+                                            console.log(`Fallo insert de transactionProduct con ID: ${producto.id}`);
+                                            errorMessage.push(prodRes.message);
+                                            productsOk = false;
+                                            rollback = true;
+                                        }
+                                        else{
+                                            console.log(`TransaccionProduct de seller ${seller.sellerId} insertada correctamente con ID: ${prodRes.id}`);
+                                            sellerProductsIds.push(prodRes.id);
+                                            let prodReducido = await ajustarStockProd(producto.id, producto.quantity, 'reducir');
+                                            if(!prodReducido){
+                                                productsIds.push({id: prodRes.id});
+                                                productsOk = false;
+                                                rollback = true;
+                                            }
+                                            else{
+                                                productsIds.push({id: prodRes.id, cantidad: producto.quantity});
+                                            }
+                                        }
+                                    }
+
+                                    console.log(`Comenzando armado e insercion de transactionPackages para seller ${seller.sellerId}`);
+                                    let x = 0;
+                                    while(x< seller.paquetes.length && packagesOk){
+                                        let paquete = seller.paquetes[x];
+                                        x++;
+
+                                        console.log(`Armando paquete con ID: ${paquete.id} para insercion de transactionPackage`);
+                                        let pack = {
+                                            transactionId: transactionRes.id,
+                                            packageId: paquete.id,
+                                            quantity: paquete.quantity,
+                                            priceId: paquete.priceId
+                                        }
+
+                                        console.log(`Enviando paquete con ID: ${paquete.id} para insercion transaccionPackage de seller ${seller.sellerId}`);
+                                        let packRes = await insertTransactionPackage(pack);
+
+                                        if(!packRes.id){
+                                            console.log(`Fallo insert de transactionPackage con ID: ${paquete.id}`);
+                                            errorMessage.push(packRes.message);
+                                            packagesOk = false;
+                                            rollback = true;
+                                        }
+                                        else{
+                                            console.log(`TransaccionProduct de seller ${seller.sellerId} insertada correctamente con ID: ${packRes.id}`);
+                                            sellerPackagesIds.push(packRes.id);
+                                            let packReducido = await ajustarStockPack(paquete.id, paquete.quantity, 'reducir');
+                                            if(!packReducido){
+                                                packagesIds.push({id: packRes.id});
+                                                packagesOk = false;
+                                                rollback = true;
+                                            }
+                                            else{
+                                                packagesIds.push({id: packRes.id, cantidad: paquete.quantity});
+                                            }
+                                        }
+                                    }
+
+                                    //Valido que todos los inserts de este seller esten bien para poder insertar pedidoTransaction
+                                    if(sellerProductsIds.length === seller.productos.length && sellerPackagesIds.length === seller.paquetes.length && transactionsOk && productsOk && packagesOk){
+                                        console.log(`Transaction, TransactionProducts y TransactionPackages insertados correctamente para seller ${seller.sellerId}`);
+
+                                        console.log(`Armando PedidoTransaction para pedido ${pedidoRes.id} y transaction ${transactionRes.id}`);
+                                        let pedTran = {
+                                            pedidoId: pedidoRes.id,
+                                            transactionId: transactionRes.id
+                                        }
+
+                                        console.log('Enviando para insercion pedidoTransaction');
+                                        let pedidoTransactionRes = await insertPedidoTransaction(pedTran);
+                    
+                                        if(pedidoTransactionRes.id){
+                                            console.log(`PedidoTransaction insertado correctamente con ID: ${pedidoTransactionRes.id}`);
+                                            pedidoTransactionsIds.push(pedidoTransactionRes.id);
+                                            // insert de delivery
+
+                                            //Falta hacer logica de tabla Delivery
+                                            let despachador = 0;
+                                            if(req.body.deliveryType === 'Comprador') despachador = req.body.buyerId;
+                                            else despachador = seller.sellerId;
+
+                                            let delivery = {
+                                                type: req.body.deliveryType,
+                                                transactionId: transactionRes.id,
+                                                companyId: despachador,
+                                                userId: req.body.userId,
+                                                timestamp: new Date(),
+                                                status: 'Pendiente'
+                                            }
+
+                                            let deliveryRes = await insertDelivery(delivery);
+
+                                            if(deliveryRes.id){
+                                                console.log(`Delivery insertado correctamente con ID: ${deliveryRes.id}`);
+                                                deliveriesIds.push(deliveryRes.id);
+                                            }
+                                            else{
+                                                console.log(`Error en insert Delivery para transaction ${transactionRes.id}`);
+                                                errorMessage.push(deliveryRes.message);
+                                                deliveriesOK = false;
+                                                rollback = true;
+                                            }
+
+                                        }
+                                        else{
+                                            console.log(`Error en insert PedidoTransaction para pedido ${pedidoRes.id} y transaction ${transactionRes.id}`);
+                                            pedidoTransactionOK = false;
+                                            rollback = true;
+                                        }
+                                    }//fin if todo salio bien para esa transaccion
+                                    else{
+                                        console.log(`Ocurrio un error al finalizar los inserts de la transacccion ${transactionRes.id}`);
+                                        transactionsOk = false;
+                                        rollback = true;
+                                    }
+                                }//fin if transaction se inserto correctamente
+                                else{
+                                    console.log(`Error en insert transaccion de seller ${transaction.sellerId}, con error: ${transactionRes.message}`);
+                                    errorMessage.push(transactionRes.message);
+                                    transactionsOk = false;
+                                    rollback = true;
+                                }
+                            }//end while de transactions
+
+                            //Terminaron todos los inserts, verificamos que todo este ok o damos rollback
+                            if(!rollback && transactionsIds.length === req.body.contenido.length && pedidoTransactionsIds.length === req.body.contenido.length && deliveriesIds.length === req.body.contenido.length){
+                                console.log('Pedido finalizado exitosamente');
+                                res.status(201).json(pedidoRes.id);
+                            }
+                            else{
+                                console.log('Ocurrio un error en el proceso de inserts, comenzando rollback');
+
+                                console.log('Comenzando rollbacks de deliveries');
+                                for(let id of deliveriesIds){
+                                    console.log(`Enviando rollback de delivery ID: ${id}`);
+                                    let rollackDelivery = await rollbackDelivery(id);
+                                    if(rollackDelivery.result) console.log(`Rollback de delivery ${id} realizado correctamente`);
+                                    else console.log(`Ocurrio un error en rollback de delivery ${id}`);
+                                }
+
+                                console.log('Comenzando rollbacks de transactionPackages');
+                                for(let paq of packagesIds){
+                                    console.log(`Enviando rollback de transactionPackage ID: ${paq.id}`);
+                                    let rollbackPackage = await rollbackTransactionPackage(paq.id);
+                                    if(rollbackPackage.result) console.log(`Rollback de transactionPackage ${paq.id} realizado correctamente`);
+                                    else console.log(`Ocurrio un error en rollback de transactionPackage ${paq.id}`);
+                                    let packAjustado = await ajustarStockPack(paq.id, paq.cantidad, 'aumentar');
+                                    if(packAjustado) console.info(`Stock de paquete con ID: ${paq.id} reajustado`);
+                                    else console.info(`Ocurrio un error en reajuste de stock de paquete ${paq.id}`)
+                                }
+
+                                console.log('Comenzando rollbacks de transactionProducts');
+                                for(let prod of productsIds){
+                                    console.log(`Enviando rollback de transactionProduct ID: ${prod.id}`);
+                                    let rollbackProduct = await rollbackTransactionProduct(prod.id);
+                                    if(rollbackProduct.result) console.log(`Rollback de transactionProduct ${prod.id} realizado correctamente`);
+                                    else console.log(`Ocurrio un error en rollback de transactionProduct ${prod.id}`);
+                                    let prodAjustado = await ajustarStockProd(prod.id, prod.cantidad, 'aumentar');
+                                    if(prodAjustado) console.info(`Stock de producto con ID: ${prod.id} reajustado`);
+                                    else console.info(`Ocurrio un error en reajuste de stock de producto ${prod.id}`)
+                                }
+
+                                console.log('Comenzando rollbacks de pedidoTransaction');
+                                for(let id of pedidoTransactionsIds){
+                                    console.log(`Enviando rollback de pedidoTransaction ID: ${id}`);
+                                    let rollbackPedTran = await rollbackPedidoTransaction(id);
+                                    if(rollbackPedTran.result) console.log(`Rollback de pedidoTransaction ${id} realizado correctamente`);
+                                    else console.log(`Ocurrio un error en rollback de pedidoTransaction ${id}`);
+                                }
+
+                                console.log('Comenzando rollbacks de transactions');
+                                for(let id of transactionsIds){
+                                    console.log(`Enviando rollback de transaction ID: ${id}`);
+                                    let rollbackTran = await rollbackTransaction(id);
+                                    if(rollbackTran.result) console.log(`Rollback de transaction ${id} realizado correctamente`);
+                                    else console.log(`Ocurrio un error en rollback de transaction ${id}`);
+                                }
+
+                                if(pedido.voucher){
+                                    let rollbackVoucherRes = await rollbackVoucherCompany(voucherCompanyId);
+                                    if(rollbackVoucherRes.result) console.log(`Rollback de voucher ${pedido.voucher} realizado correctamente`);
+                                    else console.log(`Ocurrio un error en rollback de voucher ${pedido.voucher}`);
+                                    let voucherAjustado = await ajustarStockVoucher(pedido.voucher, 1, 'aumentar');
+                                    if(voucherAjustado) console.info(`Stock de voucher con ID: ${pedido.voucher} reajustado`);
+                                    else console.info(`Ocurrio un error en reajuste de stock de voucher ${pedido.voucher}`)
+                                }
+
+                                console.log('Comenzando rollbacks de pedido');
+                                let rollbackPed = await rollbackPedido(pedidoRes.id);
+                                if(rollbackPed.result) console.log(`Rollback de pedido ${pedidoRes.id} realizado correctamente`);
+                                else console.log(`Ocurrio un error en rollback de pedido ${pedidoRes.id}`);
+
+                                res.status(500).json({message: 'No se pudo completar el pedido'});
+                            }
                         }
                     }//fin if pedido se inserto correctamente
                     else{
@@ -1570,20 +1613,20 @@ async function getPedidosByDateByUserBySellerEstimados(id, dateFrom, dateTo, sel
     return { pedidos, message };
 }
 
-async function getCincoMasVendidos(id, fecha){
+async function getCincoProductosMasVendidos(id, fecha){
     console.info(`Buscando cinco productos mas vendidos para la compania con id ${id}`);
         let message = '';
         let productos = await queries
                             .consultas
-                            .getTop5MasVendidosByCompany(id, fecha)
+                            .getTopCincoProductosMasVendidosByCompany(id, fecha)
                             .then(data => {
                                 if(data.rows){
                                     console.info('Informacion de productos obtenida');
                                     return data.rows;
                                 }
                                 else{
-                                    console.info(`No existe productos registrados en la BD para la compania ${id}`);
-                                    message = `No existe productos registrados en la BD para la compania ${id}`;
+                                    console.info(`No existen productos vendidos para la compania ${id} en este rango de tiempo`);
+                                    message = `No existen productos vendidos para la compania ${id} en este rango de tiempo`;
                                     return null;
                                 }
                             })
@@ -1595,20 +1638,20 @@ async function getCincoMasVendidos(id, fecha){
         return { productos, message };
 }
 
-async function getCincoMenosVendidos(id,fecha){
+async function getCincoProductosMenosVendidos(id, fecha){
     console.info(`Buscando cinco productos menos vendidos para la compania con id ${id}`);
         let message = '';
         let productos = await queries
                             .consultas
-                            .getTop5MenosVendidosByCompany(id,fecha)
+                            .getTopCincoProductosMenosVendidosByCompany(id,fecha)
                             .then(data => {
                                 if(data.rows){
                                     console.info('Informacion de productos obtenida');
                                     return data.rows;
                                 }
                                 else{
-                                    console.info(`No existe productos registrados en la BD para la compania ${id}`);
-                                    message = `No existe productos registrados en la BD para la compania ${id}`;
+                                    console.info(`No existen productos vendidos para la compania ${id} en este rango de tiempo`);
+                                    message = `No existen productos vendidos para la compania ${id} en este rango de tiempo`;
                                     return null;
                                 }
                             })
@@ -1618,6 +1661,56 @@ async function getCincoMenosVendidos(id,fecha){
                                 return null;
                             });
         return { productos, message };
+}
+
+async function getCincoPaquetesMasVendidos(id, fecha){
+    console.info(`Buscando cinco paquetes mas vendidos para la compania con id ${id}`);
+        let message = '';
+        let paquetes = await queries
+                            .consultas
+                            .getTopCincoPaquetesMasVendidosByCompany(id, fecha)
+                            .then(data => {
+                                if(data.rows){
+                                    console.info('Informacion de paquetes obtenida');
+                                    return data.rows;
+                                }
+                                else{
+                                    console.info(`No existen paquetes vendidos para la compania ${id} en este rango de tiempo`);
+                                    message = `No existen paquetes vendidos para la compania ${id} en este rango de tiempo`;
+                                    return null;
+                                }
+                            })
+                            .catch(err => {
+                                console.error(`Error en Query SELECT de Consultas : ${err}`);
+                                message = 'Ocurrio un error al obtener los paquetes';
+                                return null;
+                            });
+        return { paquetes, message };
+}
+
+async function getCincoPaquetesMenosVendidos(id, fecha){
+    console.info(`Buscando cinco paquetes menos vendidos para la compania con id ${id}`);
+        let message = '';
+        let paquetes = await queries
+                            .consultas
+                            .getTopCincoPaquetesMenosVendidosByCompany(id,fecha)
+                            .then(data => {
+                                if(data.rows){
+                                    console.info('Informacion de paquetes obtenida');
+                                    return data.rows;
+                                }
+                                else{
+                                    console.info(`No existen paquetes vendidos para la compania ${id} en este rango de tiempo`);
+                                    message = `No existen paquetes vendidos para la compania ${id} en este rango de tiempo`;
+                                    return null;
+                                }
+                            })
+                            .catch(err => {
+                                console.error(`Error en Query SELECT de Consultas : ${err}`);
+                                message = 'Ocurrio un error al obtener los paquetes';
+                                return null;
+                            });
+        return { paquetes, message };
 }
 
 async function insertPedido(pedido){

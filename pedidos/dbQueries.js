@@ -110,12 +110,20 @@ module.exports = {
         },
     },
     consultas:{
-        getTop5MasVendidosByCompany: function(idCompany, fecha){
-            return knex.raw('SELECT tp."productId", c.name, SUM(quantity) FROM "Transaction" t, "TransactionProduct" tp, "CompanyProduct" c WHERE tp."transactionId" = t.id and c.id = tp."productId" and t."sellerId" = ? and t."timestamp" > ? group by tp."productId", c.name order by SUM desc limit 5',
+        getTopCincoProductosMasVendidosByCompany: function(idCompany, fecha){
+            return knex.raw('SELECT tp."productId", p.code, c.name, SUM(quantity) from "Transaction" t, "TransactionProduct" tp, "CompanyProduct" c, "Product" p WHERE tp."transactionId" = t.id and c.id = tp."productId" and p.id = c."productId" and t."sellerId" = ? and t."timestamp" > ? group by tp."productId", p.code, c.name order by SUM desc limit 5',
             [idCompany, fecha]);
         },
-        getTop5MenosVendidosByCompany: function(idCompany, fecha){
-            return knex.raw('SELECT tp."productId", c.name, SUM(quantity) FROM "Transaction" t, "TransactionProduct" tp, "CompanyProduct" c WHERE tp."transactionId" = t.id and c.id = tp."productId" and t."sellerId" = ? and t."timestamp" > ? group by tp."productId", c.name order by SUM asc limit 5',
+        getTopCincoProductosMenosVendidosByCompany: function(idCompany, fecha){
+            return knex.raw('SELECT tp."productId", p.code, c.name, SUM(quantity) from "Transaction" t, "TransactionProduct" tp, "CompanyProduct" c, "Product" p WHERE tp."transactionId" = t.id and c.id = tp."productId" and p.id = c."productId" and t."sellerId" = ? and t."timestamp" > ? group by tp."productId", p.code, c.name order by SUM asc limit 5',
+            [idCompany, fecha]);
+        },
+        getTopCincoPaquetesMasVendidosByCompany: function(idCompany, fecha){
+            return knex.raw('SELECT tp."packageId", p.code, p.name, SUM(quantity) from "Transaction" t, "TransactionPackage" tp, "Package" p WHERE tp."transactionId" = t.id and p.id = tp."packageId" and t."sellerId" = ? and t."timestamp" > ? group by tp."packageId", p.code, p.name order by SUM desc limit 5',
+            [idCompany, fecha]);
+        },
+        getTopCincoPaquetesMenosVendidosByCompany: function(idCompany, fecha){
+            return knex.raw('SELECT tp."packageId", p.code, p.name, SUM(quantity) from "Transaction" t, "TransactionPackage" tp, "Package" p WHERE tp."transactionId" = t.id and p.id = tp."packageId" and t."sellerId" = ? and t."timestamp" > ? group by tp."packageId", p.code, p.name order by SUM asc limit 5',
             [idCompany, fecha]);
         },
         getRecomendacionPedidosPorFecha: function(fecha1, fecha2, userId){

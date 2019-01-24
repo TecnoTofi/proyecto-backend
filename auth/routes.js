@@ -25,7 +25,7 @@ const { getTypeById, getRubroById } = require('../helpers/routes');
 
 //Declaramos el secreto para JWT
 const secreto = process.env.COOKIE_SECRET;
-//const secreto = 'keyboard_cat';
+//const secreto = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyRW1haWwiOiJjb25hcHJvbGVAZ21haWwuY29tIiwidXNlclBhc3N3b3JkIjoidGVzdDEyMzQiLCJpYXQiOjE1NDUxODY1MzEsImV4cCI6MTU0NTE5MDEzMX0.58leQTwJJrc3nA7YhqMKNtlnfjWo7eK4TrgJmHRMfBg';
 
 //Ruteo para validacion de tokens
 function verifyToken (req, res, next) {
@@ -93,7 +93,7 @@ async function login(req, res){
             console.info('Revisando estado del usuario');
             if(user.deleted){
                 console.log(`Usuario con email ${userEmail} esta bloqueado`);
-                res.status(400).json({message: 'Usuario bloqueado'});
+                res.status(204).json({message: 'Usuario bloqueado'});
             }
             else{
                 console.info('Usuario no se encuentra bloqueado');
@@ -127,44 +127,50 @@ async function login(req, res){
                             if(company){
                                 console.info('Compania encontrada correctamente');
 
-                                // insert de last_login
-                                user.lastLogin = new Date();
-                                let { result: updateRes, message: updateMessage } = await updateUser(user.id, user);
-
-                                if(!updateRes){
-                                    console.info('Ocurrio un error al actualizar usuario para lastLogin');
-                                    console.info(updateMessage);
-                                    console.info('Preparando response');
-                                    res.status(500).json({message: 'Ocurrio un error al procesar la solicitud'})
+                                if(company.deleted !== null){
+                                    console.log(`Company con ID: ${company.id} esta bloqueada`);
+                                    res.status(204).json({message: 'Company bloqueada'});
                                 }
                                 else{
-                                    //creamos el cookie
-                                    console.info('Creando token');
-                                    res.cookie('access_token', token, {
-                                        maxAge: new Date(Date.now() + 3600),
-                                        httpOnly: false
-                                    });
-                                    console.info('Token creado');
-                                    
-                                    //armamos el cuerpo de la respuesta
-                                    console.info('Preparando datos de la response');
-                                    let data = {
-                                        userType: type.name,
-                                        userTypeId: type.id,
-                                        userName: user.name,
-                                        userEmail: user.email,
-                                        userId: user.id,
-                                        userCompanyName: company.name,
-                                        userCompanyId: company.id
-                                    };
+                                    // insert de last_login
+                                    user.lastLogin = new Date();
+                                    let { result: updateRes, message: updateMessage } = await updateUser(user.id, user);
 
-                                    //enviamos la respuesta con el token y el cuerpo
-                                    console.info('Enviando response');
-                                    res.status(200).json({
-                                        message: 'Loggeado correctamente',
-                                        token: token,
-                                        userData: data
-                                    });
+                                    if(!updateRes){
+                                        console.info('Ocurrio un error al actualizar usuario para lastLogin');
+                                        console.info(updateMessage);
+                                        console.info('Preparando response');
+                                        res.status(500).json({message: 'Ocurrio un error al procesar la solicitud'})
+                                    }
+                                    else{
+                                        //creamos el cookie
+                                        console.info('Creando token');
+                                        res.cookie('access_token', token, {
+                                            maxAge: new Date(Date.now() + 3600),
+                                            httpOnly: false
+                                        });
+                                        console.info('Token creado');
+                                        
+                                        //armamos el cuerpo de la respuesta
+                                        console.info('Preparando datos de la response');
+                                        let data = {
+                                            userType: type.name,
+                                            userTypeId: type.id,
+                                            userName: user.name,
+                                            userEmail: user.email,
+                                            userId: user.id,
+                                            userCompanyName: company.name,
+                                            userCompanyId: company.id
+                                        };
+
+                                        //enviamos la respuesta con el token y el cuerpo
+                                        console.info('Enviando response');
+                                        res.status(200).json({
+                                            message: 'Loggeado correctamente',
+                                            token: token,
+                                            userData: data
+                                        });
+                                    }
                                 }
                             }
                             else{

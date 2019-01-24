@@ -8,9 +8,9 @@ async function obtenerRegistrosPorMes(req, res) {
     let { result, message } = await getRegistrosPorMes(dateTo, dateFrom);
 
     if(result){
-        console.info(`Cantidad de registros por mes: ${result}`);
+        console.info(`Cantidad de registros del corriente mes: ${result}`);
         console.info('Preparando response');
-        res.status(200).json({message: `Cantidad de registros mensuales: ${result}`});
+        res.status(200).json({message: `Cantidad de registros del corriente mes: ${result}`});
     }
     else{
         console.info('No se encontraron datos');
@@ -21,30 +21,135 @@ async function obtenerRegistrosPorMes(req, res) {
 
 async function obtenerLoginsPorMes(req, res) {
     console.info('Conexion GET entrante : /api/analytics/logins');
+
+    let { dateTo, dateFrom } = crearFechas();
+    
+    let { result, message } = await getLoginsPorMes(dateTo, dateFrom);
+
+    if(result){
+        console.info(`Cantidad de logins del corriente mes: ${result}`);
+        console.info('Preparando response');
+        res.status(200).json({message: `Cantidad de logins del corriente mes: ${result}`});
+    }
+    else{
+        console.info('No se encontraron datos');
+        console.info('Preparando response');
+        res.status(200).json({message});
+    }
 }
 
 async function obtenerRegistroProductosPorMes(req, res) {
     console.info('Conexion GET entrante : /api/analytics/products');
+
+    let { dateTo, dateFrom } = crearFechas();
+    
+    let { result, message } = await getRegistroProductosPorMes(dateTo, dateFrom);
+
+    if(result){
+        console.info(`Cantidad de registros de productos del corriente mes: ${result}`);
+        console.info('Preparando response');
+        res.status(200).json({message: `Cantidad de registros de productos del corriente mes: ${result}`});
+    }
+    else{
+        console.info('No se encontraron datos');
+        console.info('Preparando response');
+        res.status(200).json({message});
+    }
 }
 
 async function obtenerRegistroPaquetesPorMes(req, res) {
     console.info('Conexion GET entrante : /api/analytics/packages');
+
+    let { dateTo, dateFrom } = crearFechas();
+    
+    let { result, message } = await getRegistroPaquetesPorMes(dateTo, dateFrom);
+
+    if(result){
+        console.info(`Cantidad de registros de paquetes del corriente mes: ${result}`);
+        console.info('Preparando response');
+        res.status(200).json({message: `Cantidad de registros de paquetes del corriente mes: ${result}`});
+    }
+    else{
+        console.info('No se encontraron datos');
+        console.info('Preparando response');
+        res.status(200).json({message});
+    }
 }
 
 async function obtenerPedidosPorMes(req, res) {
     console.info('Conexion GET entrante : /api/analytics/ventas/pedidos');
+
+    let { dateTo, dateFrom } = crearFechas();
+    
+    let { result, message } = await getPedidosPorMes(dateTo, dateFrom);
+
+    if(result){
+        console.info(`Cantidad de pedidos del corriente mes: ${result}`);
+        console.info('Preparando response');
+        res.status(200).json({message: `Cantidad de pedidos del corriente mes: ${result}`});
+    }
+    else{
+        console.info('No se encontraron datos');
+        console.info('Preparando response');
+        res.status(200).json({message});
+    }
 }
 
 async function obtenerTransaccionesPorMes(req, res) {
     console.info('Conexion GET entrante : /api/analytics/ventas/transactions');
+
+    let { dateTo, dateFrom } = crearFechas();
+    
+    let { result, message } = await getTransaccionesPorMes(dateTo, dateFrom);
+
+    if(result){
+        console.info(`Cantidad de transacciones del corriente mes: ${result}`);
+        console.info('Preparando response');
+        res.status(200).json({message: `Cantidad de transacciones del corriente mes: ${result}`});
+    }
+    else{
+        console.info('No se encontraron datos');
+        console.info('Preparando response');
+        res.status(200).json({message});
+    }
 }
 
 async function obtenerVentaProductosPorMes(req, res) {
     console.info('Conexion GET entrante : /api/analytics/ventas/products');
+
+    let { dateTo, dateFrom } = crearFechas();
+    
+    let { result, message } = await getVentaProductosPorMes(dateTo, dateFrom);
+
+    if(result){
+        console.info(`Cantidad de productos vendidos del corriente mes: ${result}`);
+        console.info('Preparando response');
+        res.status(200).json({message: `Cantidad de productos vendidos del corriente mes: ${result}`});
+    }
+    else{
+        console.info('No se encontraron datos');
+        console.info('Preparando response');
+        res.status(200).json({message});
+    }
 }
 
 async function obtenerVentaPaquetesPorMes(req, res) {
     console.info('Conexion GET entrante : /api/analytics/ventas/packages');
+
+    let { dateTo, dateFrom } = crearFechas();
+    
+    let { result, message } = await getVentaPaquetesPorMes(dateTo, dateFrom);
+
+    if(result){
+        console.info(`Cantidad de paquetes vendidos del corriente mes: ${result}`);
+        console.info('Preparando response');
+        res.status(200).json({message: `Cantidad de paquetes vendidos del corriente mes: ${result}`});
+    }
+    else{
+        console.info('No se encontraron datos');
+        console.info('Preparando response');
+        res.status(200).json({message});
+    }
 }
 
 async function getRegistrosPorMes(dateTo, dateFrom){
@@ -54,8 +159,8 @@ async function getRegistrosPorMes(dateTo, dateFrom){
                 .usuarios
                 .getSignUpsPorFecha(dateTo, dateFrom)
                 .then(data => {
-                    if(data.rows.length > 0) {
-                        console.info(`Informacion obtenido`);
+                    if(data.rows[0].count > 0) {
+                        console.info(`Informacion obtenida`);
                         return Number(data.rows[0].count);
                     }
                     else{
@@ -78,9 +183,9 @@ async function getLoginsPorMes(dateTo, dateFrom){
                 .usuarios
                 .getLoginsPorFecha(dateTo, dateFrom)
                 .then(data => {
-                    if(data) {
-                        console.info(`Informacion obtenido`);
-                        return data;
+                    if(data.rows[0].count > 0) {
+                        console.info(`Informacion obtenida`);
+                        return Number(data.rows[0].count);
                     }
                     else{
                         console.info(`No hubo logins entre ${dateTo} y ${dateFrom}`);
@@ -102,9 +207,9 @@ async function getRegistroProductosPorMes(dateTo, dateFrom){
                 .productos
                 .getRegistrosPorFecha(dateTo, dateFrom)
                 .then(data => {
-                    if(data) {
-                        console.info(`Informacion obtenido`);
-                        return data;
+                    if(data.rows[0].count > 0) {
+                        console.info(`Informacion obtenida`);
+                        return Number(data.rows[0].count);
                     }
                     else{
                         console.info(`No hubo registros entre ${dateTo} y ${dateFrom}`);
@@ -126,9 +231,9 @@ async function getRegistroPaquetesPorMes(dateTo, dateFrom){
                 .paquetes
                 .getRegistrosPorFecha(dateTo, dateFrom)
                 .then(data => {
-                    if(data) {
-                        console.info(`Informacion obtenido`);
-                        return data;
+                    if(data.rows[0].count > 0) {
+                        console.info(`Informacion obtenida`);
+                        return Number(data.rows[0].count);
                     }
                     else{
                         console.info(`No hubo registros entre ${dateTo} y ${dateFrom}`);
@@ -150,9 +255,9 @@ async function getPedidosPorMes(dateTo, dateFrom){
                 .pedidos
                 .getPedidosPorFecha(dateTo, dateFrom)
                 .then(data => {
-                    if(data) {
-                        console.info(`Informacion obtenido`);
-                        return data;
+                    if(data.rows[0].count > 0) {
+                        console.info(`Informacion obtenida`);
+                        return Number(data.rows[0].count);
                     }
                     else{
                         console.info(`No hubo pedidos realizados entre ${dateTo} y ${dateFrom}`);
@@ -174,9 +279,9 @@ async function getTransaccionesPorMes(dateTo, dateFrom){
                 .pedidos
                 .getTransactionsPorFecha(dateTo, dateFrom)
                 .then(data => {
-                    if(data) {
-                        console.info(`Informacion obtenido`);
-                        return data;
+                    if(data.rows[0].count > 0) {
+                        console.info(`Informacion obtenida`);
+                        return Number(data.rows[0].count);
                     }
                     else{
                         console.info(`No hubo transacciones realizadas entre ${dateTo} y ${dateFrom}`);
@@ -198,9 +303,9 @@ async function getVentaProductosPorMes(dateTo, dateFrom){
                 .pedidos
                 .getProductsPorFecha(dateTo, dateFrom)
                 .then(data => {
-                    if(data) {
-                        console.info(`Informacion obtenido`);
-                        return data;
+                    if(data.rows[0].sum > 0) {
+                        console.info(`Informacion obtenida`);
+                        return Number(data.rows[0].sum);
                     }
                     else{
                         console.info(`No hubo ventas de productos realizadas entre ${dateTo} y ${dateFrom}`);
@@ -222,9 +327,9 @@ async function getVentaPaquetesPorMes(dateTo, dateFrom){
                 .pedidos
                 .getPackagesPorFecha(dateTo, dateFrom)
                 .then(data => {
-                    if(data) {
-                        console.info(`Informacion obtenido`);
-                        return data;
+                    if(data.rows[0].sum > 0) {
+                        console.info(`Informacion obtenida`);
+                        return Number(data.rows[0].sum);
                     }
                     else{
                         console.info(`No hubo ventas de paquetes realizadas entre ${dateTo} y ${dateFrom}`);

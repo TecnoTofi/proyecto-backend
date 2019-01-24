@@ -14,8 +14,8 @@ router.get('/user/:id/date', verifyToken, PedidoRoutes.obtenerPedidosByDateByUse
 
 router.get('/user/:id/seller/:sellerId/date', verifyToken, PedidoRoutes.obtenerPedidosByDateByUserBySeller);
 // router.get('/user/:id/seller/:sellerId/date/estimado'/*, verifyToken*/, PedidoRoutes.obtenerPedidosByDateByUserBySellerEstimados);
-router.get('/company/:id/masVendidos'/*, verifyToken*/, PedidoRoutes.obtenerCincoProductosMasVendidos);
-router.get('/company/:id/menosVendidos'/*, verifyToken*/, PedidoRoutes.obtenerCincoProductosMenosVendidos);
+router.post('/company/:id/masVendidos', verifyToken, PedidoRoutes.obtenerCincoProductosMasVendidos);
+router.post('/company/:id/menosVendidos', verifyToken, PedidoRoutes.obtenerCincoProductosMenosVendidos);
 
 router.get('/:id/transactions', verifyToken, PedidoRoutes.obtenerTransactionsByPedido);
 router.get('/:pedidoId/transaction/:transactionId', verifyToken, PedidoRoutes.obtenerTransactionById);

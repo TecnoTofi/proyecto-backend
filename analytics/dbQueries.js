@@ -2,11 +2,11 @@ const knex = require('../db/connection');
 
 module.exports = {
     usuarios: {
-        getLoginsPorFecha: function(dateTo, dateFrom){
+        getSignUpsPorFecha: function(dateTo, dateFrom){
             return knex.raw('select count(*) from "User" where created >= ? and created <= ?',
             [dateTo, dateFrom])
         },
-        getSignUpsPorFecha: function(dateTo, dateFrom){
+        getLoginsPorFecha: function(dateTo, dateFrom){
             return knex.raw('select count(*) from "User" where "lastLogin" >= ? and "lastLogin" <= ?',
             [dateTo, dateFrom])
         },

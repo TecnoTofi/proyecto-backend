@@ -225,7 +225,12 @@ async function validacionVoucher(voucherId , fecha, companyId){
                 return null;
             }
             else{
-                if(voucher.cantidad <= 0 || voucher.vencimiento >= fecha || voucherCompany){
+                console.log('cantidad', voucher.cantidad)
+                console.log('vencimiento', voucher.vencimiento)
+                console.log('fecha', fecha)
+                console.log('resultado', voucher.vencimiento >= fecha)
+                console.log('voucherCompany', voucherCompany)
+                if(voucher.cantidad <= 0 || voucher.vencimiento < fecha || voucherCompany){
                     console.log('Voucher invalido');
                     return null;
                 }
@@ -880,5 +885,6 @@ module.exports = {
     ajustarStock,
     getVoucherByCode,
     insertVoucherCompany,
-    validacionVoucher
+    validacionVoucher,
+    rollbackVoucherCompany
 }

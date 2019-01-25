@@ -800,6 +800,23 @@ function validarUser(body){
     return Joi.validate(body, schema);
 };
 
+function validarUserUpdate(body){
+    console.info('Comenzando validacion Joi de Usuario');
+    const schema = Joi.object().keys({
+        typeId: Joi.number().required(),
+        userName: Joi.string().min(3).max(50).required(),
+        document: Joi.string().min(5).max(15).required(),
+        email: Joi.string().email().required(),
+        userPhone: Joi.string().min(7).max(15).required(),
+        userFirstStreet: Joi.string().min(3).max(30).allow('').allow(null),
+        userSecondStreet: Joi.string().min(3).max(30).allow('').allow(null),
+        userDoorNumber: Joi.string().max(6).allow('').allow(null),
+    });
+
+    console.info('Finalizando validacion Joi de Usuario');
+    return Joi.validate(body, schema);
+};
+
 function validarEmail(email){
     console.info('Comenzando validacion Joi de Email');
     const schema = Joi.string().email().required();
@@ -839,4 +856,5 @@ module.exports = {
     deleteUser,
     rollbackInsertUser,
     validarUser,
+    validarUserUpdate,
 };

@@ -47,7 +47,7 @@ router.post('/logout', AuthRoutes.logout);
 router.post('/signup', upload.single('companyImage'), AuthRoutes.signup);
 //Modificar usuarios-empresa
 //pasar a put
-router.post('/update/user/:idUser/company/:idEmpr', upload.single('companyImage'), AuthRoutes.actualizarPerfil);
+router.put('/update/user/:idUser/company/:idEmpr', AuthRoutes.verifyToken, upload.single('companyImage'), AuthRoutes.actualizarPerfil);
 
 //Exportamos el router
 module.exports = router;

@@ -586,7 +586,7 @@ async function calcularTotal(req, res){
 
                 console.info(`Total calculado $${total}`);
                 console.info('Preparando response');
-                res.status(200).json({ total, sumaProds, sumaPacks });
+                res.status(200).json({ total, sumaProds, sumaPacks, voucher });
             }
             else{
                 console.info(`Se encontraron ${errorMessage.length} errores al analizar el contenido`);

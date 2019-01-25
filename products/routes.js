@@ -1195,7 +1195,7 @@ async function eliminarProducto(req, res){
                         if(result){
                             console.info(`CompanyProduct con ID: ${req.params.id} eliminado correctamente`);
                             console.info('Preparando response');
-                            res.status(201).json({message: 'Borrado exitoso'});
+                            res.status(200).json({message: 'Borrado exitoso'});
                         }
                         else{
                             console.info('No se pudo eliminar CompanyProduct');

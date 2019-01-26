@@ -303,31 +303,37 @@ async function altaCompany(req, res){
     }
 }
 
-async function modificarCompany(req, res){
+async function modificarCompanyVal(req, res){
     console.info(`Conexion PUT entrante : /api/company/${req.params.id}`);
 
+    let { status, message } = await modificarCompany(req.params.id, req.body, req.file);
+
+    res.status(status).json(message);
+}
+
+async function modificarCompany(id, body, file){
     console.info(`Comenzando validacion de tipos`);
-    let { error } = validarId(req.params.id);
+    let { error } = validarId(id);
 
     if(error){
         console.info(`Error en la validacion de tipos: ${error.details[0].message}`);
         console.info('Preparando response');
-        res.status(400).json({message: error.details[0].message});
+        return { status: 400, message: error.details[0].message };
     }
     else{
         console.info('Enviando a validar tipos de datos en request');
         let valCompany = {
-            typeId: req.body.type,
-            rubroId: req.body.rubro,
-            rut: req.body.companyRut,
-            companyName: req.body.companyName,
-            description: req.body.companyDescription,
-            companyPhone: req.body.companyPhone,
-            companyFirstStreet: req.body.companyFirstStreet,
-            companySecondStreet: req.body.companySecondStreet,
-            companyDoorNumber: req.body.companyDoorNumber,
-            imageName: req.file ? req.file.filename : req.body.imageName,
-            imagePath: req.file ? req.file.path : req.body.imagePath
+            typeId: body.type,
+            rubroId: body.rubro,
+            rut: body.companyRut,
+            companyName: body.companyName,
+            description: body.companyDescription,
+            companyPhone: body.companyPhone,
+            companyFirstStreet: body.companyFirstStreet,
+            companySecondStreet: body.companySecondStreet,
+            companyDoorNumber: body.companyDoorNumber,
+            imageName: file ? file.filename : null,
+            imagePath: file ? file.path : null
         };
 
         //Inicializo array de errores
@@ -349,7 +355,7 @@ async function modificarCompany(req, res){
             console.info(`Se encontraron ${errorMessage.length} errores de tipo en la request`);
             errorMessage.map(err => console.log(err));
             console.info('Enviando response');
-            res.status(400).json({message: errorMessage});
+            return { status: 400, message: errorMessage };
         }
         else{
             console.info('Validacion de tipos exitosa');
@@ -357,21 +363,21 @@ async function modificarCompany(req, res){
 
             let { type, message: typeMessage } = await getTypeById(valCompany.typeId);
             let { rubro, message: rubroMessage } = await getRubroById(valCompany.rubroId);
-            let { company: companyById, message: companyByIdMessage } = await getCompanyById(req.params.id);
+            let { company: companyById, message: companyByIdMessage } = await getCompanyById(id);
             let { company: companyByRut } = await getCompanyByRut(valCompany.rut);
             let { company: companyByName } = await getCompanyByName(valCompany.companyName);
 
             if(!type) errorMessage.push(typeMessage);
             if(!rubro) errorMessage.push(rubroMessage);
             if(!companyById) errorMessage.push(companyByIdMessage);
-            if(companyByRut && companyByRut.id !== req.params.id) errorMessage.push(`Ya existe una compañia con Rut ${valCompany.rut}`);
-            if(companyByName && companyByName.id !== req.params.id) errorMessage.push(`Ya existe una compañia con Nombre ${valCompany.companyName}`);
+            if(companyByRut && companyByRut.id !== id) errorMessage.push(`Ya existe una compañia con Rut ${valCompany.rut}`);
+            if(companyByName && companyByName.id !== id) errorMessage.push(`Ya existe una compañia con Nombre ${valCompany.companyName}`);
 
             if(errorMessage.length > 0){
                 console.info(`Se encontraron ${errorMessage.length} errores de existencia en la request`);
                 errorMessage.map(err => console.log(err));
                 console.info('Enviando response');
-                res.status(400).json({message: errorMessage});
+                return { status: 400, message: errorMessage };
             }
             else{
                 console.info('Validacion de existencia exitosas');
@@ -387,21 +393,21 @@ async function modificarCompany(req, res){
                     typeId: valCompany.typeId,
                     rubroId: valCompany.rubroId,
                     description: valCompany.description,
-                    imageName: valCompany.imageName,
-                    imagePath: valCompany.imagePath,
+                    imageName: valCompany.imageName ? valCompany.imageName : companyById.imageName,
+                    imagePath: valCompany.imagePath ? valCompany.imagePath : companyById.imagePath,
                 };
 
-                let { result, message } = await updateCompany(req.params.id, company);
+                let { result, message } = await updateCompany(id, company);
 
                 if(result){
-                    console.info(`Company con ID: ${req.params.id} actualizada correctamente`);
+                    console.info(`Company con ID: ${id} actualizada correctamente`);
                     console.info('Preparando response');
-                    res.status(200).json({message: 'Modificacion exitosa'});
+                    return { status: 200, message: 'Modificacion exitosa' };
                 }
                 else{
                     console.info('No se pudo modificar company');
                     console.info('Preparando response');
-                    res.status(500).json({message: message});
+                    return { status: 500, message: message };
                 }
             }
         }
@@ -780,6 +786,7 @@ module.exports = {
     obtenerCompanyByRut,
     obtenerCompanyByName,
     altaCompany,
+    modificarCompanyVal,
     modificarCompany,
     eliminarCompany,
     getCompanies,

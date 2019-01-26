@@ -17,7 +17,7 @@ router.get('/company/:id', UserRoutes.obtenerUserByCompanyId);
 router.get('/document/:document', UserRoutes.obtenerUserByDocument);
 router.get('/email/:email', UserRoutes.obtenerUserByEmail);
 // router.post('/', verifyToken, UserRoutes.altaUser);  //Comentada para no dejar publicada
-router.put('/:id', verifyToken, UserRoutes.modificarUser);
+router.put('/:id', verifyToken, UserRoutes.modificarUserVal);
 router.delete('/:id', verifyToken, UserRoutes.eliminarUser);
 
 module.exports = router;

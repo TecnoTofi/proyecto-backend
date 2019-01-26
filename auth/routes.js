@@ -13,14 +13,15 @@ const { getCompanyById,
         rollbackInsertCompany,
         insertCompany,
         validarCompany: validarDatosCompany,
-        updateCompany } = require('../companies/routes');
+        modificarCompany } = require('../companies/routes');
 //Incluimos funciones de User
 const { getUserByDocument,
         getUserByEmail,
         getUserById,
         insertUser,
+        updateUser,
         validarUserUpdate: validarDatosUser,
-        updateUser } = require('../users/routes');
+        modificarUser } = require('../users/routes');
 //Incluimos funciones de helpers
 const { getTypeById, getRubroById, validarId } = require('../helpers/routes');
 
@@ -398,112 +399,86 @@ async function signup(req, res){
 };
 
 async function actualizarPerfil(req, res){
-    console.log('request', req.body);
-    let idUser = req.params.idUser;
-    let idEmpresa = req.params.idEmpr;
-    console.log(`Conexion POST entrante : /api/auth/update/user/${idUser}/company/${idEmpresa}`);
+    console.log(`Conexion POST entrante : /api/auth/update/user/${req.params.idUser}/company/${req.params.idCompany}`);
 
     console.info(`Comenzando validacion de tipos`);
-    let { error: errorUserId } = validarId(idUser);
-    let { error: errorCompanyId } = validarId(idEmpresa);
+    let { error: errorIdUser } = validarId(req.params.idUser);
+    let { error: errorIdCompany } = validarId(req.params.idCompany);
 
-    if(errorUserId || errorCompanyId){
-        console.info(`Error/es en la validacion de tipos`);
-        console.log(errorUserId.details[0].message);
-        console.log(errorCompanyId.details[0].message);
+    if(errorIdUser || errorIdCompany){
+        console.info(`Error en la validacion de tipos`);
+        console.info(errorIdUser.details[0].message);
+        console.info(errorIdCompany.details[0].message);
         console.info('Preparando response');
-        res.status(400).json({message: [errorUserId.details[0].message, errorCompanyId.details[0].message]});
+        return { status: 400, message: [errorIdUser.details[0].message, errorIdCompany.details[0].message] };
     }
     else{
-        console.info('Validaciones de tipo exitosas');
-        console.info('Comenzando validaciones de existencia');
+        console.info('Validacion de tipos exitosa');
+        console.info('Comenzando validacion de existencias');
         let errorMessage = [];
+        let { company, message: companyMessage } = await getCompanyById(req.params.idCompany);
+        let { user, message: userMessage } = await getUserById(req.params.idUser);
 
-        let { user: userById, message: userMessage } = await getUserById(idUser);
-        let { company: companyById, message: companyMessage } = await getCompanyById(idEmpresa);
-
-        if(!userById) errorMessage.push(userMessage);
-        if(!companyById) errorMessage.push(companyMessage);
-        if(companyById && userById && companyById.id !== userById.companyId)
-                errorMessage.push('El usuario ingresado no corresponde con la empresa ingresada');
+        if(!company) errorMessage.push(companyMessage);
+        if(!user) errorMessage.push(userMessage);
 
         if(errorMessage.length > 0){
             console.info(`Se encontraron ${errorMessage.length} errores de existencia en la request`);
             errorMessage.map(err => console.log(err));
-            console.info('Enviando response')
-            res.status(400).json({message: errorMessage});
+            console.info('Enviando response');
+            return { status: 400, message: errorMessage };
         }
         else{
-            //armamos body para user
-            let valUser = {
-                userName: req.body.userName,
-                email: req.body.email,
-                document: req.body.document,
-                userPhone: req.body.userPhone,
-                userFirstStreet: req.body.userFirstStreet,
-                userSecondStreet: req.body.userSecondStreet,
-                userDoorNumber: req.body.userDoorNumber,
-                typeId: req.body.type
-            }
+            console.info('Validacion de existencias exitosa');
+            let { status: statusCompany, message: messageCompany } = await modificarCompany(req.params.idCompany, req.body, req.file);
+            let { status: statusUser, message: messageUser } = await modificarUser(req.params.idUser, req.body);
 
-            // armamos body para company
-            let valComp = {
-                companyName: req.body.companyName,
-                rut: req.body.companyRut,
-                companyPhone: req.body.companyPhone,
-                companyFirstStreet: req.body.companyFirstStreet,
-                companySecondStreet: req.body.companySecondStreet,
-                companyDoorNumber: req.body.companyDoorNumber,
-                description: req.body.companyDescription,
-                typeId: req.body.type,
-                rubroId: req.body.rubro,
-                imageName: req.file ? req.file.filename : '',
-                imagePath: req.file ? req.file.filename : '' 
-            }
-            console.log(valComp);
-
-            //envio bodies para validar tipos de datos
-            console.log('Iniciando validacion de tipos de datos de User');
-            const {error: erroresUser} = await validarDatosUser(valUser);
-            console.log('Iniciando validacion de tipos de datos de Company');
-            const {error: erroresCompany} = await validarDatosCompany(valComp);
-
-            if(erroresCompany || erroresUser){                
-                console.info('Erorres encontrados en la request');
-                let errores = erroresCompany.details.map(e => {
-                    console.info(e.message);
-                    return e.message;
-                });
-
-                let erroresDos = erroresUser.details.map(e => {
-                    console.info(e.message);
-                    return e.message;
-                });
-                errores.concat(erroresDos);
-                return { status: 400, message: errores };
+            if(statusCompany === 200 && statusUser === 200){
+                console.info('Modificacion exitosa');
+                res.status(200).json('Modificacion exitosa');
             }
             else{
-                console.log('Enviando query Update de Company');
-                //Enviamos Update de company
-                let { result: companyRes, message: companyMessage } = await updateCompany(idEmpresa, valComp)
-            
-                console.log('Enviando query Update de User');
-                //envio update de user
-                let { result: userRes, message: userMessage } = await updateUser(idUser, valUser);
+                console.info('Ocurrio un eror en el update');
+                console.info('Comenzando rollbacks');
+                let companyUpdate, userUpdate;
+                if(statusCompany !== 200){
+                    console.info('Comenzando rollback de company');
+                    let comp = {
+                        type: company.typeId,
+                        rubro: company.rubroId,
+                        companyRut: company.companyRut,
+                        companyName: company.companyName,
+                        companyDescription: company.companyDescription,
+                        companyPhone: company.companyPhone,
+                        companyFirstStreet: company.companyFirstStreet,
+                        companySecondStreet: company.companySecondStreet,
+                        companyDoorNumber: company.companyDoorNumber
+                    }
+                    
+                    companyUpdate = await modificarCompany(req.params.idCompany, comp);
+                }
 
-                //si el update de usuer salio bien, envio response
-                if(Number(userRes) !== 0 && Number(companyRes) !== 0){
-                    console.log(`Usuario modificado con ID: ${idUser}`);
-                    console.log('Update finalizado');
-                    res.status(204).json({message: 'Modificacion exitoso'});
+                if(statusUser !== 200){
+                    console.info('Comenzando rollback de user');
+                    let usr = {
+                        type: user.typeId,
+                        userName: user.name,
+                        document: user.document,
+                        email: user.email,
+                        userPhone: user.userPhone,
+                        userFirstStreet: user.userFirstStreet,
+                        userSecondStreet: user.userSecondStreet,
+                        userDoorNumber: user.userDoorNumber,
+                    };
+
+                    userUpdate = await modificarUser(req.params.idUser, usr)
                 }
-                else{
-                    console.info('No se pudo modificar usuario y/o compania');
-                    console.info(companyMessage);
-                    console.info(userMessage);
-                    console.info('Preparando response');
-                    res.status(500).json({message: [userMessage, companyMessage]});
-                }
+
+                if(companyUpdate.status === 200) console.info('Rollback de company exitoso');
+                else console.info('Ocurrio un error en el rollback de company');
+                if(userUpdate.status === 200) console.info('Rollback de user exitoso');
+                else console.info('Ocurrio un error en el rollback de user');
+                res.status(500).json({message: 'Ocurrio un error al procesar la solicitud'});
             }
         }
     }

@@ -315,36 +315,41 @@ async function altaUser(req, res){
     }
 }
 
-async function modificarUser(req, res){
+async function modificarUserVal(req, res){
     console.info(`Conexion PUT entrante : /api/user/${req.params.id}`);
 
+    let { status, message } = await altaProducto(req.params.id, req.body);
+
+    res.status(status).json(message);
+}
+
+async function modificarUser(id, body){
     console.info(`Comenzando validacion de tipos`);
-    let { error } = validarId(req.params.id);
+    let { error } = validarId(id);
 
     if(error){
         console.info(`Error en la validacion de tipos: ${error.details[0].message}`);
         console.info('Preparando response');
-        res.status(400).json({message: error.details[0].message});
+        return { status: 400, message: error.details[0].message };
     }
     else{
         console.info('Enviando a validar tipos de datos en request');
         let valUser = {
-            typeId: req.body.typeId,
-            userName: req.body.userName,
-            document: req.body.document,
-            email: req.body.email,
-            password: req.body.password,
-            userPhone: req.body.userPhone,
-            userFirstStreet: req.body.userFirstStreet,
-            userSecondStreet: req.body.userSecondStreet,
-            userDoorNumber: req.body.userDoorNumber,
+            typeId: body.type,
+            userName: body.userName,
+            document: body.document,
+            email: body.email,
+            userPhone: body.userPhone,
+            userFirstStreet: body.userFirstStreet,
+            userSecondStreet: body.userSecondStreet,
+            userDoorNumber: body.userDoorNumber,
         };
     
         //Inicializo array de errores
         let errorMessage = [];
     
         console.info(`Comenzando validacion de tipos`);
-        let { error: errorUser} = validarUser(valUser);
+        let { error: errorUser} = validarUserUpdate(valUser);
     
         if(errorUser) {
             console.info('Errores encontrados en la validacion de tipos de usuario');
@@ -359,45 +364,37 @@ async function modificarUser(req, res){
             console.info(`Se encontraron ${errorMessage.length} errores de tipo en la request`);
             errorMessage.map(err => console.log(err));
             console.info('Enviando response');
-            res.status(400).json({message: errorMessage});
+            return { status: 400, message: errorMessage };
         }
         else{
             console.info('Validacion de tipos exitosa');
             console.info('Comenzando validaciones de existencia');
     
             //Vuelvo a colocar companyId
-            valUser.companyId = req.body.companyId;
+            valUser.companyId = body.companyId;
     
-            console.info(`Yendo a buscar usuario con ID: ${req.params.id}`);
-            let { user: userById, message: userByIdMessage } = await getUserById(req.params.id);
+            console.info(`Yendo a buscar usuario con ID: ${id}`);
+            let { user: userById, message: userByIdMessage } = await getUserById(id);
             let { user: userByDocument } = await getUserByDocument(valUser.document);
             let { user: userByEmail } = await getUserByEmail(valUser.email);
             let { type, message: typeMessage } = await getTypeById(valUser.typeId);
             let { company, message: companyMessage } = await getCompanyById(valUser.companyId);
     
             if(!userById) errorMessage.push(userByIdMessage);
-            if(userByDocument && userByDocument.id !== req.params.id) errorMessage.push(`Ya existe otro usuario con documento ${valUser.document}`);
-            if(userByEmail && userByEmail.id !== req.params.id) errorMessage.push(`Ya existe otro usuario con email ${valUser.email}`);
+            if(userByDocument && userByDocument.id !== id) errorMessage.push(`Ya existe otro usuario con documento ${valUser.document}`);
+            if(userByEmail && userByEmail.id !== id) errorMessage.push(`Ya existe otro usuario con email ${valUser.email}`);
             if(!type) errorMessage.push(typeMessage);
             if(!company) errorMessage.push(companyMessage);
-            if(userById && userById.companyId !== valUser.companyId) errorMessage.push(`Usuario ${req.params.id} no pertenece a la empresa ${valUser.companyId}`);
+            if(userById && userById.companyId !== valUser.companyId) errorMessage.push(`Usuario ${id} no pertenece a la empresa ${valUser.companyId}`);
     
             if(errorMessage.length > 0){
                 console.info(`Se encontraron ${errorMessage.length} errores de existencia en la request`);
                 errorMessage.map(err => console.log(err));
                 console.info('Enviando response');
-                res.status(400).json({message: errorMessage});
+                return { status: 400, message: errorMessage };
             }
             else{
                 console.info('Validacion de existencia exitosas');
-                console.info('Comenzado encryptacion de contraseña');
-                const hash = await bcrypt.hash(valUser.password, 10);
-                
-                if(!hash){
-                    console.error(`Error al crear hash : ${err}`);
-                    res.status(500).json({message: 'Error al registrarse'});
-                }
-                else{
                     console.info('Encryptacion de contraseña, correcta');
                     console.info('Preparando objeto para update');
     
@@ -406,26 +403,26 @@ async function modificarUser(req, res){
                         name: valUser.userName,
                         document: valUser.document,
                         email: valUser.email,
-                        password: hash,
+                        password: userById.password,
                         phone: valUser.userPhone,
                         firstStreet: valUser.userFirstStreet,
                         secondStreet: valUser.userSecondStreet,
                         doorNumber: valUser.userDoorNumber,
                     };
     
-                    let { result, message } = await updateUser(req.params.id, user);
+                    let { result, message } = await updateUser(id, user);
     
                     if(result){
-                        console.info(`Usuario con ID: ${req.params.id} actualizado correctamente`);
+                        console.info(`Usuario con ID: ${id} actualizado correctamente`);
                         console.info('Preparando response');
-                        res.status(200).json({message: 'Modificacion exitosa'});
+                        return { status: 200, message: 'Modificacion exitosa' };
                     }
                     else{
                         console.info('No se pudo modificar usuario');
                         console.info('Preparando response');
-                        res.status(500).json({message: message});
+                        return { status: 500, message: message };
                     }
-                }
+                // }
             }
         }
     }
@@ -841,6 +838,7 @@ module.exports = {
     obtenerUserByDocument,
     obtenerUserByEmail,
     altaUser,
+    modificarUserVal,
     modificarUser,
     eliminarUser,
     getUsers,

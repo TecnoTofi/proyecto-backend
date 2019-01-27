@@ -3,9 +3,8 @@ const queries = require('./dbQueries');
 const { getCompanyById } = require('../companies/routes');
 const { getUserByEmail } = require('../users/routes');
 const { getCategoryById, validarId } = require('../helpers/routes');
-// const { getPackageProductsByPackageNonDeleted } = require('../packages/routes');
 
-    async function obtenerProducts(req, res){
+async function obtenerProducts(req, res){
     console.info('Conexion GET entrante : /api/product/');
 
     let { products, message } = await getProducts();
@@ -451,7 +450,7 @@ async function altaProducto(body, file){
         code: body.code,
         categories: body.categories,
         imageName: file ? file.filename : 'producto.jpg',
-        imagePath: file ? file.path : 'uploads\products\producto.jpg',
+        imagePath: file ? file.path : 'uploads/products/producto.jpg',
     };
 
     // validacion de tipos
@@ -491,8 +490,6 @@ async function altaProducto(body, file){
         if(errorMessage.length > 0){
             console.info(`Se encontraron ${errorMessage.length} errores de existencia en la request`);
             errorMessage.map(err => console.log(err));
-            // console.info('Enviando response')
-            // res.status(400).json({message: errorMessage});
             return { status: 400, message: errorMessage };
         }
         else{
@@ -541,7 +538,6 @@ async function altaProducto(body, file){
 
                 if(!rollback){
                     console.log('Alta de producto finalizada exitosamente');
-                    // res.status(201).json(productId);
                     return { status: 201, product: productId, categories: prodCategoryIds };
                 }
                 else{
@@ -558,14 +554,11 @@ async function altaProducto(body, file){
                     let rollbackProduct = await rollbackInsertProduct(producto.id);
                     if(rollbackProduct.res) console.log(`Rollback de Producto ${id} realizado correctamente`);
                     else console.log(`Ocurrio un error en rollback de Producto ${id}`);
-                    // console.info('Preparando response');
-                    // res.status(500).json({message: 'Ocurrio un error en el alta de productos'});
                     return { status: 500, message: 'Ocurrio un error en el alta de productos'};
                 }   
             }
             else{
                 console.log(`Error al insertar producto: ${productMessage}`);
-                // res.status(500).json({message: productMessage});
                 return { status: 500, message: productMessage };
             }
         }
@@ -589,8 +582,8 @@ async function asociarProducto(body, file){
             description: body.description,
             stock: body.stock,
             price: body.price,
-            imageName: file ? file.filename : null,
-            imagePath: file ? file.path : null,
+            imageName: file ? file.filename : 'producto.jpg',
+            imagePath: file ? file.path : 'uploads/products/producto.jpg',
     };
 
     // validacion de tipos
@@ -982,7 +975,7 @@ async function getProducts(){
                                 let flag = true;
                                 for(let p of data){
                                     let categories = [];
-                                    p.imagePath = p.imagePath.replace(/\\/g, '/');
+                                    if(p.imagePath) p.imagePath = p.imagePath.replace(/\\/g, '/');
                                     let { categorias: categoriesIds } = await getProductCategoryByProduct(p.id);
                                     if(categoriesIds){
                                         for(let c of categoriesIds){
@@ -1027,7 +1020,7 @@ async function getCompanyProducts(){
                                 let flag = true;
                                 for(let p of data.rows){
                                     let categories = [];
-                                    p.imagePath = p.imagePath.replace(/\\/g, '/');
+                                    if(p.imagePath) p.imagePath = p.imagePath.replace(/\\/g, '/');
                                     let { categorias: categoriesIds } = await getProductCategoryByProduct(p.productId);
                                     if(categoriesIds){
                                         for(let c of categoriesIds){
@@ -1071,7 +1064,7 @@ async function getAllCompanyProducts(){
                                 let flag = true;
                                 for(let p of data.rows){
                                     let categories = [];
-                                    p.imagePath = p.imagePath.replace(/\\/g, '/');
+                                    if(p.imagePath) p.imagePath = p.imagePath.replace(/\\/g, '/');
                                     let { categorias: categoriesIds } = await getProductCategoryByProduct(p.productId);
                                     if(categoriesIds){
                                         for(let c of categoriesIds){
@@ -1115,7 +1108,7 @@ async function getDeletedCompanyProducts(){
                                 let flag = true;
                                 for(let p of data.rows){
                                     let categories = [];
-                                    p.imagePath = p.imagePath.replace(/\\/g, '/');
+                                    if(p.imagePath) p.imagePath = p.imagePath.replace(/\\/g, '/');
                                     let { categorias: categoriesIds } = await getProductCategoryByProduct(p.productId);
                                     if(categoriesIds){
                                         for(let c of categoriesIds){
@@ -1159,7 +1152,7 @@ async function getCompanyProductsByCompany(id){
                                 let flag = true;
                                 for(let p of data.rows){
                                     let categories = [];
-                                    p.imagePath = p.imagePath.replace(/\\/g, '/');
+                                    if(p.imagePath) p.imagePath = p.imagePath.replace(/\\/g, '/');
                                     let { categorias: categoriesIds } = await getProductCategoryByProduct(p.productId);
                                     if(categoriesIds){
                                         for(let c of categoriesIds){
@@ -1203,7 +1196,7 @@ async function getNotAssociatedProductsByCompany(id){
                                 let flag = true;
                                 for(let p of data.rows){
                                     let categories = [];
-                                    p.imagePath = p.imagePath.replace(/\\/g, '/');
+                                    if(p.imagePath) p.imagePath = p.imagePath.replace(/\\/g, '/');
                                     let { categorias: categoriesIds } = await getProductCategoryByProduct(p.id);
                                     if(categoriesIds){
                                         for(let c of categoriesIds){
@@ -1247,7 +1240,7 @@ async function getCompanyProductsByProduct(id){
                                 let flag = true;
                                 for(let p of data.rows){
                                     let categories = [];
-                                    p.imagePath = p.imagePath.replace(/\\/g, '/');
+                                    if(p.imagePath) p.imagePath = p.imagePath.replace(/\\/g, '/');
                                     
                                     let { company } = await getCompanyById(p.companyId);
                                     if(company) p.companyName = company.name;
@@ -1300,7 +1293,7 @@ async function getAllCompanyProductsByCompany(id){
                                 let flag = true;
                                 for(let p of data.rows){
                                     let categories = [];
-                                    p.imagePath = p.imagePath.replace(/\\/g, '/');
+                                    if(p.imagePath) p.imagePath = p.imagePath.replace(/\\/g, '/');
                                     let { categorias: categoriesIds } = await getProductCategoryByProduct(p.productId);
                                     if(categoriesIds){
                                         for(let c of categoriesIds){
@@ -1344,7 +1337,7 @@ async function getDeletedProductsByCompany(id){
                                 let flag = true;
                                 for(let p of data.rows){
                                     let categories = [];
-                                    p.imagePath = p.imagePath.replace(/\\/g, '/');
+                                    if(p.imagePath) p.imagePath = p.imagePath.replace(/\\/g, '/');
                                     let { categorias: categoriesIds } = await getProductCategoryByProduct(p.productId);
                                     if(categoriesIds){
                                         for(let c of categoriesIds){
@@ -1387,7 +1380,7 @@ async function getProductById(id){
                             console.info(`Producto con ID: ${id} encontrado`);
                             let flag = true;
                             let categories = [];
-                            data.imagePath = data.imagePath.replace(/\\/g, '/');
+                            if(data.imagePath) data.imagePath = data.imagePath.replace(/\\/g, '/');
                             let { categorias: categoriesIds } = await getProductCategoryByProduct(data.id);
                             if(categoriesIds){
                                 for(let c of categoriesIds){
@@ -1430,7 +1423,7 @@ async function getProductByCode(code){
                             console.info(`Producto con Codigo: ${code} encontrado`);
                             let flag = true;
                             let categories = [];
-                            data.imagePath = data.imagePath.replace(/\\/g, '/');
+                            if(data.imagePath) data.imagePath = data.imagePath.replace(/\\/g, '/');
                             let { categorias: categoriesIds } = await getProductCategoryByProduct(data.id);
                             if(categoriesIds){
                                 for(let c of categoriesIds){
@@ -1498,7 +1491,7 @@ async function getCompanyProductById(id){
                             console.info(`CompanyProduct con id: ${id} encontrado`);
                             let flag = true;
                             let categories = [];
-                            data.rows[0].imagePath = data.rows[0].imagePath.replace(/\\/g, '/');
+                            if(data.rows[0].imagePath) data.rows[0].imagePath = data.rows[0].imagePath.replace(/\\/g, '/');
                             let { categorias: categoriesIds } = await getProductCategoryByProduct(data.rows[0].productId);
                             if(categoriesIds){
                                 for(let c of categoriesIds){
@@ -1540,11 +1533,7 @@ async function getCompanyProductByProduct(idComp, idProd){
                         // console.log('data', data);
                         if(data.rows.length > 0){
                             console.info(`CompanyProduct con productId: ${idProd} para compania ${idComp} encontrado`);
-                            let regex = /\\/g;
-                            // const productos = Promise.all(data.map(async prod => {
-                                data.rows[0].imagePath = data.rows[0].imagePath.replace(regex, '/');
-                                // return prod;
-                            // }));
+                            if(data.rows[0].imagePath) data.rows[0].imagePath = data.rows[0].imagePath.replace(/\\/g, '/');
                             return data.rows[0];
                         }
                         else{
@@ -1573,7 +1562,7 @@ async function getProductsByCategory(categoryId){
                             let flag = true;
                                 for(let p of data.rows){
                                     let categories = [];
-                                    p.imagePath = p.imagePath.replace(/\\/g, '/');
+                                    if(p.imagePath) p.imagePath = p.imagePath.replace(/\\/g, '/');
                                     let { categorias: categoriesIds } = await getProductCategoryByProduct(p.id);
                                     if(categoriesIds){
                                         for(let c of categoriesIds){
@@ -1700,97 +1689,133 @@ async function associateProduct(producto){
 
 async function cargaBulkVal(req,res){
 
-    console.log('Conexion POST entrante : /api/product/cargaBulk');
+    console.log('Conexion POST entrante : /api/product/bulk');
 
-    let { status,product,productCompany,errores} = await cargaBulk(req.body, req.file);
-    console.log(status, product,productCompany,errores);
+    let { status, product, productCompany, errores} = await cargaBulk(req.body);
+    
     res.status(status).json(errores);
 }
 
-async function cargaBulk(body, file){
-    console.log('Conexion POST entrante : /api/product/cargaBulk');
+async function cargaBulk(body){
+    console.info('Comenzando carga bulk de productos');
 
+    console.info('Obteniendo array de productos');
     let productsArray = JSON.parse( body.products);
-    //let productsArray =  body.products ;
-    console.log(productsArray);
+    
     let productError = [];
-    let productRet =[];
-    let productCompanyRet =[];
+    let productRet = [];
+    let productCompanyRet = [];
 
     if(!productsArray){
-        console.log("array vacio");
-        productError.push("array para carga en bol vacio");
-        return { status: 500, product: productRet, productCompany: productCompanyRet, errores:productError };
-
+        console.info('No se encontraron productos');
+        productError.push('No se encontraron productos');
+        return { status: 500, product: productRet, productCompany: productCompanyRet, errores: productError };
     }
     else{
-
+        console.info('Productos encontrados');
         for(prod in productsArray){
             let producto = productsArray[prod];
+            let altaFlag = true, asociacionFlag = true;
+            let altaOK = false, asociacionOK = false;
+            let idProd;
 
-            let { producto: ProductoByCode } = await getProductByCode(producto.code);
+            let { producto: productoByCode } = await getProductByCode(producto.code);
             
-            if(ProductoByCode) productError.push({codigo:producto.code,mensaje:`Ya existe un producto con Codigo ${producto.code}`});
+            if(productoByCode){
+                altaFlag = false;
+                idProd = productoByCode.id;
+                console.info(`Producto con codigo ${producto.code} encontrado`);
+                console.info(`Buscando companyProduct con productId ${productoByCode.id}`);
+                let { producto: companyProduct } = await getCompanyProductByProduct(body.companyId, productoByCode.id);
 
-            if(!ProductoByCode){
-
-                console.log("el codigo no esta repetido");
-                console.log('Validaciones de codigo y categorias exitosas exitosas');
-
-                let ValProduct = {
+                if(companyProduct){
+                    console.info(`CompanyProduct con productId: ${productoByCode.id} encontrado`);
+                    console.info('Agregando error');
+                    productError.push({ codigo: producto.code, mensaje: `Ya existe un producto con Codigo ${producto.code} asociado a la compania con ID: ${companyProduct.companyId}` });
+                    asociacionFlag = false;
+                }
+                else console.info(`No existe companyProducto con productId ${productoByCode.id}, continuando con asociacion`);
+            }
+            
+            if(altaFlag){                
+                console.log('Preparando insert de product');
+                let nuevoProducto = {
                     name: producto.name,
                     code: producto.code,
-                    created: new Date(),
+                    categories: JSON.parse('[' + producto.categories + ']'),
+                }
+
+                console.info('Enviando insert de producto');
+                let { status: altaStatus, message: altaMessage, product, categories } = await altaProducto(nuevoProducto);
+
+                if(altaStatus === 201){
+                    console.info(`Alta de producto con codigo ${producto.code} exitosa`)
+                    idProd = Number(product);
+                    productRet.push(product);
+                    altaOK = true;
+                }
+                else{
+                    console.info(`Error en alta de producto con codigo ${producto.code}`);
+                    console.info(altaMessage);
+                    productError.push({ codigo: producto.code, mensaje: altaMessage });
+                    asociacionFlag = false;
+                }
+            }
+
+            if(asociacionFlag){
+
+                console.info('entro a if asociar', idProd)
+
+                let nuevoCompanyProduct = {
+                    productId: idProd,
                     companyId: body.companyId,
+                    name: producto.name,
                     description: producto.description,
                     stock: producto.stock,
                     price: producto.price,
-                    categories:JSON.parse('[' + producto.categories + ']'),
-                    userEmail:body.userEmail,
-                    imageName: file ? file.filename : null,
-                    imagePath: file ? file.path : null,
+                    userEmail: body.userEmail,
                 }
-                let { status: altaStatus, message: altaMessage, product, categories } = await altaProducto(ValProduct, file);
 
-                    if(altaStatus === 201){
-                        ValProduct.productId = Number(product);
-                        productRet.push(product);
-                        let { status: asociarStatus, message: asociarMessage, companyProduct } = await asociarProducto(ValProduct,file);
+                console.info(`Enviando producto con codigo ${producto.code} a asociar`);
+                let { status: asociarStatus, message: asociarMessage, companyProduct } = await asociarProducto(nuevoCompanyProduct);
 
-                    if(asociarStatus === 201){
-                        console.log("producto insertado y asociado correctamente",product,companyProduct);
-                        productCompanyRet.push({productId:product,companyId:companyProduct});
-                    }
-                    else{
-                        for(let cat of categories){
-                            console.log(`Enviando rollback de ProductCategory ID: ${cat}`);
-                            let rollbackProductCategory = await rollbackInsertProductCategory(cat);
-                            if(rollbackProductCategory.res) console.log(`Rollback de ProductCategory ${cat} realizado correctamente`);
-                            else console.log(`Ocurrio un error en rollback de ProductCategory ${cat}`);
-                        }
-                        console.log('Comenzando rollbacks de producto');
-                        let rollbackProduct = await rollbackInsertProduct(product);
-                        if(rollbackProduct.res) console.log(`Rollback de Producto ${product} realizado correctamente`);
-                        else console.log(`Ocurrio un error en rollback de Producto ${product}`);
-            
-                        productError.push({codigo:producto.code,mensaje:asociarMessage});
-                    }
-                    }
-                    else{
-                        productError.push({codigo:producto.code,mensaje:altaMessage});
-                    }
+                if(asociarStatus === 201){
+                    console.log(`Producto con codigo ${producto.code} asociado correctamente`);
+                    productCompanyRet.push({ productId: idProd, companyId: companyProduct });
+                    asociacionOK = true;
+                }
+                else{
+                     console.info(`Fallo asociacion de producto con codigo ${producto.code}`);
+                     console.info(asociarMessage);
+                     productError.push({ codigo: producto.code, mensaje: asociarMessage });
+                }
+            }
+
+            if(!asociacionOK && altaOK){
+                console.info('Comenzando rollbacks');
+                for(let cat of categories){
+                    console.log(`Enviando rollback de ProductCategory ID: ${cat}`);
+                    let rollbackProductCategory = await rollbackInsertProductCategory(cat);
+                    if(rollbackProductCategory.res) console.log(`Rollback de ProductCategory ${cat} realizado correctamente`);
+                    else console.log(`Ocurrio un error en rollback de ProductCategory ${cat}`);
+                }
+                console.log('Comenzando rollbacks de producto');
+                let rollbackProduct = await rollbackInsertProduct(product);
+                if(rollbackProduct.res) console.log(`Rollback de Producto ${product} realizado correctamente`);
+                else console.log(`Ocurrio un error en rollback de Producto ${product}`);
             }
         }
 
-        if(productRet.length === 0){
-            
-            return { status: 400, product: productRet, productCompany: productCompanyRet, errores:productError };
+        if(productRet.length === 0 && productCompanyRet.length === 0){
+            console.info('No se pudo dar de alta ni asociar ningun producto');
+            console.log('Enviando response');
+            return { status: 400, product: productRet, productCompany: productCompanyRet, errores: productError };
         }
-
-        else {
-            return { status: 201, product: productRet, productCompany: productCompanyRet, errores:productError };
-        }
-         
+        else{
+            console.info(`Se dieron de alta ${productRet.length} productos y se asociaron ${productCompanyRet.length} productos`);
+            console.log('Enviando response');
+            return { status: 201, product: productRet, productCompany: productCompanyRet, errores: productError };
+        } 
     }
 }
 

@@ -233,8 +233,6 @@ async function altaPaquete(req, res){
     console.info(req.body);
 
     req.body.categories = JSON.parse('[' + req.body.categories + ']');
-    // console.log('categorias', req.body.categories)
-    // console.log('productos', req.body.productos)
 
     let valPackage = {
         code: req.body.code,
@@ -245,7 +243,7 @@ async function altaPaquete(req, res){
         categories: req.body.categories,
         productos: req.body.productos,
         imageName: req.file ? req.file.filename : 'package.jpg',
-        imagePath: req.file ? req.file.path : 'uploads\packages\package.jpg',
+        imagePath: req.file ? req.file.path : 'uploads/packages/package.jpg',
     };
 
     // validacion de tipos
@@ -828,9 +826,8 @@ async function armarPackage(paquete){
 
     let categories = [], message = '', flag = true;
 
+    if(paquete.imagePath) paquete.imagePath = paquete.imagePath.replace(/\\/g, '/');
     
-    paquete.imagePath = paquete.imagePath.replace(/\\/g, '/');
-
     let { company } = await getCompanyById(paquete.companyId);
     if(company) paquete.companyName = company.name;
     else {

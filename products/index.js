@@ -58,6 +58,6 @@ router.post('/associate', upload.single('image'), verifyToken, ProductRoutes.aso
 router.post('/company' , upload.single('image'), verifyToken, ProductRoutes.altaAsociacionProducto);
 router.put('/:productId/company/:companyId', upload.single('image'), verifyToken, ProductRoutes.modificarProducto);
 router.delete('/company/:id', verifyToken, ProductRoutes.eliminarProducto);
-router.post('/bulk', upload.single('image'), verifyToken, ProductRoutes.cargaBulkVal)
+router.post('/bulk',  upload.single('image'), verifyToken, ProductRoutes.cargaBulkVal);
 
 module.exports = router;

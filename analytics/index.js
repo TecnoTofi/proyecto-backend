@@ -8,6 +8,7 @@ const router = express.Router();
 const AnalyticsRoutes = require('./routes');
 const { verifyToken } = require('../auth/routes');
 
+//Endpoints
 router.get('/signups', AnalyticsRoutes.obtenerRegistrosPorMes);
 router.get('/logins', AnalyticsRoutes.obtenerLoginsPorMes);
 router.get('/products', AnalyticsRoutes.obtenerRegistroProductosPorMes);
@@ -16,6 +17,5 @@ router.get('/ventas/pedidos', AnalyticsRoutes.obtenerPedidosPorMes);
 router.get('/ventas/transactions', AnalyticsRoutes.obtenerTransaccionesPorMes);
 router.get('/ventas/products', AnalyticsRoutes.obtenerVentaProductosPorMes);
 router.get('/ventas/packages', AnalyticsRoutes.obtenerVentaPaquetesPorMes);
-
 
 module.exports = router;

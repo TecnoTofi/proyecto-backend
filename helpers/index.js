@@ -1,9 +1,14 @@
+//Incluimos modulo express para el manejo HTTP
 const express = require('express');
+//Creamos el router
 const router = express.Router();
+
 const HelperRoutes = require('./routes');
 const { verifyToken } = require('../auth/routes');
 
 //Todas las rutas empiezan con /api/helper
+
+//Endpoints
 
 //Categorias
 router.get('/category', HelperRoutes.obtenerCategories);

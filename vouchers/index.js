@@ -1,11 +1,14 @@
+//Incluimos modulo express para el manejo HTTP
 const express = require('express');
+//Creamos el router
 const router = express.Router();
+
 const VoucherRoutes = require('./routes');
 const { verifyToken } = require('../auth/routes');
 
 //Todas las rutas empiezan con /api/voucher
 
-//Voucher
+//Endpoints
 router.get('/', verifyToken, VoucherRoutes.obtenerVoucher);
 router.get(/^\/voucherCompany$/, verifyToken, VoucherRoutes.obtenerVoucherCompany);
 router.get('/:id', verifyToken, VoucherRoutes.obtenerVoucherById);

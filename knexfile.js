@@ -1,4 +1,6 @@
+//Creamos conexiones para los diferentes ambientes
 module.exports = {
+    //Ambiente de desarrollo
     development: {
         client: 'pg',
         connection: {
@@ -8,6 +10,7 @@ module.exports = {
             database: 'proyecto'
         }
     },
+    //Ambiente de pre-produccion
     staging: {
         client: 'pg',
         connection: {

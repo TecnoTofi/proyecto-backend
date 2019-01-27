@@ -1,6 +1,9 @@
+//Importamos conexion a DataBase
 const knex = require('../db/connection');
 
+//Exportamos queries
 module.exports = {
+    //Queries de paquetes
     packages: {
         getPackages: function() {
             return knex.select().table('Package').where('deleted', null);
@@ -73,6 +76,7 @@ module.exports = {
             return knex('Package').where('id', id).update('deleted', date);
         },
     },
+    //Queries de productos de paquete
     packageProduct: {
         getAll: function(){
             return knex.select().table('PackageProduct');
@@ -101,6 +105,7 @@ module.exports = {
             return knex('PackageProduct').where('packageId', id).del();
         }
     },
+    //Queries de categorias de paquete
     packCategory: {
         getAll: function(){
             return knex.select().table('PackageCategory');
@@ -129,6 +134,7 @@ module.exports = {
             return knex('PackageCategory').where('packageId', id).del();
         }
     },
+    //Queries de precios de paquetes
     prices: {
         getOneById: function(id){
             return knex.select().table('PackagePrice').where('id', id).first();
@@ -144,25 +150,5 @@ module.exports = {
         insert: function(price){
             return knex('PackagePrice').insert(price).returning('id');
         }
-    },
-    categories: {
-        getAll: function(){
-            return knex.select().table('Category');
-        },
-        getOneById: function(id){
-            return knex.select().table('Category').where('id', id).first();
-        },
-        getOneByName: function(name){
-            return knex.select().table('Category').where('name', name).first();
-        },
-        insert: function(category){
-            return knex('Category').insert(category).returnning('id');
-        },
-        modify: function(id, name){
-            return knex('Category').where('id', id).update('name', name);
-        },
-        delete: function(id){
-            return knex('Category').where('id', id).del();
-        }
-    },
+    }
 }

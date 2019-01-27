@@ -4,9 +4,6 @@ const express = require('express');
 const router= express.Router();
 const multer= require('multer');
 
-const PackagesRoutes = require('./routes');
-const { verifyToken } = require('../auth/routes');
-
 const storage = multer.diskStorage({
     destination: function(req, file, cb){
         //indicamos ruta destino de las imagenes
@@ -38,9 +35,12 @@ const upload = multer({
     fileFilter: fileFilter
 });
 
+const PackagesRoutes = require('./routes');
+const { verifyToken } = require('../auth/routes');
+
 //Todas las rutas empiezan con /api/package
 
-//Obtener todos los paquetes
+//Endpoints
 router.get('/', PackagesRoutes.obtenerPackages);
 router.get('/all', PackagesRoutes.obtenerAllPackages);
 router.get('/deleted', PackagesRoutes.obtenerDeletedPackages);

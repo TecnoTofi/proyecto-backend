@@ -40,6 +40,7 @@ const { verifyToken } = require('../auth/routes');
 
 //Todas las rutas empiezan con /api/company
 
+//Endpoints
 router.get('/', CompanyRoutes.obtenerCompanies);
 router.get('/all', CompanyRoutes.obtenerAllCompanies);
 router.get('/deleted', CompanyRoutes.obtenerDeletedCompanies);

@@ -35,19 +35,15 @@ const upload = multer({
     fileFilter: fileFilter
 });
 
+const AuthRoutes = require('./routes');
+
 //Todas las rutas empiezan con /api/auth
 
-//Incluimos rutas de Auth
-const AuthRoutes = require('./routes');
-//Creamos ruteos HTTP 
+//Endpoints
 router.post('/', AuthRoutes.verifyToken, AuthRoutes.login);
 router.post('/login', AuthRoutes.login);
 router.post('/logout', AuthRoutes.logout);
-//Registro de usuarios-empresa
 router.post('/signup', upload.single('companyImage'), AuthRoutes.signup);
-//Modificar usuarios-empresa
-//pasar a put
 router.put('/update/user/:idUser/company/:idCompany', AuthRoutes.verifyToken, upload.single('companyImage'), AuthRoutes.actualizarPerfil);
 
-//Exportamos el router
 module.exports = router;

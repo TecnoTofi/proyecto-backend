@@ -1,6 +1,9 @@
+//Importamos conexion a DataBase
 const knex = require('../db/connection');
 
+//Exportamos queries
 module.exports = {
+    //Queries de pedidos
     pedidos: {
         getAll: function(){
             return knex.select().table('Pedido');
@@ -24,6 +27,7 @@ module.exports = {
             return knex('Pedido').where('id', id).del();
         }
     },
+    //Queries de transacciones
     transactions: {
         getAll: function(){
             return knex.select().table('Transaction');
@@ -50,6 +54,7 @@ module.exports = {
             return knex('Transaction').where('id', id).del();
         }
     },
+    //Queries de productos de transacciones
     transactionProducts: {
         getAll: function(){
             return knex.select().table('TransactionProduct');
@@ -67,6 +72,7 @@ module.exports = {
             return knex('TransactionProduct').where('id', id).del();
         }
     },
+    //Queries de paquetes de transacciones
     transactionPackages: {
         getAll: function(){
             return knex.select().table('TransactionPackage');
@@ -84,6 +90,7 @@ module.exports = {
             return knex('TransactionPackage').where('id', id).del();
         }
     },
+    //Queries de relacion transaccion - pedido
     pedidoTransaction: {
         insert: function(pedidoTransaction){
             return knex('PedidoTransaction').insert(pedidoTransaction).returning('id');
@@ -92,6 +99,7 @@ module.exports = {
             return knex('PedidoTransaction').where('id', id).del();
         }
     },
+    //Queries de deliveries
     deliveries: {
         getAll: function(){
             return knex.select().table('Delivery');
@@ -109,6 +117,7 @@ module.exports = {
             return knex('Delivery').where('id', id).del();
         },
     },
+    //Queries de reportes
     consultas:{
         getTopCincoProductosMasVendidosByCompany: function(idCompany, fecha){
             return knex.raw('SELECT tp."productId", p.code, c.name, SUM(quantity) from "Transaction" t, "TransactionProduct" tp, "CompanyProduct" c, "Product" p WHERE tp."transactionId" = t.id and c.id = tp."productId" and p.id = c."productId" and t."sellerId" = ? and t."timestamp" > ? group by tp."productId", p.code, c.name order by SUM desc limit 5',

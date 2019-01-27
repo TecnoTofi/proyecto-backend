@@ -1,6 +1,9 @@
+//Importamos conexion a DataBase
 const knex = require('../db/connection');
 
+//Exportamos queries
 module.exports = {
+    //Queries de vouchers
     voucher: {
         getAll: function(){
             return knex.select().table('Voucher');
@@ -21,6 +24,7 @@ module.exports = {
             return knex('Voucher').where('id', id).update({cantidad: voucher.cantidad});
         },
     },
+    //Queries de relacion voucher - compania
     voucherCompany: {
         getAll: function(){
             return knex.select().table('VoucherCompany');

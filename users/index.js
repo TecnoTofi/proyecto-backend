@@ -8,6 +8,7 @@ const { verifyToken } = require('../auth/routes');
 
 //Todas las rutas empiezan con /api/user
 
+//Endpoints
 router.get('/', UserRoutes.obtenerUsers);
 router.get('/all', UserRoutes.obtenerAllUsers);
 router.get('/deleted', UserRoutes.obtenerDeletedUsers);

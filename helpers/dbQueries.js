@@ -1,6 +1,9 @@
+//Importamos conexion a DataBase
 const knex = require('../db/connection');
 
+//Exportamos queries
 module.exports = {
+    //Queries de categorias
     categories: {
         getAll: function(){
             return knex.select().table('Category');
@@ -21,6 +24,7 @@ module.exports = {
             return knex('Category').where('id', id).del();
         }
     },
+    //Queries de rubros
     rubros: {
         getAll: function(){
             return knex.select().table('Rubro');
@@ -41,6 +45,7 @@ module.exports = {
             return knex('Rubro').where('id', id).del();
         }
     },
+    //Queries de tipos
     types: {
         getAll: function() {
             return knex.select().table('Type');

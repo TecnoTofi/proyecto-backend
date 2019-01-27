@@ -244,7 +244,7 @@ async function altaPaquete(req, res){
         price: req.body.price,
         categories: req.body.categories,
         productos: req.body.productos,
-        imageName: req.file ? req.file.filename : 'uploads\packages\package.jpg',
+        imageName: req.file ? req.file.filename : 'package.jpg',
         imagePath: req.file ? req.file.path : 'uploads\packages\package.jpg',
     };
 

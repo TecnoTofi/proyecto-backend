@@ -29,32 +29,18 @@ const analyticRoutes = require('./analytics/index');
 
 //Inicializamos APP
 const app = express();
+//Usamos morgan para logeo de conexiones
 app.use(morgan('dev'));
-app.use(cors({
-    credentials: true
-}));
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended : false }));
 // app.use(cookieParser(process.env.COOKIE_SECRET));
 app.use(cookieParser());
+//Cors para permitir conexiones de servidores externos
 app.use(cors());
-// app.use((re, res, next) => {
-//     res.header("Access-Control-Allow-Origin", "http://localhost:3001");
-//     res.header("Access-Control-Allow-Headers", "Origin, X-Requested-With, Content-Type, Accept");
-//     next();
-// });
+//Hacemos publica la carpeta de imagenes para servir de URLs
 app.use('/uploads', express.static('uploads'));
-// const allowCrossDomain = function(req, res, next) {
-//     res.header("Access-Control-Allow-Origin", "*"); // allow requests from any other server
-//     res.header('Access-Control-Allow-Methods', 'GET,PUT,POST,DELETE'); // allow these verbs
-//     res.header("Access-Control-Allow-Headers", "Origin, X-Requested-With, Content-Type, Accept, Cache-Control");
-//     next();
-// };
 
-// app.use(allowCrossDomain);
-// app.set('trust proxy', true);
-
-//Monstamos ruteos propios
+//Montamos ruteos propios
 app.use('/api/auth', authRoutes);
 app.use('/api/helper', helpersRoutes);
 app.use('/api/user', usersRoutes);
@@ -65,7 +51,7 @@ app.use('/api/pedido', pedidosRoutes);
 app.use('/api/voucher', voucherRoutes);
 app.use('/api/analytics', analyticRoutes);
 
-//Mensaje de bienvenida a /
+//Mensaje de bienvenida a / (root)
 app.get('/', (req, res) => {
     res.json({message: 'Bienvenido a la plataforma de sistema de gestion de pedidos'});
   });

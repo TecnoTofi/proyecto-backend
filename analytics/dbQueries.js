@@ -1,6 +1,9 @@
+//Importamos conexion a DataBase
 const knex = require('../db/connection');
 
+//Exportamos queries
 module.exports = {
+    //Queries de usuarios
     usuarios: {
         getSignUpsPorFecha: function(dateTo, dateFrom){
             return knex.raw('select count(*) from "User" where created >= ? and created <= ?',
@@ -11,18 +14,21 @@ module.exports = {
             [dateTo, dateFrom])
         },
     },
+    //Queries de productos
     productos: {
         getRegistrosPorFecha: function(dateTo, dateFrom){
             return knex.raw('select count(*) from "Product" where created >= ? and created <= ?',
             [dateTo, dateFrom])
         },
     },
+    //Queries de paquetes
     paquetes: {
         getRegistrosPorFecha: function(dateTo, dateFrom){
             return knex.raw('select count(*) from "Package" where created >= ? and created <= ?',
             [dateTo, dateFrom])
         },
     },
+    //Queries de pedidos
     pedidos: {
         getPedidosPorFecha: function(dateTo, dateFrom){
             return knex.raw('select count(*) from "Pedido" where "timestamp" >= ? and "timestamp" <= ?',

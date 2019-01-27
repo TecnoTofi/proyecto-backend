@@ -1,6 +1,9 @@
+//Importamos conexion a DataBase
 const knex = require('../db/connection');
 
+//Exportamos queries
 module.exports = {
+    //Queries de usuarios
     users: {
         getUsers: function(){
             return knex.select().table('User').where('deleted', null);
@@ -56,29 +59,6 @@ module.exports = {
         rollback: function(id){
             console.log(`Enviando Query DELETE a User`);
             return knex('User').where('id', id).del();
-        }
-    },
-    types: {
-        getAll: function() {
-            return knex.select().table('Type');
-        },
-        getOneById: function(id){
-            return knex.select().table('Type').where('id', id).first();
-        },
-        getOneByName: function(name){
-            return knex.select().table('Type').where('name', name).first();
-        },
-        getForSignup: function(){
-            return knex.select().table('Type').whereIn('name', ['Minorista', 'Mayorista']);
-        },
-        insert: function(rol){
-            return knex('Type').insert(rol).returning('id');
-        },
-        update: function(id, name){
-            return knex('Type').where('id', id).update('name', name);
-        },
-        delete: function(id){
-            return knex('Type').where('id', id).del();
         }
     }
 };

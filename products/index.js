@@ -57,8 +57,9 @@ router.get('/company/:companyId/product/:productId', verifyToken, ProductRoutes.
 router.post('/', upload.single('image'), verifyToken, ProductRoutes.altaProductoVal);
 router.post('/associate', upload.single('image'), verifyToken, ProductRoutes.asociarProductoVal);
 router.post('/company' , upload.single('image'), verifyToken, ProductRoutes.altaAsociacionProducto);
+router.post('/bulk',  upload.single('image'), verifyToken, ProductRoutes.cargaBulkVal);
+router.post('/company/:companyId/category/:categoryId/price', verifyToken, ProductRoutes.ajustarPrecioByCompanyByCategory);
 router.put('/:productId/company/:companyId', upload.single('image'), verifyToken, ProductRoutes.modificarProducto);
 router.delete('/company/:id', verifyToken, ProductRoutes.eliminarProducto);
-router.post('/bulk',  upload.single('image'), verifyToken, ProductRoutes.cargaBulkVal);
 
 module.exports = router;

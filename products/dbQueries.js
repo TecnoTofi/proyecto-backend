@@ -130,6 +130,10 @@ module.exports ={
             return knex.raw('select pc.id, p.code, pc."companyId", p.id "productId", pc.name, pc.description, pc.stock, pc."imagePath", pc."imageName", pc.created, pc.deleted from "Product" p, "CompanyProduct" pc where pc."companyId" = ? and  pc."productId" = ? and p.id = pc."productId"',
             [idComp,idProd]);
         },
+        getByCompanyByCategory: function(companyId, categoryId){
+            return knex.raw('select c.id, c."companyId", c."productId", (select price from "ProductPrice" where "productId" = c.id order by "validDateFrom" desc limit 1) "price" from "CompanyProduct" c where "companyId" = ? and "productId" in (select "productId" from "ProductCategory" where "categoryId" = ?)',
+            [companyId, categoryId]);
+        },
         insert: function(product){
             return knex('CompanyProduct').insert(product).returning('id');
         },

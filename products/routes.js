@@ -32,7 +32,6 @@ async function obtenerProducts(req, res){
 
 //Endpoint para obtener todos los companyProducts no borrados
 async function obtenerCompanyProducts(req, res){
-    console.log('test')
     console.info('Conexion GET entrante : /api/product/company');
 
     //Obtenemos los datos
@@ -2346,6 +2345,170 @@ async function getLastPrices(id){
     return { prices, message };
 }
 
+async function getCompapnyProductsByCompanyByCategory(companyId, categoryId){
+    console.info(`Buscando companyProducts de company: ${companyId} con categoria ${categoryId}`);
+    let message = '';
+    //Conectamos con las queries
+    let companyProducts = await queries
+                .companyProduct
+                .getByCompanyByCategory(companyId, categoryId)
+                .then(data => {
+                    //Si se consiguio la info
+                    if(data) {
+                        console.info(`Informacion de companyProducts encontrada`);
+                        return data.rows;
+                    }
+                    else{
+                        //Si no se consiguieron datos
+                        console.info(`No existen companyProducts para la compania: ${companyId} con categoria ${categoryId}`);
+                        message = `No existen companyProducts para la compania: ${companyId} con categoria ${categoryId}`;
+                        return null;
+                    }
+                })
+                .catch(err => {
+                    console.error(`Error en Query SELECT de CompanyProduct: ${err}`);
+                    message = 'Ocurrio un error al obtener los companyProduct';
+                    return null;
+                });
+    return { companyProducts, message };
+}
+
+async function ajustarPrecioByCompanyByCategory(req, res){
+    console.info('Conexion GET entrante : /api/product/company/:companyId/category/:categoryId/price');
+
+    //Validamos parametro de la URL
+    console.info(`Comenzando validacion de tipos`);
+    let { error: companyError } = validarId(req.params.companyId);
+    let { error: categoryError } = validarId(req.params.categoryId);
+    let { error: errorAjuste} = await validarAjuste({ type: req.body.type, aumento: req.body.aumento, difference: req.body.difference });
+
+    if(companyError || categoryError || errorAjuste){
+        //Si hay error retornamos
+        let errores = [];
+        console.info(`Error en la validacion de tipos`);
+        if(companyError){
+            console.info(companyError.details[0].message);
+            errores.push(companyError.details[0].message);
+        }
+        if(categoryError){
+            console.info(categoryError.details[0].message);
+            errores.push(categoryError.details[0].message);
+        }
+        if(errorAjuste){
+            for(let e of errorAjuste.details){
+                console.info(e);
+                errores.push(e);
+            }
+        }
+        console.info('Preparando response');
+        res.status(400).json({message: errores});
+    }
+    else{
+        console.info('Validaciones de tipo exitosas');
+        //Iniciamos array de errores
+        let errorMessage = [];
+
+        //Obtenemos las entidades
+        let { company, message: companyMessage } = await getCompanyById(req.params.companyId);
+        let { category, message: categoryMessage } = await getCategoryById(req.params.categoryId);
+        let { user, message: userMessage } = await getUserByEmail(req.body.userEmail);
+
+        //Verificamos por errores
+        if(!company) errorMessage.push(companyMessage);
+        if(!category) errorMessage.push(categoryMessage);
+        if(!user) errorMessage.push(userMessage);
+        if(user && company && user.companyId !== company.id) errorMessage.push(`Compania con ID ${company.id} no corresponde con usuario con email ${user.email}`);
+
+        if(errorMessage.length > 0){
+            //Si hay algun error, retornamos
+            console.info(`Se encontraron ${errorMessage.length} errores de existencia en la request`);
+            errorMessage.map(err => console.log(err));
+            return { status: 400, message: errorMessage };
+        }
+        else{
+            console.log('Validaciones de existencia exitosas');
+            console.info('Obteniendo companyProducts');
+            //Buscamos los datos
+            let { companyProducts, message: companyProductsMessage } = await getCompapnyProductsByCompanyByCategory(req.params.companyId, req.params.categoryId);
+
+            if(!companyProducts){
+                console.info('No existen companyProducts que cumplan los requisitos');
+                console.info(companyProductsMessage);
+                console.info('Preparando response');
+                res.status(400).json({ message: 'No existen companyProducts que cumplan los requisitos' });
+            }
+            else{
+                console.info(`${companyProducts.length} companyProducts encontrados`);
+
+                //Creo array para guardado de Ids de nuevos precios en caso de rollback
+                let pricesIds = [], rollback = false;
+
+                console.info('Comenzado de insert de nuevos precios');
+                for(let p of companyProducts){
+                    console.info(`Calculando precio para companyProduct con ID: ${p.id}`);
+                    
+                    //Calculando ajuste de nuevo precio
+                    let price = 0;
+                    let valor = req.body.difference;
+
+                    console.info(`Precio actual: ${p.price}`)
+
+                    console.info('precio actual', typeof p.price);
+
+                    if(req.body.type === 'valor'){
+                        if(req.body.aumento) price = p.price + valor;
+                        else price = p.price - valor;
+                    }
+                    else{
+                        price = p.price;
+                        if(req.body.aumento) price += p.price * (valor / 100);
+                        else price -= p.price * (valor / 100);
+                    }
+
+                    console.info(`Nuevo precio: ${price}`);
+                    console.info('Nuevo precio:', typeof price);
+
+                    //Creamos body para insert de precio
+                    let newPrice = {
+                        productId: p.id,
+                        price: price,
+                        validDateFrom: new Date()
+                    }
+
+                    console.info('Precio calculado, enviado insert');
+                    let { id, message } = await insertPrice(newPrice);
+
+                    if(id){
+                        console.info('Precio insertado correctamente');
+                        pricesIds.push(id);
+                    }
+                    else{
+                        console.info('Fallo insert de precio, marcando rollback');
+                        console.info(message);
+                        rollback = true;
+                    }
+                }
+
+                if(pricesIds.length === companyProducts.length){
+                    console.info(`${pricesIds.length} precios ajustados`);
+                    console.info('Preparando response');
+                    res.status(200).json({ message: 'Ajustes exitosos' });
+                }
+                else rollback = true;
+
+                if(rollback){
+                    for(let p of pricesIds){
+                        console.log(`Enviando rollback de precio ID: ${p}`);
+                        let rollbackRes = await rollbackInsertPrice(p);
+                        if(rollbackRes.res) console.log(`Rollback de precio ${p} realizado correctamente`);
+                        else console.log(`Ocurrio un error en rollback de precio ${p}`);
+                    }
+                }
+            }
+        }
+    }
+}
+
 //Auxiliar para aumentar o disminuir el stock de un companyProduct dado
 const ajustarStock = async (id, cantidad, tipo) => {
     console.info(`Comenzando ajuste de stock para producto con ID: ${id}, cantidad a ${tipo}: ${cantidad}`);
@@ -2445,6 +2608,19 @@ function validarAsociacion(body) {
     return Joi.validate(body, schema);
 }
 
+function validarAjuste(body){
+    console.info('Comenzando validacion Joi de ajuste de precios');
+    //Creamos schema Joi
+    const schema = {
+        type: Joi.string().required(),
+        aumento: Joi.bool().required(),
+        difference: Joi.number().required(),
+    };
+    console.info('Finalizando validacion Joi de ajuste de precios');
+    //Validamos
+    return Joi.validate(body, schema);
+}
+
 //Funcion para validar datos para modificar un companyProduct
 function validarModificacionCompanyProduct(body) {
     console.info('Comenzando validacion Joi de companyProduct');
@@ -2515,6 +2691,7 @@ module.exports = {
     asociarProductoVal,
     altaAsociacionProducto,
     cargaBulkVal,
+    ajustarPrecioByCompanyByCategory,
     modificarProducto,
     eliminarProducto,
     getProducts,

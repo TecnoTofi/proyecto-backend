@@ -2,8 +2,9 @@
 const express = require('express');
 //Creamos el router
 const router = express.Router();
-
+//Incluimos modulo multer para manejo de request FormData (con imagenes)
 const multer = require('multer');
+//Creamos storage para indicar donde almacenar las imagenes
 const storage = multer.diskStorage({
     destination: function(req, file, cb){
         //indicamos ruta destino de las imagenes

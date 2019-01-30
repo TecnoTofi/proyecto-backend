@@ -496,7 +496,7 @@ async function actualizarPerfil(req, res){
 function validarLogin(body){
     //Creamos schema Joi
     const schema = Joi.object().keys({
-        userEmail: Joi.string().email().required(),
+        userEmail: Joi.string().email().min(5).max(30).required(),
         userPassword: Joi.string().min(8).max(20).required()
     }).with('userEmail', 'userPassword');
     //Validamos

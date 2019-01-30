@@ -1755,7 +1755,7 @@ async function ajustarStock(id, cantidad, tipo){
 }
 
 function validarCode(code){
-    const schema = Joi.string().required();
+    const schema = Joi.string().min(1).max(20).required();
 
     return Joi.validate(code, schema);
 }
@@ -1817,11 +1817,11 @@ async function validarProducto(id){
 
 function validarPackage(body) {
     const schema = {
-        code: Joi.string().required(),
+        code: Joi.string().min(0).max(20).required(),
         name: Joi.string().min(3).max(30).required(),
         description: Joi.string().min(3).max(30).required(),
-        stock: Joi.number().required(),
-        price: Joi.number().required(),
+        stock: Joi.number().min(0).max(999999).required(),
+        price: Joi.number().min(1).max(999999).required(),
         categories: Joi.array().required(),
         productos: Joi.array().required(),
         imageName: Joi.string().min(3).max(150).required(),
@@ -1832,9 +1832,9 @@ function validarPackage(body) {
 
 function validarRegistroPackageProduct(body) {
     const schema = {
-        packageId:Joi.number().required(),
-        productId:Joi.number().required(),
-        quantity: Joi.number().required(),
+        packageId: Joi.number().min(0).max(999999999).required(),
+        productId: Joi.number().min(0).max(999999999).required(),
+        quantity: Joi.number().min(0).max(999999999).required(),
     };
     return Joi.validate(body, schema);
 }

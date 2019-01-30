@@ -874,8 +874,8 @@ function validarCompany(body){
     console.info('Comenzando validacion Joi de Company');
     //Creamos schema Joi
     const schema = Joi.object().keys({
-        typeId: Joi.number().required(),
-        rubroId: Joi.number().required(),
+        typeId: Joi.number().min(0).max(9999).required(),
+        rubroId: Joi.number().min(0).max(9999).required(),
         rut: Joi.string().min(12).max(12).required(),
         companyName: Joi.string().min(3).max(50).required(),
         description: Joi.string().min(5).max(100),

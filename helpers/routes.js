@@ -1291,7 +1291,7 @@ async function deleteType(id){
 function validarRequest(name){
     console.info('Comenzando validacion Joi de la request');
     //Creamos schema Joi
-    const schema = Joi.string().required();
+    const schema = Joi.string().min(1).max(30).required();
     console.info('Finalizando validacion Joi de la request');
     //Validamos
     return Joi.validate(name, schema);
@@ -1301,7 +1301,7 @@ function validarRequest(name){
 function validarId(id){
     console.info('Comenzando validacion Joi del ID');
     //Creamos schema Joi
-    const schema = Joi.number().required();
+    const schema = Joi.number().min(0).max(999999999).required();
     console.info('Finalizando validacion Joi del ID');
     //Validamos
     return Joi.validate(id, schema);

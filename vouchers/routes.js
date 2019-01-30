@@ -813,13 +813,13 @@ function validarVoucher(body){
     console.info('Comenzando validacion Joi de Voucher');
     //Creamos schema Joi
     const schema = Joi.object().keys({
-        voucher: Joi.string().required(),
-        type: Joi.string().required(),
-        value: Joi.number().required(),
+        voucher: Joi.string().min(1).max(20).required(),
+        type: Joi.string().min(0).max(999999999).required(),
+        value: Joi.number().min(1).max(999999).required(),
         companies: Joi.string().required(),
         rubros: Joi.string(),
         categories: Joi.string().required(),
-        cantidad: Joi.number().required(),
+        cantidad: Joi.number().min(0).max(999999).required(),
         vencimiento: Joi.date().required()
     });
     console.info('Finalizando validacion Joi de Voucher');
@@ -832,8 +832,8 @@ function validarVoucherCompany(body){
     console.info('Comenzando validacion Joi de VoucherCompany');
     //Creamos schema Joi
     const schema = Joi.object().keys({
-        voucherId: Joi.number().required(),
-        companyId: Joi.number().required()
+        voucherId: Joi.number().min(0).max(999999999).required(),
+        companyId: Joi.number().min(0).max(999999999).required()
     });
     console.info('Finalizando validacion Joi de VoucherCompany');
     //Validamos
@@ -942,7 +942,7 @@ async function validarCompanies(companiesList){
 function validarCode(code){
     console.info('Comenzando validacion Joi de Codigo');
     //Creamos schema Joi
-    const schema = Joi.string().required();
+    const schema = Joi.string().min(1).max(20).required();
     console.info('Finalizando validacion Joi de Codigo');
     //Validamos
     return Joi.validate(code, schema);

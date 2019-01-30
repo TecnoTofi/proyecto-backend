@@ -915,10 +915,10 @@ function validarUser(body){
     console.info('Comenzando validacion Joi de Usuario');
     //Creamos schema Joi
     const schema = Joi.object().keys({
-        typeId: Joi.number().required(),
+        typeId: Joi.number().min(0).max(999999999).required(),
         userName: Joi.string().min(3).max(50).required(),
         document: Joi.string().min(5).max(15).required(),
-        email: Joi.string().email().required(),
+        email: Joi.string().email().min(5).max(30).required(),
         password: Joi.string().min(8).max(20).required(),
         userPhone: Joi.string().min(7).max(15).required(),
         userFirstStreet: Joi.string().min(3).max(30).allow('').allow(null),
@@ -936,10 +936,10 @@ function validarUserUpdate(body){
     console.info('Comenzando validacion Joi de Usuario');
     //Creamos schema Joi
     const schema = Joi.object().keys({
-        typeId: Joi.number().required(),
+        typeId: Joi.number().min(0).max(999999999).required(),
         userName: Joi.string().min(3).max(50).required(),
         document: Joi.string().min(5).max(15).required(),
-        email: Joi.string().email().required(),
+        email: Joi.string().email().min(5).max(30).required(),
         userPhone: Joi.string().min(7).max(15).required(),
         userFirstStreet: Joi.string().min(3).max(30).allow('').allow(null),
         userSecondStreet: Joi.string().min(3).max(30).allow('').allow(null),
@@ -955,7 +955,7 @@ function validarUserUpdate(body){
 function validarEmail(email){
     console.info('Comenzando validacion Joi de Email');
     //Creamos schema Joi
-    const schema = Joi.string().email().required();
+    const schema = Joi.string().email().min(5).max(30).required();
     console.info('Finalizando validacion Joi de Email');
     //Validamos
     return Joi.validate(email, schema);

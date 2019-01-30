@@ -1968,11 +1968,11 @@ async function rollbackDelivery(id){
 function validarPedido(body){
     console.info('Comenzando validacion Joi de Pedido');
     const schema = Joi.object().keys({
-        userId: Joi.number().required(),
-        buyerId: Joi.number().required(),
-        amount: Joi.number().required(),
-        voucher: Joi.string().allow('').allow(null),
-        deliveryType: Joi.string().required(),
+        userId: Joi.number().min(0).max(999999999).required(),
+        buyerId: Joi.number().min(0).max(999999999).required(),
+        amount: Joi.number().min(0).max(999999).required(),
+        voucher: Joi.string().allow('').allow(null).min(1).max(20),
+        deliveryType: Joi.string().min(1).max(20).required(),
         contenido: Joi.array().required()
     });
     console.info('Finalizando validacion Joi de Pedido');
@@ -2000,7 +2000,7 @@ function validarCalculo(validar){
     console.info('Comenzando validacion Joi de calculo');
     const schema = Joi.object().keys({
         contenido: Joi.array().required(),
-        voucher: Joi.string().allow('').allow(null)
+        voucher: Joi.string().allow('').allow(null).min(1).max(20)
     });
     console.info('Finalizando validacion Joi de calculo');
     return Joi.validate(validar, schema);

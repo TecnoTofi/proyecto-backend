@@ -2453,8 +2453,6 @@ async function ajustarPrecioByCompanyByCategory(req, res){
 
                     console.info(`Precio actual: ${p.price}`)
 
-                    console.info('precio actual', typeof p.price);
-
                     if(req.body.type === 'valor'){
                         if(req.body.aumento) price = p.price + valor;
                         else price = p.price - valor;
@@ -2466,7 +2464,6 @@ async function ajustarPrecioByCompanyByCategory(req, res){
                     }
 
                     console.info(`Nuevo precio: ${price}`);
-                    console.info('Nuevo precio:', typeof price);
 
                     //Creamos body para insert de precio
                     let newPrice = {
@@ -2567,7 +2564,7 @@ const ajustarStock = async (id, cantidad, tipo) => {
 function validarCode(code){
     console.info('Comenzando validacion Joi de codigo');
     //Creamos schema Joi
-    const schema = Joi.string().required();
+    const schema = Joi.string().min(1).max(20).required();
     console.info('Finalizando validacion Joi de codigo');
     //Validamos
     return Joi.validate(code, schema);
@@ -2579,7 +2576,7 @@ function validarProducto(body) {
     //Creamos schema Joi
     const schema = Joi.object().keys({
         name: Joi.string().min(3).max(50).required(),
-        code: Joi.string().required(),
+        code: Joi.string().min(1).max(20).required(),
         categories: Joi.array().required(),
         imageName: Joi.allow('').allow(null),
         imagePath: Joi.allow('').allow(null)
@@ -2594,12 +2591,12 @@ function validarAsociacion(body) {
     console.info('Comenzando validacion Joi de companyProduct');
     //Creamos schema Joi
     const schema = {
-        productId: Joi.number().required(),
-        companyId: Joi.number().required(),
+        productId: Joi.number().min(0).max(999999999).required(),
+        companyId: Joi.number().min(0).max(999999999).required(),
         name: Joi.string().min(3).max(50).required(),
         description: Joi.string().min(5).max(50).required(),
-        stock: Joi.number().required(),
-        price: Joi.number().required(),
+        stock: Joi.number().min(0).max(999999).required(),
+        price: Joi.number().min(1).max(999999).required(),
         imageName: Joi.allow('').allow(null),
         imagePath: Joi.allow('').allow(null)
     };
@@ -2612,9 +2609,9 @@ function validarAjuste(body){
     console.info('Comenzando validacion Joi de ajuste de precios');
     //Creamos schema Joi
     const schema = {
-        type: Joi.string().required(),
+        type: Joi.string().min(1).max(20).required(),
         aumento: Joi.bool().required(),
-        difference: Joi.number().required(),
+        difference: Joi.number().min(1).max(999999).required(),
     };
     console.info('Finalizando validacion Joi de ajuste de precios');
     //Validamos
@@ -2628,8 +2625,8 @@ function validarModificacionCompanyProduct(body) {
     const schema = {
         name: Joi.string().min(3).max(30).required(),
         description:Joi.string().min(5).max(50).required(),
-        price:Joi.number().required(),
-        stock:Joi.number().required(),
+        price:Joi.number().min(1).max(999999).required(),
+        stock:Joi.number().min(0).max(999999).required(),
         imageName: Joi.allow('').allow(null),
         imagePath: Joi.allow('').allow(null),
     };

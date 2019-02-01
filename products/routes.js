@@ -1053,22 +1053,33 @@ async function eliminarProducto(req, res){
             if(user){
                 //Verificamos relacion usuario - compania
                 if(user.companyId === producto.companyId){
-                    console.info('Enviando request para eliminacion');
-                    //Enviamos a borrar el companyProduct (update que inserta timestamp en campo 'deleted')
-                    let { result, message: deleteMessage } = await deleteCompanyProduct(req.params.id, new Date());
-                    
-                    if(result){
-                        //Si salio bien, retornamos
-                        console.info(`CompanyProduct con ID: ${req.params.id} eliminado correctamente`);
+
+                    let { packageProducts } = await comprobarParaEliminar(producto.id, producto.companyId);
+
+                    if(packageProducts && packageProducts.length > 0){
+                        console.info(`Producto existe en ${packageProducts.length} paquetes activos`);
+                        console.info(`No se puede eliminar producto`);
                         console.info('Preparando response');
-                        res.status(200).json({message: 'Borrado exitoso'});
+                        res.status(400).json({ message: `Producto existe en ${packageProducts.length} paquetes activos` });
                     }
                     else{
-                        //Si fallo damos error
-                        console.info('No se pudo eliminar CompanyProduct');
-                        console.info('Preparando response');
-                        res.status(500).json({message: deleteMessage});
-                    }                   
+                        console.info('Enviando request para eliminacion');
+                        //Enviamos a borrar el companyProduct (update que inserta timestamp en campo 'deleted')
+                        let { result, message: deleteMessage } = await deleteCompanyProduct(req.params.id, new Date());
+                        
+                        if(result){
+                            //Si salio bien, retornamos
+                            console.info(`CompanyProduct con ID: ${req.params.id} eliminado correctamente`);
+                            console.info('Preparando response');
+                            res.status(200).json({message: 'Borrado exitoso'});
+                        }
+                        else{
+                            //Si fallo damos error
+                            console.info('No se pudo eliminar CompanyProduct');
+                            console.info('Preparando response');
+                            res.status(500).json({message: deleteMessage});
+                        }  
+                    }                 
                 }
                 else{
                     //Si no existe relacion usuario - compania
@@ -2504,6 +2515,34 @@ async function ajustarPrecioByCompanyByCategory(req, res){
             }
         }
     }
+}
+
+async function comprobarParaEliminar(productId, companyId){
+    console.info(`Buscando paquetes activos para compania ${companyId} con producto ${productId}`);
+    let message = '';
+    //Conectamos con las queries
+    let packageProducts = await queries
+                .companyProduct
+                .getByPackageNonDeleted(productId, companyId)
+                .then(data => {
+                    //Si se consiguio la info
+                    if(data) {
+                        console.info(`Paquetes encontrados`);
+                        return data.rows;
+                    }
+                    else{
+                        //Si no se consiguieron datos
+                        console.info(`No existen paquetes activos con producto ${productId} para la compania ${companyId}`);
+                        message = `No existen paquetes activos con producto ${productId} para la compania ${companyId}`;
+                        return null;
+                    }
+                })
+                .catch(err => {
+                    console.error(`Error en Query SELECT de PackageProduct: ${err}`);
+                    message = 'Ocurrio un error al obtener los PackageProducts';
+                    return null;
+                });
+    return { packageProducts, message };
 }
 
 //Auxiliar para aumentar o disminuir el stock de un companyProduct dado

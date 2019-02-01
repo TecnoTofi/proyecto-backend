@@ -134,6 +134,10 @@ module.exports ={
             return knex.raw('select c.id, c."companyId", c."productId", (select price from "ProductPrice" where "productId" = c.id order by "validDateFrom" desc limit 1) "price" from "CompanyProduct" c where "companyId" = ? and "productId" in (select "productId" from "ProductCategory" where "categoryId" = ?)',
             [companyId, categoryId]);
         },
+        getByPackageNonDeleted(productId, companyId){
+            return knex.raw('select * from "PackageProduct" where "productId" = ? and "packageId" in (select id from "Package" where "companyId" = ? and deleted is null)',
+            [productId, companyId]);
+        },
         insert: function(product){
             return knex('CompanyProduct').insert(product).returning('id');
         },

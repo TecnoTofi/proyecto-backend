@@ -1005,7 +1005,6 @@ async function modificarProducto(req, res){
                         //Update exitoso
                         console.info('Modificacion termianda');
                         let { producto: prod, message: prodMessage } = await getCompanyProductById(req.params.productId);
-                        console.log(prod);
                         console.info('Preparando response');
                         res.status(200).json({message: 'Modificacion exitosa', product: prod});
                     }

@@ -998,6 +998,7 @@ module.exports = {
     altaVoucherVal,
     altaVoucherCompanyVal,
     ajustarStock,
+    getVoucherById,
     getVoucherByCode,
     insertVoucherCompany,
     validacionVoucher,

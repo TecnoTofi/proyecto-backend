@@ -1327,7 +1327,6 @@ async function getPackageById(id){
                                 message = packageMessage;
                                 flag = false;
                             }
-                            console.log('packageById', paquete)
                             if(flag) return data;
                             else return null;
                         }

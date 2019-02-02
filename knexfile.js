@@ -14,10 +14,10 @@ module.exports = {
     staging: {
         client: 'pg',
         connection: {
-            host: 'ec2-50-17-203-51.compute-1.amazonaws.com',
-            user: 'fxwkjcyawtohcl',
-            password: '83e094bb1501761f33a1ef74b6dba4b8a85d220b46615a5461a39b2d904b3ac3',
-            database: 'd8f4u4b2llotp6'
+            host: 'ec2-54-225-89-195.compute-1.amazonaws.com',
+            user: 'fswnxtnoweacty',
+            password: '38437f10ac98c1c38897647482a3748b6742cd0dfeb45ff0505185ad14da4a85',
+            database: 'ddtvcn26fkmdqg'
         }
     }
 };

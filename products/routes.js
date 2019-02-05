@@ -918,6 +918,7 @@ async function modificarProducto(req, res){
             let { producto: productById, message: productByIdMessage } = await getCompanyProductById(req.params.productId);
             let { company: companyById, message: companyByIdMessage } = await getCompanyById(req.params.companyId);
             let { price:  precioActual, message: precioMessage } = await getCurrentPrice(req.params.productId);
+            
 
             //Si hay errores, agregamos al array
             if(!productById) errorMessage.push(productByIdMessage);
@@ -945,75 +946,105 @@ async function modificarProducto(req, res){
                     imagePath: valCompanyProduct.imagePath ? valCompanyProduct.imagePath : productById.imagePath
                 };
 
-                //Llamamos auxiliar para update de companyProduct
-                let { result, message: updateMessage } = await updateProduct(req.params.productId, product);
+                //Obtenemos producto base
+                let { producto: productGeneric, message: productGenericMessage } = await getProductById(productById.productId);
 
-                if(result){
-                    //Update exitoso
-                    console.info(`CompanyProduct con ID: ${req.params.productId} actualizada correctamente`);
-
-                    if(precioActual.price !== valCompanyProduct.price){
-                        //Creamos body para nuevo precio
-                        let precio = {
-                            price: valCompanyProduct.price,
-                            productId: req.params.productId,
-                            validDateFrom: new Date(),
+                if(!productGeneric){
+                    //Si falla retornamos, ya que algo esta mal con el producto o la BD
+                    console.info(`No se pudo obtener producto generico con ID: ${productById.productId}`);
+                    console.info(productGenericMessage);
+                    console.info('Preparando response');
+                    res.status(500).json({message: 'Ocurrio un error al procesar la solicitud.'});
+                }
+                else {
+                    //Si el producto base aun tiene la imagen por defecto, le ponemos la misma que el companyProduct
+                    if(productGeneric.imageName === 'producto.jpg'){
+                        console.info('Producto generico aun tiene imagen default, procediendo a cambiarla');
+                        //Armamos body para update
+                        let prodGeneric = {
+                            code: productGeneric.code,
+                            name: productGeneric.name,
+                            imageName: product.imageName,
+                            imagePath: product.imagePath
                         };
+                        //Llamamos auxiliar para update
+                        let { result: resultGeneric, message: updateGenericMessage } = await updateProductGeneric(productById.productId, prodGeneric);
 
-                        //enviamos a insertar nuevo precio
-                        let { id: priceId, message: priceMessage } = await insertPrice(precio);
+                        //Verificamos que haya salido bien, no hace falta hacer rollback si falla
+                        if(resultGeneric) console.info('Imagen de producto generico se actualizo correctamente.');
+                    }
 
-                        if(priceId){
-                            //Precio insertado correctamente
-                            console.log(`Price insertado correctamente con ID: ${priceId}`);
 
-                            console.log('Modificacion de producto finalizada exitosamente');
-                            res.status(200).json({message: 'Modificacion exitosa'});
-                        }
-                        else{
-                            //Fallo insert de precio, procediendo con rollback
-                            console.log(`Error al insertar price: ${priceMessage}`);
-                            console.log('Comenzando rollbacks de companyProduct');
-                            //Creamos body con datos de companyProduct anterior
-                            let productRollback = {
-                                companyId: productById.companyId,
-                                productId: productById.productId,
-                                name: productById.name,
-                                description: productById.description,
-                                stock: productById.stock,
-                                imageName: productById.imageName,
-                                imagePath: productById.imagePath,
+                    //Llamamos auxiliar para update de companyProduct
+                    let { result, message: updateMessage } = await updateProduct(req.params.productId, product);
+
+                    if(result){
+                        //Update exitoso
+                        console.info(`CompanyProduct con ID: ${req.params.productId} actualizada correctamente`);
+
+                        if(precioActual.price !== valCompanyProduct.price){
+                            //Creamos body para nuevo precio
+                            let precio = {
+                                price: valCompanyProduct.price,
+                                productId: req.params.productId,
+                                validDateFrom: new Date(),
                             };
 
-                            //Llamamos auxiliar de update de companyProduct
-                            let { result: resultUpdateRollback, message: updateRollbackMessage } = await updateProduct(req.params.productId, productRollback);
+                            //enviamos a insertar nuevo precio
+                            let { id: priceId, message: priceMessage } = await insertPrice(precio);
 
-                            if(resultUpdateRollback){
-                                //Rollback exitoso
-                                console.info(`CompanyProduct con ID: ${req.params.productId} corregido correctamente`);
+                            if(priceId){
+                                //Precio insertado correctamente
+                                console.log(`Price insertado correctamente con ID: ${priceId}`);
+
+                                console.log('Modificacion de producto finalizada exitosamente');
+                                res.status(200).json({message: 'Modificacion exitosa'});
                             }
                             else{
-                                //Fallo rollback
-                                console.info('No se pudo realizar rollbacks de companyProduct');
-                                console.info(updateRollbackMessage);
-                                console.info('Preparando response');
-                                res.status(500).json({message: 'Ocurrio un error al modificar el companyProduct'});
+                                //Fallo insert de precio, procediendo con rollback
+                                console.log(`Error al insertar price: ${priceMessage}`);
+                                console.log('Comenzando rollbacks de companyProduct');
+                                //Creamos body con datos de companyProduct anterior
+                                let productRollback = {
+                                    companyId: productById.companyId,
+                                    productId: productById.productId,
+                                    name: productById.name,
+                                    description: productById.description,
+                                    stock: productById.stock,
+                                    imageName: productById.imageName,
+                                    imagePath: productById.imagePath,
+                                };
+
+                                //Llamamos auxiliar de update de companyProduct
+                                let { result: resultUpdateRollback, message: updateRollbackMessage } = await updateProduct(req.params.productId, productRollback);
+
+                                if(resultUpdateRollback){
+                                    //Rollback exitoso
+                                    console.info(`CompanyProduct con ID: ${req.params.productId} corregido correctamente`);
+                                }
+                                else{
+                                    //Fallo rollback
+                                    console.info('No se pudo realizar rollbacks de companyProduct');
+                                    console.info(updateRollbackMessage);
+                                    console.info('Preparando response');
+                                    res.status(500).json({message: 'Ocurrio un error al modificar el companyProduct'});
+                                }
                             }
+                        }
+                        else{
+                            //Update exitoso
+                            console.info('Modificacion termianda');
+                            let { producto: prod, message: prodMessage } = await getCompanyProductById(req.params.productId);
+                            console.info('Preparando response');
+                            res.status(200).json({message: 'Modificacion exitosa', product: prod});
                         }
                     }
                     else{
-                        //Update exitoso
-                        console.info('Modificacion termianda');
-                        let { producto: prod, message: prodMessage } = await getCompanyProductById(req.params.productId);
+                        //Fallo update de companyProduct
+                        console.info('No se pudo modificar companyProduct');
                         console.info('Preparando response');
-                        res.status(200).json({message: 'Modificacion exitosa', product: prod});
+                        res.status(500).json({message: updateMessage});
                     }
-                }
-                else{
-                    //Fallo update de companyProduct
-                    console.info('No se pudo modificar companyProduct');
-                    console.info('Preparando response');
-                    res.status(500).json({message: updateMessage});
                 }
             }
         }
@@ -2169,6 +2200,35 @@ async function updateProduct(id, producto){
                 })
                 .catch(err => {
                     console.error(`Error en Query UPDATE de CompanyProduct: ${err}`);
+                    message = 'Ocurrio un error al intertar modificar';
+                    return 0;
+                });
+    return { result, message };
+}
+
+//Auxiliar para modificar companyProducts existentes
+async function updateProductGeneric(id, producto){
+    console.info('Comenzando update de Product');
+    let message = '';
+    //Conectamos con las queries
+    let result = await queries
+                .products
+                .modify(id, producto)
+                .then(res => {
+                    //Si se actualizo correctamente
+                    if(res){
+                        console.info(`Update de Product con ID: ${id} existoso`);
+                        return res;
+                    }
+                    else{
+                        //Si fallo
+                        console.info('Ocurrio un error');
+                        message = 'Ocurrio un error al intertar modificar';
+                        return 0;
+                    }
+                })
+                .catch(err => {
+                    console.error(`Error en Query UPDATE de Product: ${err}`);
                     message = 'Ocurrio un error al intertar modificar';
                     return 0;
                 });

@@ -952,7 +952,7 @@ async function eliminarPaquete(req, res){
                     //Si salio bien, retornamos
                     console.info(`Package eliminado correctamente con ID: ${req.params.id}`);
                     console.info('Preparando response');
-                    res.status(201).json({message});
+                    res.status(200).json({message});
                 }
                 else{
                     //Si fallo damos error

@@ -469,7 +469,6 @@ async function modificarUser(id, body){
             }
             else{
                 console.info('Validacion de existencia exitosas');
-                console.info('Encryptacion de contraseña, correcta');
                 console.info('Preparando objeto para update');
 
                 //Creo body de update
@@ -845,7 +844,7 @@ async function updateUser(id, user){
                 .then(res => {
                     //Si fue exitoso
                     if(res){
-                        console.info(`Update de User con ID: ${id} existoso}`);
+                        console.info(`Update de User con ID: ${id} existoso`);
                         return res;
                     }
                     else{

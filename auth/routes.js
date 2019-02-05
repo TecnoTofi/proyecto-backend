@@ -449,44 +449,44 @@ async function actualizarPerfil(req, res){
                 console.info('Ocurrio un eror en el update');
                 console.info('Comenzando rollbacks');
                 let companyUpdate, userUpdate;
-                if(statusCompany !== 200){
-                    console.info('Comenzando rollback de company');
-                    let comp = {
-                        type: company.typeId,
-                        rubro: company.rubroId,
-                        companyRut: company.companyRut,
-                        companyName: company.companyName,
-                        companyDescription: company.companyDescription,
-                        companyPhone: company.companyPhone,
-                        companyFirstStreet: company.companyFirstStreet,
-                        companySecondStreet: company.companySecondStreet,
-                        companyDoorNumber: company.companyDoorNumber
-                    }
-                    
-                    companyUpdate = await modificarCompany(req.params.idCompany, comp);
+                console.info('Comenzando rollback de company');
+                let comp = {
+                    type: company.typeId,
+                    rubro: company.rubroId,
+                    companyRut: company.rut,
+                    companyName: company.name,
+                    companyDescription: company.description,
+                    companyPhone: company.phone,
+                    companyFirstStreet: company.firstStreet,
+                    companySecondStreet: company.secondStreet,
+                    companyDoorNumber: company.doorNumber
                 }
+                
+                companyUpdate = await modificarCompany(req.params.idCompany, comp);
+                
+                console.info('Comenzando rollback de user');
+                let usr = {
+                    type: user.typeId,
+                    userName: user.name,
+                    document: user.document,
+                    email: user.email,
+                    userPhone: user.phone,
+                    userFirstStreet: user.firstStreet,
+                    userSecondStreet: user.secondStreet,
+                    userDoorNumber: user.doorNumber,
+                    companyId: user.companyId
+                };
 
-                if(statusUser !== 200){
-                    console.info('Comenzando rollback de user');
-                    let usr = {
-                        type: user.typeId,
-                        userName: user.name,
-                        document: user.document,
-                        email: user.email,
-                        userPhone: user.userPhone,
-                        userFirstStreet: user.userFirstStreet,
-                        userSecondStreet: user.userSecondStreet,
-                        userDoorNumber: user.userDoorNumber,
-                    };
-
-                    userUpdate = await modificarUser(req.params.idUser, usr)
-                }
+                userUpdate = await modificarUser(req.params.idUser, usr);
 
                 if(companyUpdate.status === 200) console.info('Rollback de company exitoso');
                 else console.info('Ocurrio un error en el rollback de company');
                 if(userUpdate.status === 200) console.info('Rollback de user exitoso');
                 else console.info('Ocurrio un error en el rollback de user');
-                res.status(500).json({message: 'Ocurrio un error al procesar la solicitud'});
+                let mensaje = '';
+                if(statusCompany !== 200) mensaje = messageCompany;
+                else if(statusUser !== 200) mensaje = messageUser;
+                res.status(500).json({message: mensaje});
             }
         }
     }

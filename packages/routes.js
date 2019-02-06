@@ -1464,35 +1464,6 @@ async function getAllProductsByPackage (id){
     return { productos, message };
 };
 
-//Auxiliar para obtener relacion producto - paquete filtrando por ID de paquete y compania
-async function getPackageProductsByPackageNonDeleted(packageId, companyId){
-    console.info(`Buscando packageProducts de paquete con ID: ${packageId}`);
-    let message = '';
-    //Conectamos con las queries
-    let packageProducts = await queries
-                    .packageProduct
-                    .getByPackageNonDeleted(packageId, companyId)
-                    .then(async data => {
-                        //Si se consiguio la info
-                        if(data){
-                            console.info('Informacion de packageProducts obtenida');
-                            return data;
-                        }
-                        else{
-                            //Si no se consiguieron datos
-                            console.info(`No existe paquete con ID: ${packageId}`);
-                            message = `No existe un paquete con ID ${packageId}`;
-                            return null;
-                        }
-                    })
-                    .catch(err => {
-                        console.error(`Error en Query SELECT de Package : ${err}`);
-                        message = 'Ocurrio un error al obtener el paquete';
-                        return null;
-                    });
-    return { packageProducts, message };
-}
-
 //Auxiliar para obtener relacion paquete - categoria filtrando por ID de paquete
 async function getPackageCategories(id){
     console.info(`Buscando categorias del paquete con id: ${id}`);
@@ -2184,6 +2155,5 @@ module.exports = {
     getPriceById,
     getCurrentPrice,
     getLastPrices,
-    getPackageProductsByPackageNonDeleted,
     ajustarStock,
 };

@@ -72,8 +72,8 @@ module.exports ={
         getDeleted: function(){
             return knex.raw('select pc.id, p.id "productId", p.code, pc."companyId", pc.name, pc.description, pc.stock, pc."imagePath", pc."imageName", pc.created, pc.deleted, (select price from "ProductPrice" where "productId" = pc.id order by "validDateFrom" desc limit 1) "price", (select id from "ProductPrice" where "productId" = pc.id order by "validDateFrom" desc limit 1) "priceId"  from "Product" p , "CompanyProduct" pc where pc."productId" = p.id and pc.deleted is not null');
         },
-        getOneById: function(id){
-            return knex.raw('select pc.id, p.id "productId", p.code, pc."companyId", pc.name, pc.description, pc.stock, pc."imagePath", pc."imageName", pc.created, pc.deleted, (select price from "ProductPrice" where "productId" = pc.id order by "validDateFrom" desc limit 1) "price", (select id from "ProductPrice" where "productId" = pc.id order by "validDateFrom" desc limit 1) "priceId"  from "Product" p , "CompanyProduct" pc where pc."productId" = p.id and pc.deleted is null and pc.id = ?',
+        getOneById: function(id, deleted){
+            return knex.raw(`select pc.id, p.id "productId", p.code, pc."companyId", pc.name, pc.description, pc.stock, pc."imagePath", pc."imageName", pc.created, pc.deleted, (select price from "ProductPrice" where "productId" = pc.id order by "validDateFrom" desc limit 1) "price", (select id from "ProductPrice" where "productId" = pc.id order by "validDateFrom" desc limit 1) "priceId"  from "Product" p , "CompanyProduct" pc where pc."productId" = p.id and pc.deleted ${deleted ? 'is' : 'is not'} null and pc.id = ?`,
             [id])
         },
         getOneByIdList: function(id){

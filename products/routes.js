@@ -1053,7 +1053,7 @@ async function modificarProducto(req, res){
 
 //Endpoint para eliminar companyProduct existente
 async function eliminarProducto(req, res){
-    console.info(`Conexion DELETE entrante : /api/product/${req.params.id}`);
+    console.info(`Conexion DELETE entrante : /api/product/company/${req.params.id}`);
 
     //Validamos parametro de la URL
     console.info(`Comenzando validacion de tipos`);
@@ -1110,6 +1110,84 @@ async function eliminarProducto(req, res){
                             res.status(500).json({message: deleteMessage});
                         }  
                     }                 
+                }
+                else{
+                    //Si no existe relacion usuario - compania
+                    console.info('Usuario no corresponde con la empresa del producto');
+                    console.info('Preparando response');
+                    res.status(400).json({message: 'Usuario no corresponde con la empresa del producto'});
+                }
+            }
+            else{
+                //Si no existe usuario
+                console.info('No se pudo encontrar el usuario');
+                console.info('Preparando response');
+                res.status(500).json('Ocurrio un error al intener borrar el companyProduct');
+            }
+        }
+    }
+}
+
+async function restaurarProducto(req, res){
+    console.info(`Conexion PUT entrante : /api/product/company/${req.params.productId}/restore`);
+
+    //Validamos parametro de la URL
+    console.info(`Comenzando validacion de tipos`);
+    let { error } = validarId(req.params.productId);
+
+    if(error){
+        //Si hay error, retornamos
+        console.info(`Error en la validacion de tipos: ${error.details[0].message}`);
+        console.info('Preparando response');
+        res.status(400).json({message: error.details[0].message});
+    }
+    else{
+        console.info('Comenzando validaciones de existencia');
+        //Obtenemos el companyProduct
+        let { producto, message } = await getCompanyProductById(req.params.productId, false);
+
+        if(!producto){
+            //Si no se encontro, retornamos
+            console.info(`No existe companyProduct con ID: ${req.params.productId}`);
+            console.info('Preparando response');
+            res.status(400).json({message});
+        }
+        else{
+            //Obtenemos el usuario
+            let { user } = await getUserByEmail(req.body.userEmail);
+
+            if(user){
+                //Verificamos relacion usuario - compania
+                if(user.companyId === producto.companyId){
+                    console.info('Enviando request para restauracion');
+                    //Enviamos a restaurar el companyProduct (update que inserta null en campo 'deleted')
+
+                    let product = {
+                        companyId: producto.companyId,
+                        productId: producto.productId,
+                        name: producto.name,
+                        description: producto.description,
+                        stock: producto.stock,
+                        imageName: producto.imageName,
+                        imagePath: producto.imagePath,
+                        created: producto.created,
+                        deleted: null
+                    };
+
+                    let { result, message: updateMessage } = await updateProduct(req.params.productId, product);
+                    
+                    if(result){
+                        //Si salio bien, retornamos
+                        console.info(`CompanyProduct con ID: ${req.params.productId} restaurado correctamente`);
+                        console.info('Preparando response');
+                        res.status(200).json({message: 'Restauracion exitosa'});
+                    }
+                    else{
+                        //Si fallo damos error
+                        console.info('No se pudo restaurar CompanyProduct');
+                        console.info('Preparando response');
+                        res.status(500).json({message: updateMessage});
+                    }               
                 }
                 else{
                     //Si no existe relacion usuario - compania
@@ -1738,13 +1816,13 @@ async function getProductByName(name){
 }
 
 //Auxiliar para obtener companyProducts filtrando por ID
-async function getCompanyProductById(id){
+async function getCompanyProductById(id, deleted=true){
     console.info(`Buscando CompanyProduct con id: ${id}`);
     let message = '';
     //Conectamos con las queries
     let producto = await queries
                     .companyProduct
-                    .getOneById(id)
+                    .getOneById(id, deleted)
                     .then(async data => {
                         //Si se consiguio la info
                         if(data){
@@ -2789,6 +2867,7 @@ module.exports = {
     ajustarPrecioByCompanyByCategory,
     modificarProducto,
     eliminarProducto,
+    restaurarProducto,
     getProducts,
     getCompanyProducts,
     getAllCompanyProducts,

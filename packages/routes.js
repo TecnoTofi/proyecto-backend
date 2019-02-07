@@ -971,6 +971,82 @@ async function eliminarPaquete(req, res){
     }
 }
 
+async function restaurarPaquete(req, res){
+    console.info(`Conexion DELETE entrante : /api/package/${req.params.id}/restore`);
+
+    //Validamos parametro de la URL
+    console.info(`Comenzando validacion de tipos`);
+    let { error } = validarId(req.params.id);
+
+    if(error){
+        //Si hay error, retornamos
+        console.info(`Error en la validacion de tipos: ${error.details[0].message}`);
+        console.info('Preparando response');
+        res.status(400).json({message: error.details[0].message});
+    }
+    else{
+        //Obtenemos el paquete
+        console.info('Comenzando validaciones de existencia');
+        let { paquete, message } = await getPackageById(req.params.id);
+
+        if(!paquete){
+            //Si no se encontro, retornamos
+            console.info(`No existe paquete con ID: ${req.params.id}`);
+            console.info('Preparando response');
+            res.status(400).json({message});
+        }
+        else{
+            //Obtenemos el usuario
+            let { user, message: userMessage } = await getUserByEmail(req.body.userEmail);
+            
+            if(!user){
+                //Si no existe usuario
+                console.info('Ocurrio un error buscando el usuario');
+                console.info('Preparando request');
+                res.status(500).json({message: 'Ocurrio un error al procesar la solicitud'});
+            }
+            //Verificamos relacion usuario - paquete
+            else if(user.companyId === paquete.companyId){
+                //Enviamos a restaurar el paquete (update que inserta null en campo 'deleted')
+                console.info('Enviando request para restauracion');
+
+                let package = {
+                    companyId: paquete.companyId,
+                    code: paquete.code,
+                    name: paquete.name,
+                    description: paquete.description,
+                    stock: paquete.stock,
+                    imageName: paquete.imageName,
+                    imagePath: paquete.imagePath,
+                    created: paquete.created,
+                    deleted: null,
+                };
+
+                let { result, message } = await updatePackage(req.params.id, package);
+                
+                if(result){
+                    //Si salio bien, retornamos
+                    console.info(`Package restaurado correctamente con ID: ${req.params.id}`);
+                    console.info('Preparando response');
+                    res.status(200).json({message});
+                }
+                else{
+                    //Si fallo damos error
+                    console.info('No se pudo restaurar Package');
+                    console.info('Preparando response');
+                    res.status(500).json({message: message});
+                }
+            }
+            else{
+                //Si no existe relacion usuario - paquete
+                console.info('Paquete no corresponde con la compania del usuario');
+                console.info('Preparando responde');
+                res.status(400).json({message: 'Paquete no corresponde con la compania del usuario'});
+            }
+        }
+    }
+}
+
 //Funcion para obtener todos los datos de un paquete
 async function armarPackage(paquete){
     console.info(`Comenzando armado de paquete con ID: ${paquete.id}`);
@@ -2151,6 +2227,7 @@ module.exports = {
     agregarPackageProduct,
     modificarPaquete,
     eliminarPaquete,
+    restaurarPaquete,
     getPackageById,
     getPriceById,
     getCurrentPrice,

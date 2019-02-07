@@ -52,7 +52,7 @@ router.get(/^\/company\/all/, ProductRoutes.obtenerAllCompanyProducts);
 router.get('/company/:id' , ProductRoutes.obtenerCompanyProductsByCompany);
 router.get('/company/:id/notassociated' , ProductRoutes.obtenerNotAssociatedProductsByCompany);
 router.get('/company/:id/all' , ProductRoutes.obtenerAllCompanyProductsByCompany);
-router.get('/company/:id/deleted/' , ProductRoutes.obtenerDeletedCompanyProductsByCompany);
+router.get('/company/:id/deleted' , ProductRoutes.obtenerDeletedCompanyProductsByCompany);
 router.get('/company/:companyId/product/:productId', verifyToken, ProductRoutes.obtenerCompanyProductById);
 router.post('/', upload.single('image'), verifyToken, ProductRoutes.altaProductoVal);
 router.post('/associate', upload.single('image'), verifyToken, ProductRoutes.asociarProductoVal);
@@ -60,6 +60,7 @@ router.post('/company' , upload.single('image'), verifyToken, ProductRoutes.alta
 router.post('/bulk',  upload.single('image'), verifyToken, ProductRoutes.cargaBulkVal);
 router.post('/company/:companyId/category/:categoryId/price', verifyToken, ProductRoutes.ajustarPrecioByCompanyByCategory);
 router.put('/:productId/company/:companyId', upload.single('image'), verifyToken, ProductRoutes.modificarProducto);
+router.put('/company/:productId/restore', verifyToken, ProductRoutes.restaurarProducto);
 router.delete('/company/:id', verifyToken, ProductRoutes.eliminarProducto);
 
 module.exports = router;

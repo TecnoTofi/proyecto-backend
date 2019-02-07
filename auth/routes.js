@@ -26,8 +26,8 @@ const { getUserByDocument,
 const { getTypeById, getRubroById, validarId } = require('../helpers/routes');
 
 //Declaramos el secreto para JWT
-const secreto = process.env.COOKIE_SECRET;
-// const secreto = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyRW1haWwiOiJjb25hcHJvbGVAZ21haWwuY29tIiwidXNlclBhc3N3b3JkIjoidGVzdDEyMzQiLCJpYXQiOjE1NDUxODY1MzEsImV4cCI6MTU0NTE5MDEzMX0.58leQTwJJrc3nA7YhqMKNtlnfjWo7eK4TrgJmHRMfBg';
+// const secreto = process.env.COOKIE_SECRET;
+const secreto = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyRW1haWwiOiJjb25hcHJvbGVAZ21haWwuY29tIiwidXNlclBhc3N3b3JkIjoidGVzdDEyMzQiLCJpYXQiOjE1NDUxODY1MzEsImV4cCI6MTU0NTE5MDEzMX0.58leQTwJJrc3nA7YhqMKNtlnfjWo7eK4TrgJmHRMfBg';
 
 //Endpoint para validacion de tokens
 function verifyToken (req, res, next) {

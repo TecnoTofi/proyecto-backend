@@ -692,6 +692,7 @@ async function getCompanyById(id){
                     //Si se consiguio la info
                     if(data) {
                         console.info(`Company con ID: ${id} encontrada`);
+                        if(data.imagePath) data.imagePath = data.imagePath.replace(/\\/g, '/');
                         return data;
                     }
                     else{
@@ -720,6 +721,7 @@ async function getCompanyByRut(rut){
                     //Si se consiguio la info
                     if(data) {
                         console.info(`Company con Rut: ${rut} encontrada`);
+                        if(data.imagePath) data.imagePath = data.imagePath.replace(/\\/g, '/');
                         return data;
                     }
                     else{
@@ -747,6 +749,7 @@ async function getCompanyByName(name){
                     //Si se consiguio la info
                     if(data) {
                         console.info(`Company con Nombre: ${name} encontrada`);
+                        if(data.imagePath) data.imagePath = data.imagePath.replace(/\\/g, '/');
                         return data;
                     }
                     else{

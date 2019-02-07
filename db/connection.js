@@ -1,6 +1,6 @@
 //Conexion a DataBase
-// const environment = process.env.ENVIRONMENT || 'development'
-const environment = 'staging';
+const environment = process.env.ENVIRONMENT || 'development'
+// const environment = 'staging';
 //Obtengo informacion de ambiente
 const config = require('../knexfile');
 const environmentConfig = config[environment];

@@ -1079,90 +1079,116 @@ async function realizarPedido(req, res){
 async function armarPedido(pedido, sellerId){
     console.info(`Comenzando armado de pedido ${pedido.id}`);
 
-    //Obtenemos las transacciones
-    console.info('Obteniendo transacciones');
-    let { transactions: transactionIds } = await getTransactionsByPedido(pedido.id);
+    //Obtenemos el usuario comprador
+    let { user, message: userMessage } = await getUserById(pedido.userId);
 
-    let flag = true;
-    if(transactionIds){
-        //Armamos las transacciones con sus datos
-        let transactions = await Promise.all(transactionIds.map(async id => {
-            let { transaction: tran } = await getTransactionById(id);
-            if(tran){
-                //Si hay seller y coincide con el seller de la transaccion
-                if(sellerId && tran.sellerId === sellerId){
-                    let transaction =  await armarTransaction(tran);
+    if(!user){
+        //Si no se encontro, retornamos null
+        console.info('No se pudo encontrar el usuario.');
+        console.info(userMessage);
+        return null;
+    }
+    else{
+        pedido.userName = user.name;
 
-                    //Retornamos los datos
-                    if(!transaction){
-                        flag = false;
-                        return null;
+        //Obtenemos la compania compradora
+        let { company: buyerCompany, message: companyMessage } = await getCompanyById(user.companyId);
+
+        if(!buyerCompany){
+            //Si no se encontro, retornamos null
+            console.info('No se pudo encontrar la compania compradora.');
+            console.info(companyMessage);
+            return null;
+        }
+        else{
+            pedido.buyerName = buyerCompany.name;
+
+            //Obtenemos las transacciones
+            console.info('Obteniendo transacciones');
+            let { transactions: transactionIds } = await getTransactionsByPedido(pedido.id);
+
+            let flag = true;
+            if(transactionIds){
+                //Armamos las transacciones con sus datos
+                let transactions = await Promise.all(transactionIds.map(async id => {
+                    let { transaction: tran } = await getTransactionById(id);
+                    if(tran){
+                        //Si hay seller y coincide con el seller de la transaccion
+                        if(sellerId && tran.sellerId === sellerId){
+                            let transaction =  await armarTransaction(tran);
+
+                            //Retornamos los datos
+                            if(!transaction){
+                                flag = false;
+                                return null;
+                            }
+                            else{
+                                return transaction;
+                            }
+                        }
+                        //Si hay seller pero no coincide con el seller de la transaccion
+                        else if(sellerId && tran.sellerId !== sellerId){
+                            let transaction = tran;
+                            return transaction;
+                        }
+                        //Si no hay seller 
+                        else{
+                            let transaction =  await armarTransaction(tran);
+
+                            //Si fallo, damos error
+                            if(!transaction){
+                                flag = false;
+                                return null;
+                            }
+                            //Retornamos los datos
+                            else{
+                                return transaction;
+                            }
+                        }
                     }
-                    else{
-                        return transaction;
-                    }
-                }
-                //Si hay seller pero no coincide con el seller de la transaccion
-                else if(sellerId && tran.sellerId !== sellerId){
-                    let transaction = tran;
-                    return transaction;
-                }
-                //Si no hay seller 
-                else{
-                    let transaction =  await armarTransaction(tran);
-
                     //Si fallo, damos error
-                    if(!transaction){
+                    else{
                         flag = false;
                         return null;
                     }
-                    //Retornamos los datos
-                    else{
-                        return transaction;
+
+                }));
+                if(pedido.voucher){
+                    let { voucher, message: voucherMessage } = await getVoucherById(pedido.voucher);
+                    if(!voucher){
+
+                        flag = false;
+                        console.info('No se pudo encontrar el voucher');
+                        console.info(voucherMessage);
                     }
+                    else{
+                        let v = {
+                            id: voucher.id,
+                            voucher: voucher.voucher,
+                            type: voucher.type,
+                            value: voucher.value
+                        }
+                        pedido.voucher = v;
+                    }
+                }
+                
+                //Retornamos los datos
+                if(flag){
+                    pedido.transactions = transactions;
+                    return pedido;
+                }
+                //Si fallo, damos error
+                else{
+                    console.info('Ocurrio un error armando las transacciones');
+                    return null
                 }
             }
             //Si fallo, damos error
             else{
-                flag = false;
+                console.info(`Ocurrio un error buscando las transacciones para el pedido ${pedido.id}`);
                 return null;
             }
-
-        }));
-        if(pedido.voucher){
-            let { voucher, message: voucherMessage } = await getVoucherById(pedido.voucher);
-            if(!voucher){
-    
-                flag = false;
-                console.info('No se pudo encontrar el voucher');
-                console.info(voucherMessage);
-            }
-            else{
-                let v = {
-                    id: voucher.id,
-                    voucher: voucher.voucher,
-                    type: voucher.type,
-                    value: voucher.value
-                }
-                pedido.voucher = v;
-            }
         }
-        
-        //Retornamos los datos
-        if(flag){
-            pedido.transactions = transactions;
-            return pedido;
-        }
-        //Si fallo, damos error
-        else{
-            console.info('Ocurrio un error armando las transacciones');
-            return null
-        }
-    }
-    //Si fallo, damos error
-    else{
-        console.info(`Ocurrio un error buscando las transacciones para el pedido ${pedido.id}`);
-        return null;
     }
 }
 
@@ -1170,41 +1196,66 @@ async function armarPedido(pedido, sellerId){
 async function armarTransaction(transaction){
     console.info(`Comenzando armado de transaccion ${transaction.id}`);
 
-    //Obtenemos los productos
-    console.info('Obteniendo productos');
-    let { productos } = await getTransactionProductsByTransaction(transaction.id);
+    //Obtenemos las companias compradora y vendedora
+    let { company: buyerCompany, message: buyerMessage } = await getCompanyById(transaction.buyerId);
     
-    //Obtenemos los paquetes
-    console.info('Obteniendo paquetes');
-    let { paquetes } = await getTransactionPackagesByTransaction(transaction.id);
-    
-    //Si hay error retornamos
-    if(!productos && !paquetes){
-        console.info(`Ocurrio un error buscando los productos y paquetes de la transaccion ${transaction.id}`);
+    if(!buyerCompany){
+        //Si no se encontro, retornamos null
+        console.info('No se pudo encontrar la compania compradora.');
+        console.info(buyerMessage);
         return null;
     }
     else{
-        //Obtenemos el delivery
-        let { delivery } = await getDeliveryByTransaction(transaction.id);
+        transaction.buyerName = buyerCompany.name;
 
-        if(productos){
-            transaction.products = productos;
-        }
+        let { company: sellerCompany, message: sellerMessage } = await getCompanyById(transaction.sellerId);
 
-        if(paquetes){
-            console.log('entro')
-            transaction.packages = paquetes;
-        }
-
-        //Si hay error retornamos
-        if(!delivery){
-            console.info(`Ocurrio un error buscando el delivery de la transaccion ${transaction.id}`);
+        if(!sellerCompany){
+            //Si no se encontro, retornamos null
+            console.info('No se pudo encontrar la compania vendedora.');
+            console.info(sellerMessage);
             return null;
         }
-        //Retornamos los datos
         else{
-            transaction.delivery = delivery;
-            return transaction;
+            transaction.sellerName = sellerCompany.name;
+            
+            //Obtenemos los productos
+            console.info('Obteniendo productos');
+            let { productos } = await getTransactionProductsByTransaction(transaction.id);
+            
+            //Obtenemos los paquetes
+            console.info('Obteniendo paquetes');
+            let { paquetes } = await getTransactionPackagesByTransaction(transaction.id);
+            
+            //Si hay error retornamos
+            if(!productos && !paquetes){
+                console.info(`Ocurrio un error buscando los productos y paquetes de la transaccion ${transaction.id}`);
+                return null;
+            }
+            else{
+                //Obtenemos el delivery
+                let { delivery } = await getDeliveryByTransaction(transaction.id);
+
+                if(productos){
+                    transaction.products = productos;
+                }
+
+                if(paquetes){
+                    console.log('entro')
+                    transaction.packages = paquetes;
+                }
+
+                //Si hay error retornamos
+                if(!delivery){
+                    console.info(`Ocurrio un error buscando el delivery de la transaccion ${transaction.id}`);
+                    return null;
+                }
+                //Retornamos los datos
+                else{
+                    transaction.delivery = delivery;
+                    return transaction;
+                }
+            }
         }
     }
 }

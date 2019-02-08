@@ -74,7 +74,7 @@ module.exports ={
         },
         getOneById: function(id, deleted){
             return knex.raw(`select pc.id, p.id "productId", p.code, pc."companyId", pc.name, pc.description, pc.stock, pc."imagePath", pc."imageName", pc.created, pc.deleted, (select price from "ProductPrice" where "productId" = pc.id order by "validDateFrom" desc limit 1) "price", (select id from "ProductPrice" where "productId" = pc.id order by "validDateFrom" desc limit 1) "priceId"  from "Product" p , "CompanyProduct" pc where pc."productId" = p.id and pc.deleted ${deleted ? 'is' : 'is not'} null and pc.id = ?`,
-            [id])
+            [id]);
         },
         getOneByIdList: function(id){
             return knex.raw('select p.id, p.code, p.deleted, p.created, pc."companyId", pc.name, pc.description, pc.stock, pc."imagePath", pc."imageName", pc.created, pc.deleted,c.id, c.price, c."validDateFrom" from "Product" p , "ProductPrice" c , "CompanyProduct" pc where pc.id = ? and  c."productId" = pc.id and pc."productId" = p.id',

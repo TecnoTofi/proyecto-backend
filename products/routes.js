@@ -545,7 +545,7 @@ async function altaProducto(body, file){
 
         //Buscamos todas las entidades
         let { categories: valCategories, messages: categoriesMessages } = await validarCategorias(body.categories);
-        let { producto: ProductoByName } = await getProductByName(valProduct.name);
+        // let { producto: ProductoByName } = await getProductByName(valProduct.name);
         let { producto: ProductoByCode } = await getProductByCode(valProduct.code);
 
         if(!valCategories){
@@ -557,8 +557,7 @@ async function altaProducto(body, file){
             });
         }
         if(ProductoByCode) errorMessage.push(`Ya existe un producto con Codigo ${valProduct.code}`);
-        if(ProductoByName) errorMessage.push(`Ya existe un producto con Nombre ${valProduct.name}`);
-
+        // if(ProductoByName) errorMessage.push(`Ya existe un producto con Nombre ${valProduct.name}`);
 
         if(errorMessage.length > 0){
             //Si hay algun error, retornamos
@@ -656,10 +655,10 @@ async function asociarProductoVal(req, res){
     console.log('Conexion POST entrante : /api/product/associate');
 
     //Llamamos auxiliar para asociar producto existente
-    let { status, message } = await asociarProducto(req.body, req.file);
+    let { status, message, id } = await asociarProducto(req.body, req.file);
 
     //Retornamos resultado
-    res.status(status).json(message);
+    res.status(status).json({ id, message });
 }
 
 //Auxiliar para asociar un producto existente a una compania
@@ -704,6 +703,7 @@ async function asociarProducto(body, file){
                 let errorMessage = [];
                 //Obtenemos las entidades
                 let { producto: productoById, message: productMessage } = await getProductById(valCompanyProduct.productId);
+
                 let { company, message: companyMessage } = await getCompanyById(valCompanyProduct.companyId);
                 let { producto: companyProductByProduct } = await getCompanyProductByProduct(valCompanyProduct.companyId, valCompanyProduct.productId);
 
@@ -761,7 +761,7 @@ async function asociarProducto(body, file){
                             console.log(`Price insertado correctamente con ID: ${priceId}`);
 
                             console.log('Asociacion de producto finalizada exitosamente');
-                            return { status: 201, companyProduct: companyProductId };
+                            return { status: 201, id: companyProductId };
                         }
                         else{
                             //Fallo insertar precio, procedemos con rollback
@@ -2069,7 +2069,7 @@ async function cargaBulkVal(req,res){
 //Auxiliar para realizar una carga en bulk de productos
 async function cargaBulk(body){
     console.info('Comenzando carga bulk de productos');
-
+    console.log('body', body)
     //Creamos array de productos
     console.info('Obteniendo array de productos');
     let productsArray = JSON.parse(body.products);

@@ -341,163 +341,156 @@ async function altaPaquete(req, res){
             if(messageProductos.length > 0) errorMessage = errorMessage.concat(messageProductos);
             if(packageByCode) errorMessage.push(`Ya existe un paquete con Codigo ${valPackage.code}`);
             
-            if(packageByCode && userByEmail.companyId !== packageByCode.companyId){
-                console.info(`Paquete con ID: ${req.params.id} no corresponde con la compania del usuario`);
-                console.info('Preparando response');
-                res.status(500).json({message: `Paquete con ID: ${req.params.id} no corresponde con la compania del usuario`});
+            //Si hay algun error, retornamos
+            if(errorMessage.length > 0){
+                console.info(`Se encontraron ${errorMessage.length} errores de existencia en la request`);
+                errorMessage.map(err => console.log(err));
+                console.info('Enviando response')
+                res.status(400).json({message: errorMessage});
             }
             else{
-                //Si hay algun error, retornamos
-                if(errorMessage.length > 0){
-                    console.info(`Se encontraron ${errorMessage.length} errores de existencia en la request`);
-                    errorMessage.map(err => console.log(err));
-                    console.info('Enviando response')
-                    res.status(400).json({message: errorMessage});
-                }
-                else{
-                    console.log('Validaciones de existencia exitosas');
-                    //Creamos body para insert
-                    let package = {
-                        companyId: userByEmail.companyId,
-                        code: valPackage.code,
-                        name: valPackage.name,
-                        description: valPackage.description,
-                        stock: valPackage.stock,
-                        imageName: valPackage.imageName,
-                        imagePath: valPackage.imagePath,
-                        created: new Date(),
-                    };
-        
-                    console.log('Enviando a insertar paquete');
-                    let { id: packageId, message: packageMessage } = await insertPackage(package);
-        
-                    if(packageId){
-                        //Paquete insertado
-                        console.log(`Paquete insertado correctamente con ID: ${packageId}`);
-        
-                        let packCategoryIds = [];
-                        let rollback = false;
-                        let packCategory = {
-                            packageId
-                        }
-                        console.log(`Comenzando armado e insercion de PackageCategory para paquete ${packageId}`);
-                        let i = 0;
-                        let categoriesOk = true;
-                        //Insertamos cada categoria del paquete
-                        while(i < categories.length && categoriesOk){
-                            
-                            //Creamos body para insert de categoria - paquete
-                            packCategory.categoryId = categories[i].id;
-
-                            console.log('Enviando Query INSERT para PackageCategory');
-                            let { id: packageCategoryId, message: packageCategoryMessage} = await insertPackageCategory(packCategory);
-        
-                            if(!packageCategoryId){
-                                //Fallo insert, marcamos para rollback
-                                console.log(`Fallo insert de PackageCategory con ID: ${packCategory.categoryId}`);
-                                errorMessage.push(packageCategoryMessage);
-                                rollback = true;
-                                categoriesOk = false;
-                            }
-                            else{
-                                // Categoria insertada correctamente en paquete
-                                console.log(`PackageCategory insertada correctamente con ID: ${packageCategoryId}`);
-                                packCategoryIds.push(packageCategoryId);
-                            }
-                            i++;
-                        }
-
-                        console.log(`Comenzando armado e insercion de PackageProduct para paquete ${packageId}`);
-                        let packProductIds = [];
-                        let productsOk = true;
+                console.log('Validaciones de existencia exitosas');
+                //Creamos body para insert
+                let package = {
+                    companyId: userByEmail.companyId,
+                    code: valPackage.code,
+                    name: valPackage.name,
+                    description: valPackage.description,
+                    stock: valPackage.stock,
+                    imageName: valPackage.imageName,
+                    imagePath: valPackage.imagePath,
+                    created: new Date(),
+                };
+    
+                console.log('Enviando a insertar paquete');
+                let { id: packageId, message: packageMessage } = await insertPackage(package);
+    
+                if(packageId){
+                    //Paquete insertado
+                    console.log(`Paquete insertado correctamente con ID: ${packageId}`);
+    
+                    let packCategoryIds = [];
+                    let rollback = false;
+                    let packCategory = {
+                        packageId
+                    }
+                    console.log(`Comenzando armado e insercion de PackageCategory para paquete ${packageId}`);
+                    let i = 0;
+                    let categoriesOk = true;
+                    //Insertamos cada categoria del paquete
+                    while(i < categories.length && categoriesOk){
                         
-                        let j = 0;
-                        //Insertamos cada producto en el paquete
-                        while(j < req.body.productos.length && productsOk){
+                        //Creamos body para insert de categoria - paquete
+                        packCategory.categoryId = categories[i].id;
 
-                            //Creamos body para insert de producto - paquete
-                            let packageProduct = {
-                                productId: req.body.productos[j].id,
-                                packageId,
-                                quantity: req.body.productos[j].cantidad,
-                            }
-                            j++;
-
-                            console.log('Enviando a insertar PackageProduct');
-                            let { id: packageProductId, message: packageProductMessage } = await insertPackageProduct(packageProduct);
-                            
-                            if(!packageProductId){
-                                //Fallo insert, marcamos para rollback
-                                console.log(`Fallo insert de PackageProduct con product ID: ${packageProduct.productId}`);
-                                errorMessage.push(packageProductMessage);
-                                rollback = true;
-                                productsOk = false;
-                            }
-                            else{
-                                // Producto insertado correctamente en paquete
-                                console.log(`PackageProduct insertada correctamente con ID: ${packageProductId}`);
-                                packProductIds.push(packageProductId);
-                            }
-                        }
-
-                        //Creamos body para insert de precio
-                        let precio = {
-                            price: valPackage.price,
-                            packageId,
-                            validDateFrom: new Date(),
-                        };
-
-                        let { id: priceId, message: priceMessage } = await insertPrice(precio);
-
-                        if(priceId && !rollback){
-                            //Precio insertado
-                            console.log(`Price insertado correctamente con ID: ${priceId}`);
-
-                            console.log('Paquete finalizado exitosamente');
-                            res.status(201).json({message: 'Paquete creado con exito', id: packageId});
+                        console.log('Enviando Query INSERT para PackageCategory');
+                        let { id: packageCategoryId, message: packageCategoryMessage} = await insertPackageCategory(packCategory);
+    
+                        if(!packageCategoryId){
+                            //Fallo insert, marcamos para rollback
+                            console.log(`Fallo insert de PackageCategory con ID: ${packCategory.categoryId}`);
+                            errorMessage.push(packageCategoryMessage);
+                            rollback = true;
+                            categoriesOk = false;
                         }
                         else{
+                            // Categoria insertada correctamente en paquete
+                            console.log(`PackageCategory insertada correctamente con ID: ${packageCategoryId}`);
+                            packCategoryIds.push(packageCategoryId);
+                        }
+                        i++;
+                    }
+
+                    console.log(`Comenzando armado e insercion de PackageProduct para paquete ${packageId}`);
+                    let packProductIds = [];
+                    let productsOk = true;
+                    
+                    let j = 0;
+                    //Insertamos cada producto en el paquete
+                    while(j < req.body.productos.length && productsOk){
+
+                        //Creamos body para insert de producto - paquete
+                        let packageProduct = {
+                            productId: req.body.productos[j].id,
+                            packageId,
+                            quantity: req.body.productos[j].cantidad,
+                        }
+                        j++;
+
+                        console.log('Enviando a insertar PackageProduct');
+                        let { id: packageProductId, message: packageProductMessage } = await insertPackageProduct(packageProduct);
+                        
+                        if(!packageProductId){
                             //Fallo insert, marcamos para rollback
+                            console.log(`Fallo insert de PackageProduct con product ID: ${packageProduct.productId}`);
+                            errorMessage.push(packageProductMessage);
                             rollback = true;
                             productsOk = false;
-                            console.info(`Ocurrio un error al insertar el precio para el paquete ${packageId}`);
-                            errorMessage.push(`Ocurrio un error al insertar el precio para el paquete ${packageId}`);
                         }
-
-                        //Marcado para rollback
-                        if(rollback){
-                            console.log('Ocurrio un error en el proceso de inserts, comenzando rollback');
-                            //Realizamos rollbacks de cada categoria - paquete
-                            console.log('Comenzando rollbacks de categorias');
-                            for(let id of packCategoryIds){
-                                console.log(`Enviando rollback de PackageCategory ID: ${id}`);
-                                let rollbackPackageCategory = await rollbackInsertPackageCategory(id)
-                                if(rollbackPackageCategory.res) console.log(`Rollback de PackageCategory ${id} realizado correctamente`);
-                                else console.log(`Ocurrio un error en rollback de PackageCategory ${id}`);
-                            }
-
-                            //Realizamos rollbacks de cada producto - paquete
-                            console.log('Comenzando rollbacks de packageProducts');
-                            for(let id of packProductIds){
-                                console.log(`Enviando rollback de PackageProduct ID: ${id}`);
-                                let rollbackPackageProduct = await rollbackInsertPackageCategory(id)
-                                if(rollbackPackageProduct.res) console.log(`Rollback de PackageProduct ${id} realizado correctamente`);
-                                else console.log(`Ocurrio un error en rollback de PackageProduct ${id}`);
-                            }
-
-                            //Realizamos rollback de paquete
-                            console.log('Comenzando rollbacks de package');
-                            let rollbackProduct = await rollbackInsertPackage(packageId);
-                            if(rollbackProduct.res) console.log(`Rollback de Package ${packageId} realizado correctamente`);
-                            else console.log(`Ocurrio un error en rollback de Package ${packageId}`);
+                        else{
+                            // Producto insertado correctamente en paquete
+                            console.log(`PackageProduct insertada correctamente con ID: ${packageProductId}`);
+                            packProductIds.push(packageProductId);
                         }
+                    }
+
+                    //Creamos body para insert de precio
+                    let precio = {
+                        price: valPackage.price,
+                        packageId,
+                        validDateFrom: new Date(),
+                    };
+
+                    let { id: priceId, message: priceMessage } = await insertPrice(precio);
+
+                    if(priceId && !rollback){
+                        //Precio insertado
+                        console.log(`Price insertado correctamente con ID: ${priceId}`);
+
+                        console.log('Paquete finalizado exitosamente');
+                        res.status(201).json({message: 'Paquete creado con exito', id: packageId});
                     }
                     else{
-                        //Fallo insert de paquete
-                        console.info('Error en la insercion de paquete');
-                        console.info('Preparando response');
-                        res.status(500).json({message: packageMessage});
+                        //Fallo insert, marcamos para rollback
+                        rollback = true;
+                        productsOk = false;
+                        console.info(`Ocurrio un error al insertar el precio para el paquete ${packageId}`);
+                        errorMessage.push(`Ocurrio un error al insertar el precio para el paquete ${packageId}`);
                     }
+
+                    //Marcado para rollback
+                    if(rollback){
+                        console.log('Ocurrio un error en el proceso de inserts, comenzando rollback');
+                        //Realizamos rollbacks de cada categoria - paquete
+                        console.log('Comenzando rollbacks de categorias');
+                        for(let id of packCategoryIds){
+                            console.log(`Enviando rollback de PackageCategory ID: ${id}`);
+                            let rollbackPackageCategory = await rollbackInsertPackageCategory(id)
+                            if(rollbackPackageCategory.res) console.log(`Rollback de PackageCategory ${id} realizado correctamente`);
+                            else console.log(`Ocurrio un error en rollback de PackageCategory ${id}`);
+                        }
+
+                        //Realizamos rollbacks de cada producto - paquete
+                        console.log('Comenzando rollbacks de packageProducts');
+                        for(let id of packProductIds){
+                            console.log(`Enviando rollback de PackageProduct ID: ${id}`);
+                            let rollbackPackageProduct = await rollbackInsertPackageCategory(id)
+                            if(rollbackPackageProduct.res) console.log(`Rollback de PackageProduct ${id} realizado correctamente`);
+                            else console.log(`Ocurrio un error en rollback de PackageProduct ${id}`);
+                        }
+
+                        //Realizamos rollback de paquete
+                        console.log('Comenzando rollbacks de package');
+                        let rollbackProduct = await rollbackInsertPackage(packageId);
+                        if(rollbackProduct.res) console.log(`Rollback de Package ${packageId} realizado correctamente`);
+                        else console.log(`Ocurrio un error en rollback de Package ${packageId}`);
+                    }
+                }
+                else{
+                    //Fallo insert de paquete
+                    console.info('Error en la insercion de paquete');
+                    console.info('Preparando response');
+                    res.status(500).json({message: packageMessage});
                 }
             }
         }
